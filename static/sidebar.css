@@ -1,0 +1,263 @@
+/* Colapso del sidebar — permite "estirar" el contenido a todo el ancho.
+   El estado se guarda en localStorage (soc.navCollapsed) y se restaura en el
+   <head> de cada página (clase nav-collapsed sobre <html>) para evitar parpadeo.
+   Los botones los inyecta sidebar.js. */
+
+.sidebar { position: relative; }
+
+/* Botón para colapsar — dentro del sidebar, esquina superior derecha. */
+.nav-collapse-btn {
+  position: absolute;
+  top: 16px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.nav-collapse-btn:hover {
+  color: var(--color-brand-500);
+  border-color: var(--color-brand-500);
+}
+.nav-collapse-btn svg { width: 16px; height: 16px; }
+[data-theme="dark"] .nav-collapse-btn {
+  border-color: var(--color-gray-800);
+  color: var(--color-gray-500);
+}
+
+/* Botón de colapsar AL PIE del sidebar (en flujo, antes del footer). */
+.nav-collapse-foot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-gray-500);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.nav-collapse-foot svg { width: 16px; height: 16px; }
+.nav-collapse-foot:hover {
+  color: var(--color-brand-500);
+  border-color: var(--color-brand-500);
+}
+[data-theme="dark"] .nav-collapse-foot {
+  border-color: var(--color-gray-800);
+  color: var(--color-gray-400);
+}
+
+/* Botón flotante para volver a mostrar — oculto salvo cuando está colapsado. */
+.nav-reopen { display: none; }
+/* Espejo inferior del botón flotante de "mostrar". */
+html.nav-collapsed .nav-reopen-bottom { top: auto; bottom: 14px; }
+html.nav-collapsed .sidebar { display: none; }
+html.nav-collapsed .nav-reopen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 60;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  background: var(--color-white);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .12);
+  transition: color .15s ease, border-color .15s ease;
+}
+html.nav-collapsed .nav-reopen:hover {
+  color: var(--color-brand-500);
+  border-color: var(--color-brand-500);
+}
+html.nav-collapsed .nav-reopen svg { width: 20px; height: 20px; }
+[data-theme="dark"] .nav-reopen {
+  background: var(--color-gray-dark);
+  border-color: var(--color-gray-800);
+  color: var(--color-gray-300);
+}
+
+/* Fondo oscuro detrás del menú abierto en pantallas chicas. Sin él, tocar
+   "afuera" para cerrar no tiene dónde apoyarse. */
+.nav-backdrop { display: none; }
+
+/* ---------------------------------------------------------------------------
+   Pantallas angostas: el menú pasa a ser un panel que se desliza por encima.
+
+   El sidebar mide 250px fijos y no encoge (shrink-0), así que en un teléfono de
+   390px dejaba 140px para el contenido: TODAS las páginas del panel desbordaban
+   a la derecha (config 542px, index 192px, incidentes 164px). Sacándolo del
+   flujo con position:fixed, el contenido recupera el ancho completo y el menú
+   se abre superpuesto cuando hace falta.
+   --------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(82vw, 264px);
+    z-index: 70;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+  }
+  html.nav-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 0 0 28px rgba(16, 24, 40, .28);
+  }
+  /* La preferencia de "colapsado" es del escritorio (se guarda en
+     localStorage); acá no debe impedir que el menú se pueda abrir. */
+  html.nav-collapsed .sidebar { display: flex; }
+
+  .app-main { width: 100%; min-width: 0; }
+  /* px-8 (32px por lado) se come un cuarto de la pantalla en un teléfono. */
+  .container { padding-left: 16px; padding-right: 16px; }
+  /* Espacio para el botón flotante, que si no tapa el título de la página. */
+  .app-main > .container { padding-top: 60px; }
+  .app-main > .header { padding-left: 64px; }
+
+  /* El botón de menú se ve siempre, no sólo cuando el sidebar está colapsado. */
+  .nav-reopen,
+  html.nav-collapsed .nav-reopen {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 80;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 10px;
+    background: var(--color-white);
+    color: var(--color-gray-600);
+    box-shadow: 0 1px 3px rgba(16, 24, 40, .12);
+  }
+  html.nav-collapsed .nav-reopen svg,
+  .nav-reopen svg { width: 20px; height: 20px; }
+  [data-theme="dark"] .nav-reopen { background: var(--color-gray-dark); border-color: var(--color-gray-800); }
+  /* Con el menú abierto el botón queda tapado por el panel; y el espejo de
+     abajo sobra cuando el menú es un panel deslizante. */
+  html.nav-open .nav-reopen { display: none; }
+  .nav-reopen-bottom,
+  html.nav-collapsed .nav-reopen-bottom { display: none; }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    background: rgba(16, 24, 40, .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+  html.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+
+  /* Dentro del panel, "colapsar" pasa a ser "cerrar". */
+  .nav-collapse-btn, .nav-collapse-foot { color: var(--color-gray-500); }
+}
+
+/* Sin animación para quien pidió menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .nav-backdrop { transition: none; }
+}
+
+/* Perfil de solo lectura.
+ *
+ * El control real es del servidor (middleware `enforce_write_role`): esto
+ * ordena la pantalla para que la persona no vea acciones que no puede hacer.
+ * Cualquier elemento marcado con `data-requires-admin` desaparece. */
+html.role-readonly [data-requires-admin] { display: none !important; }
+
+/* Quién está operando. Va arriba del pie (tema + salir). */
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  min-width: 0;
+  padding: .5rem .15rem .75rem;
+}
+
+.user-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--color-gray-100, #f2f4f7);
+  border: 1px solid var(--color-gray-200, #e4e7ec);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--color-gray-600, #475467);
+}
+
+.user-datos {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  min-width: 0;
+}
+
+/* Un UPN largo no puede empujar el ancho del sidebar: se recorta y queda
+   completo en el title. */
+.user-name {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--color-gray-700, #344054);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rol-badge {
+  align-self: flex-start;
+  padding: .1rem .45rem;
+  border: 1px solid var(--color-gray-300, #d0d5dd);
+  border-radius: 999px;
+  font-size: .65rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--color-gray-500, #667085);
+  white-space: nowrap;
+}
+
+/* Solo lectura se marca; administrador no necesita destacarse. */
+.rol-badge.rol-readonly {
+  border-color: var(--color-amber-300, #fcd34d);
+  color: var(--color-amber-700, #b45309);
+}
+
+[data-theme="dark"] .user-avatar {
+  background: var(--color-gray-800, #1d2939);
+  border-color: var(--color-gray-700, #344054);
+  color: var(--color-gray-300, #d0d5dd);
+}
+[data-theme="dark"] .user-name { color: var(--color-gray-200, #e4e7ec); }
+[data-theme="dark"] .rol-badge { border-color: var(--color-gray-700, #344054); }
+
+/* Colapsado el sidebar es una tira de iconos: queda sólo el avatar. */
+html.nav-collapsed .user-box { justify-content: center; padding-inline: 0; }
+html.nav-collapsed .user-datos { display: none; }

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/static/assets/soar-shield.svg">
+<meta name="theme-color" content="#465fff">
+<title>Vulnerability &amp; Patch Tracking — Demo</title>
+<link rel="preload" href="/static/tailwind.css" as="style">
+<link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/sidebar.css">
+<script>try{if(localStorage.getItem('soc.navCollapsed')==='1')document.documentElement.classList.add('nav-collapsed')}catch(e){}</script>
+<script>
+  // Fija el tema antes del primer paint para no parpadear.
+  (function () {
+    try {
+      var t = localStorage.getItem('soc.theme');
+      if (t !== 'soc' && t !== 'light') t = 'light';
+      document.documentElement.setAttribute('data-theme', t === 'soc' ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-brand', t);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.setAttribute('data-brand', 'light');
+    }
+  })();
+</script>
+<script src="/static/theme.js"></script>
+<!-- ApexCharts vendorizado localmente (funciona sin internet / airgap). -->
+<script src="/static/vendor/apexcharts.min.js"></script>
+<style>
+/* ===== Vulnerabilidades — mismos patrones que el resto del panel original ===== */
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.page-header{margin-bottom:22px}
+.page-title{font-size:24px;font-weight:700;color:var(--color-gray-800);margin:0 0 6px}
+.page-desc{color:var(--color-gray-500);font-size:13.5px;line-height:1.6;max-width:860px;margin:0}
+[data-theme="dark"] .page-title{color:var(--color-white)}
+[data-theme="dark"] .page-desc{color:var(--color-gray-400)}
+
+.demo-banner{display:flex;align-items:center;gap:10px;background:var(--color-brand-50);
+  border:1px solid var(--color-brand-200);color:var(--color-brand-700);border-radius:var(--radius-lg);
+  padding:10px 14px;font-size:12.5px;margin-bottom:18px}
+[data-theme="dark"] .demo-banner{background:#465fff1f;border-color:#465fff40;color:var(--color-brand-300)}
+.demo-banner a{color:inherit;text-decoration:underline}
+
+.stat-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-bottom:14px}
+@media (max-width:1450px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:800px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{border:1px solid var(--color-gray-200);border-radius:var(--radius-2xl);background:var(--color-white);
+  padding:16px;display:flex;flex-direction:column;gap:8px}
+.stat-card .label{font-size:12.5px;color:var(--color-gray-500);font-weight:500}
+.stat-card .value{font-size:24px;font-weight:700;color:var(--color-gray-800);font-variant-numeric:tabular-nums;line-height:1.1}
+.stat-card .value.is-muted{color:var(--color-gray-300);animation:pulse-skel 1.4s ease-in-out infinite}
+@keyframes pulse-skel{0%,100%{opacity:.4}50%{opacity:.9}}
+@keyframes skel-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+.donut-box.is-loading,#chartPkgs.is-loading,#chartSrv.is-loading,#chartEvol.is-loading{
+  background:linear-gradient(90deg,var(--color-gray-100) 25%,var(--color-gray-50) 37%,var(--color-gray-100) 63%);
+  background-size:400% 100%;animation:skel-shimmer 1.4s ease infinite;border-radius:var(--radius-lg)}
+[data-theme="dark"] .donut-box.is-loading,[data-theme="dark"] #chartPkgs.is-loading,
+[data-theme="dark"] #chartSrv.is-loading,[data-theme="dark"] #chartEvol.is-loading{
+  background:linear-gradient(90deg,#ffffff08 25%,#ffffff14 37%,#ffffff08 63%);background-size:400% 100%}
+.cache-age{font-size:11.5px;color:var(--color-gray-400)}
+.stat-card.is-bad .value{color:#b42318}
+.stat-card.is-good .value{color:#15803d}
+.stat-card .hint{font-size:11.5px;color:var(--color-gray-400)}
+[data-theme="dark"] .stat-card{border-color:var(--color-gray-800);background:var(--color-gray-dark)}
+[data-theme="dark"] .stat-card .value{color:var(--color-white)}
+[data-theme="dark"] .stat-card .label{color:var(--color-gray-400)}
+[data-theme="dark"] .stat-card.is-bad .value{color:#fda29b}
+[data-theme="dark"] .stat-card.is-good .value{color:#86efac}
+
+.card-h{font-size:14px;font-weight:600;color:var(--color-gray-800);margin:0 0 2px}
+.card-sub{font-size:12px;color:var(--color-gray-500);margin:0 0 10px}
+[data-theme="dark"] .card-h{color:var(--color-white)}
+.dash-empty{color:var(--color-gray-400);font-size:13px;text-align:center;padding:28px 0}
+
+.mono{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-brand-700);
+  background:var(--color-brand-50);padding:2px 8px;border-radius:6px;white-space:nowrap}
+[data-theme="dark"] .mono{background:#84cc1626;color:var(--color-brand-300)}
+.pbadge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700}
+.p-critical{background:#fde7e9;color:#b42318}
+.p-high{background:#ffedd5;color:#c2410c}
+.p-medium{background:#fef9c3;color:#a16207}
+.p-low{background:#dcfce7;color:#15803d}
+.p-unknown{background:var(--color-gray-100);color:var(--color-gray-500)}
+.cve-flags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
+.kev-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px 2px 6px;border-radius:6px;
+  font-size:10.5px;font-weight:700;background:#b42318;color:#fff;letter-spacing:.03em;
+  box-shadow:0 0 0 1px #ffffff40 inset;cursor:help}
+.kev-badge svg{width:10px;height:10px;flex:none}
+.sla-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;
+  background:#fde7e9;color:#b42318}
+[data-theme="dark"] .sla-badge{background:#f0443826;color:#fda29b}
+.ransom-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;
+  font-size:10.5px;font-weight:700;background:#3b0764;color:#fff}
+[data-theme="dark"] .ransom-badge{background:#a855f740;color:#e9d5ff}
+.agent-more{color:var(--color-gray-400);cursor:help;text-decoration:underline dotted;text-underline-offset:2px}
+.sbadge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;
+  background:var(--color-gray-100);color:var(--color-gray-600);text-transform:capitalize;white-space:nowrap}
+.s-pendiente{background:#fef9c3;color:#a16207}
+.s-en_curso{background:#dbeafe;color:#1d4ed8}
+.s-parcial{background:#e0e7ff;color:#4338ca}
+.s-resuelto{background:#dcfce7;color:#15803d}
+.s-aceptado_riesgo{background:var(--color-gray-100);color:var(--color-gray-500)}
+[data-theme="dark"] .sbadge{background:#ffffff12;color:var(--color-gray-300)}
+
+.dash-table-wrap{overflow-x:auto}
+.dash-table{width:100%;border-collapse:collapse;font-size:13px}
+.dash-table thead th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200);white-space:nowrap}
+.dash-table tbody td{padding:10px 12px;border-bottom:1px solid var(--color-gray-100);color:var(--color-gray-700);vertical-align:top}
+.dash-table tbody tr:last-child td{border-bottom:none}
+[data-theme="dark"] .dash-table thead th{color:var(--color-gray-400);border-bottom-color:var(--color-gray-800)}
+[data-theme="dark"] .dash-table tbody td{border-bottom-color:var(--color-gray-800);color:var(--color-gray-300)}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.select,.input{appearance:none;-webkit-appearance:none;
+  background:var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border:1px solid var(--color-gray-200);border-radius:var(--radius-lg);padding:9px 34px 9px 12px;font-size:13px;
+  color:var(--color-gray-700);cursor:pointer;font-family:inherit}
+.input{background-image:none;padding-right:12px;cursor:text}
+.select:focus,.input:focus{outline:none;border-color:var(--color-brand-400);box-shadow:0 0 0 3px #465fff26}
+[data-theme="dark"] .select,[data-theme="dark"] .input{background-color:var(--color-gray-dark);border-color:var(--color-gray-800);color:var(--color-gray-200)}
+.events-count{font-size:12.5px;color:var(--color-gray-500);margin-left:auto;font-variant-numeric:tabular-nums}
+.check{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--color-gray-600);cursor:pointer}
+[data-theme="dark"] .check{color:var(--color-gray-300)}
+
+.btn-sm{padding:6px 12px;font-size:12.5px;border-radius:var(--radius-lg)}
+.btn-ghost{border:1px solid var(--color-gray-200);background:transparent;color:var(--color-gray-700);cursor:pointer;font-family:inherit}
+.btn-ghost:hover{background:var(--color-gray-50)}
+[data-theme="dark"] .btn-ghost{border-color:var(--color-gray-700);color:var(--color-gray-200)}
+[data-theme="dark"] .btn-ghost:hover{background:#ffffff0a}
+
+.loading{color:var(--color-gray-400);font-size:13px;text-align:center;padding:28px 0}
+.empty h3{margin:0 0 6px;font-size:15px;color:var(--color-gray-700)}
+.empty p{margin:0;font-size:13px;color:var(--color-gray-500)}
+[data-theme="dark"] .empty h3{color:var(--color-gray-200)}
+.alert{border-radius:var(--radius-lg);padding:12px 14px;font-size:13px}
+.alert-err{background:var(--color-error-50);color:var(--color-error-700);border:1px solid var(--color-error-200)}
+[data-theme="dark"] .alert-err{background:#f0443826;color:#fda29b;border-color:#f0443840}
+
+/* Modal de asignación */
+.modal-backdrop{position:fixed;inset:0;background:#00000066;display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--color-white);border-radius:var(--radius-2xl);padding:22px;width:440px;max-width:92vw;
+  box-shadow:0 20px 60px #00000040}
+.modal h3{margin:0 0 4px;font-size:16px;color:var(--color-gray-800)}
+.modal .modal-sub{font-size:12.5px;color:var(--color-gray-500);margin:0 0 16px}
+.modal label{display:block;font-size:12px;font-weight:600;color:var(--color-gray-500);margin:12px 0 4px}
+.field-hint{font-size:11px;color:var(--color-gray-400);margin:4px 0 0;line-height:1.4}
+.modal .input,.modal textarea{width:100%;box-sizing:border-box}
+.modal textarea{border:1px solid var(--color-gray-200);border-radius:var(--radius-lg);padding:9px 12px;
+  font-size:13px;color:var(--color-gray-700);font-family:inherit;min-height:70px;resize:vertical}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+[data-theme="dark"] .modal{background:var(--color-gray-dark);border:1px solid var(--color-gray-800)}
+[data-theme="dark"] .modal h3{color:var(--color-white)}
+[data-theme="dark"] .modal textarea{background:var(--color-gray-dark);border-color:var(--color-gray-800);color:var(--color-gray-200)}
+
+.footer{margin-top:26px;padding:18px 0;color:var(--color-gray-400);font-size:12px;text-align:center}
+.footer a{color:inherit}
+.footer .sep{margin:0 8px;opacity:.5}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <span class="brand-platform"><img class="shield" src="/static/assets/soar-shield.svg" alt="">SOC <b>L1</b></span>
+  <nav class="side-nav" aria-label="Navegación principal">
+    <a href="/" class="active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Vulnerabilidades
+    </a>
+  </nav>
+  <div class="sidebar-spacer"></div>
+  <div class="side-status">
+    <span class="side-status-h">Demo pública</span>
+    <span class="build-version">datos sintéticos</span>
+  </div>
+  <div class="sidebar-foot">
+    <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l-1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+    <a class="nav-exit" href="https://github.com/" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center;flex:1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      Código
+    </a>
+  </div>
+</aside>
+<div class="app-main">
+<main class="container">
+  <div class="demo-banner">
+    ⚠️ Demo pública con <strong>datos 100% sintéticos</strong> — ningún CVE, servidor o paquete listado corresponde a infraestructura real (salvo un puñado de CVEs públicos de alto perfil, usados solo como ejemplo de CISA KEV/ransomware). Cualquier visitante puede crear o borrar asignaciones de seguimiento; se resetean periódicamente.
+  </div>
+  <div class="page-header">
+    <h1 class="page-title">Vulnerabilidades — Seguimiento y patching</h1>
+    <p class="page-desc">Estado del parque priorizado igual que en el sistema original del que se extrajo esta pantalla: <strong>CISA KEV</strong> (explotación activa confirmada) primero, <strong>EPSS</strong> (probabilidad de explotación a 30 días) después, y el <strong>score de prioridad</strong> = CVSS×peso + EPSS×peso + bonus si está en KEV. Cada CVE se puede <strong>asignar un responsable</strong>, un estado de remediación y una fecha objetivo; el ciclo de vida (días detectado, SLA de críticas) se alimenta del snapshot diario.</p>
+  </div>
+
+  <div class="toolbar">
+    <label class="visually-hidden" for="filter-sev">Filtrar por severidad</label>
+    <select class="select" id="filter-sev" aria-label="Filtrar por severidad" onchange="reloadCves()">
+      <option value="">Todas las severidades</option>
+      <option value="critical">Crítica</option>
+      <option value="high">Alta</option>
+      <option value="medium">Media</option>
+      <option value="low">Baja</option>
+    </select>
+    <label class="check"><input type="checkbox" id="filter-kev" onchange="reloadCves()"> Solo CISA KEV (explotación activa)</label>
+    <label class="check"><input type="checkbox" id="filter-ransom" onchange="reloadCves()"> Con ransomware conocido</label>
+    <label class="visually-hidden" for="filter-owner">Filtrar por responsable</label>
+    <select class="select" id="filter-owner" aria-label="Filtrar por responsable" onchange="reloadCves()">
+      <option value="">Todos los responsables</option>
+    </select>
+    <label class="visually-hidden" for="filter-estado">Filtrar por estado de remediación</label>
+    <select class="select" id="filter-estado" aria-label="Filtrar por estado de remediación" onchange="reloadCves()">
+      <option value="">Todos los estados</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="en_curso">En curso</option>
+      <option value="parcial">Parcial</option>
+      <option value="resuelto">Resuelto</option>
+      <option value="aceptado_riesgo">Riesgo aceptado</option>
+    </select>
+    <label class="visually-hidden" for="filter-agent">Filtrar por servidor</label>
+    <select class="select" id="filter-agent" aria-label="Filtrar por servidor" onchange="reloadCves()">
+      <option value="">Todos los servidores</option>
+    </select>
+    <label class="visually-hidden" for="filter-q">Buscar CVE, descripción o paquete</label>
+    <input class="input" id="filter-q" type="search" placeholder="Buscar CVE / paquete…" oninput="debouncedReload()">
+    <span id="events-count" class="events-count" aria-live="polite"></span>
+  </div>
+  <p class="cache-age" id="cache-age" style="margin:-14px 0 20px"></p>
+
+  <section class="stat-grid" aria-label="Indicadores">
+    <div class="stat-card"><div class="label">Vulnerabilidades activas</div><div class="value is-muted" id="stat-total">…</div></div>
+    <div class="stat-card"><div class="label">Críticas + altas</div><div class="value is-muted" id="stat-ca">…</div></div>
+    <div class="stat-card"><div class="label">CVEs únicos</div><div class="value is-muted" id="stat-cves">…</div></div>
+    <div class="stat-card"><div class="label">Servidores</div><div class="value is-muted" id="stat-srv">…</div></div>
+    <div class="stat-card"><div class="label">En CISA KEV</div><div class="value is-muted" id="stat-kev">…</div><div class="hint">explotación activa confirmada</div></div>
+    <div class="stat-card"><div class="label">Ransomware conocido</div><div class="value is-muted" id="stat-ransom">…</div><div class="hint">campaña de ransomware confirmada (KEV)</div></div>
+    <div class="stat-card"><div class="label">EPSS alto</div><div class="value is-muted" id="stat-epss">…</div><div class="hint" id="hint-epss">probabilidad ≥ 50%</div></div>
+    <div class="stat-card"><div class="label">Prioridad crítica</div><div class="value is-muted" id="stat-prio">…</div><div class="hint" id="hint-prio">score ≥ 80</div></div>
+  </section>
+
+  <section class="stat-grid" aria-label="Métricas de patching" style="grid-template-columns:repeat(6,1fr);">
+    <div class="stat-card" id="card-sla"><div class="label">Críticas fuera de SLA</div><div class="value is-muted" id="stat-sla">…</div><div class="hint" id="hint-sla">más de 15 días sin remediar</div></div>
+    <div class="stat-card"><div class="label">Nuevas (7 días)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
+    <div class="stat-card"><div class="label">Resueltas (7 días)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
+    <div class="stat-card"><div class="label">Reabiertas (7 días)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
+    <div class="stat-card"><div class="label">Aging promedio</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">días desde detección (activas)</div></div>
+    <div class="stat-card"><div class="label">SLA críticas resueltas</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% remediadas dentro del plazo</div></div>
+  </section>
+
+  <div id="sin-datos" hidden>
+    <div class="alert alert-err">El estado sintético todavía no se generó — reintentá en unos segundos.</div>
+  </div>
+
+  <section class="section" aria-label="Evolución" style="margin-bottom:18px;">
+    <h3 class="card-h">Evolución</h3>
+    <p class="card-sub">Snapshots diarios (los últimos 90 días son datos sintéticos generados al desplegar la demo)</p>
+    <div class="donut-box is-loading" id="chartEvol" style="min-height:240px"></div>
+  </section>
+
+  <section class="section" aria-label="Distribución por severidad" style="margin-bottom:18px;">
+    <h3 class="card-h">Distribución por severidad</h3>
+    <div class="donut-box is-loading" id="donutSev" style="min-height:190px"></div>
+    <div class="donut-legend" id="legSev"></div>
+  </section>
+
+  <section class="section" aria-label="Top paquetes vulnerables" style="margin-bottom:18px;">
+    <h3 class="card-h">Top paquetes vulnerables</h3>
+    <p class="card-sub">Por cantidad de CVEs únicos · color = severidad más alta que trae ese paquete · se ajusta a los filtros activos (vista global del parque si no filtraste nada)</p>
+    <div class="donut-legend" id="legPkgSev" style="flex-direction:row;flex-wrap:wrap;gap:14px;margin-bottom:8px"></div>
+    <div id="chartPkgs" class="is-loading" style="min-height:280px"></div>
+  </section>
+
+  <section class="section" aria-label="Vulnerabilidades por servidor" style="margin-bottom:18px;">
+    <h3 class="card-h">Por servidor</h3>
+    <p class="card-sub">Top 12 servidores con más críticas/altas · se ajusta a los filtros activos · clic en una barra filtra por ese servidor (elegí "Todos los servidores" arriba para volver a la vista global)</p>
+    <div id="chartSrv" class="is-loading" style="min-height:320px"></div>
+  </section>
+
+  <section class="section" aria-label="CVEs del parque">
+    <h3 class="card-h">CVEs del parque</h3>
+    <p class="card-sub">Ordenados por score de prioridad</p>
+    <div id="cves-body">
+      <div class="loading">Cargando CVEs…</div>
+    </div>
+    <div class="more-wrap" id="moreWrap" hidden style="display:flex;justify-content:center;margin-top:14px">
+      <button type="button" class="btn-ghost btn-sm" id="moreBtn" onclick="loadMore()">Cargar más</button>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Vulnerability &amp; Patch Tracking — demo pública, datos sintéticos <span class="sep">|</span> extraído de un panel SOC L1 productivo
+  </footer>
+</main>
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+
+<!-- Modal de asignación -->
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h3 id="modal-title">Seguimiento</h3>
+    <p class="modal-sub" id="modal-cve"></p>
+    <label for="m-owner">Responsable</label>
+    <input class="input" id="m-owner" list="owners-list" placeholder="Nombre">
+    <datalist id="owners-list"></datalist>
+    <label for="m-owner-email">Correo del responsable</label>
+    <input class="input" id="m-owner-email" type="email" placeholder="nombre@empresa.com">
+    <p class="field-hint">En esta demo el correo no se usa para nada (no hay envío de mail) — es solo para mostrar el campo.</p>
+    <label for="m-status">Estado</label>
+    <select class="select" id="m-status" style="width:100%">
+      <option value="pendiente">Pendiente</option>
+      <option value="en_curso">En curso</option>
+      <option value="parcial">Parcial</option>
+      <option value="resuelto">Resuelto</option>
+      <option value="aceptado_riesgo">Riesgo aceptado</option>
+    </select>
+    <label for="m-due">Fecha objetivo</label>
+    <input class="input" id="m-due" type="date">
+    <label for="m-notes">Notas</label>
+    <textarea id="m-notes" placeholder="Ventana de mantenimiento, ticket, motivo del riesgo aceptado…"></textarea>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost btn-sm" id="m-delete" onclick="deleteAssignment()">Quitar seguimiento</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn-ghost btn-sm" onclick="closeModal()">Cancelar</button>
+      <button type="button" class="btn-ghost btn-sm" style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)" onclick="saveAssignment()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+const fmtNum = new Intl.NumberFormat('es-AR');
+
+// --- Estado ---
+const ROWS_PER_CHUNK = 50;
+let visibleRows = ROWS_PER_CHUNK;
+let allCves = [];
+let ownersKnown = [];
+let evolChart = null;
+let donutChart = null;
+let pkgsChart = null;
+let srvChart = null;
+let debounceTimer = null;
+
+const SEV_CLASS = { Critical: 'p-critical', High: 'p-high', Medium: 'p-medium', Low: 'p-low' };
+const SEV_LABEL = { Critical: 'Crítica', High: 'Alta', Medium: 'Media', Low: 'Baja' };
+const SEV_HEX = { Critical: '#b42318', High: '#c2410c', Medium: '#a16207', Low: '#15803d' };
+const ESTADO_LABEL = {
+  pendiente: 'Pendiente', en_curso: 'En curso', parcial: 'Parcial',
+  resuelto: 'Resuelto', aceptado_riesgo: 'Riesgo aceptado',
+};
+
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+function chartFore() { return isDark() ? '#98a2b3' : '#667085'; }
+
+// --- Summary (KPIs + patching) ---
+async function loadSummary() {
+  const res = await fetch(`/vulnerabilities/summary?${filters()}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  const d = await res.json();
+  document.getElementById('sin-datos').hidden = !d.sin_datos;
+  document.getElementById('cache-age').textContent = d.actualizado
+    ? `Datos sembrados ${fmtAgo(d.actualizado)}` : '';
+
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    el.textContent = fmtNum.format(v ?? 0);
+    el.classList.toggle('is-muted', !v);
+  };
+  set('stat-total', d.total);
+  set('stat-ca', d.criticas_altas);
+  set('stat-cves', d.cves_unicos);
+  set('stat-srv', d.servidores_count);
+  set('stat-kev', d.kev_count);
+  set('stat-ransom', d.ransomware_count);
+  set('stat-epss', d.epss_alto_count);
+  set('stat-prio', d.prioridad_critica_count);
+  if (d.umbrales) {
+    SLA_DIAS = d.umbrales.sla_criticas_dias;
+    document.getElementById('hint-epss').textContent = `probabilidad ≥ ${Math.round(d.umbrales.epss_alto * 100)}%`;
+    document.getElementById('hint-prio').textContent = `score ≥ ${d.umbrales.prioridad_critica}`;
+    document.getElementById('hint-sla').textContent = `más de ${d.umbrales.sla_criticas_dias} días sin remediar`;
+  }
+
+  const p = d.patching || {};
+  set('stat-nuevas', p.nuevas_7d);
+  set('stat-resueltas', p.resueltas_7d);
+  set('stat-reabiertas', p.reabiertas_7d);
+  const sla = p.criticas_vencen_sla;
+  const slaEl = document.getElementById('stat-sla');
+  slaEl.textContent = fmtNum.format(sla ?? 0);
+  const card = document.getElementById('card-sla');
+  card.classList.toggle('is-bad', (sla ?? 0) > 0);
+  card.classList.toggle('is-good', (sla ?? 0) === 0 && (p.criticas_activas ?? 0) >= 0);
+  slaEl.classList.remove('is-muted');
+  document.getElementById('stat-aging').textContent = p.aging_promedio_dias != null ? `${p.aging_promedio_dias} d` : '—';
+  document.getElementById('stat-sla-pct').textContent = p.sla_criticas_pct != null ? `${p.sla_criticas_pct}%` : '—';
+
+  ownersKnown = d.owners || [];
+  document.getElementById('owners-list').innerHTML =
+    ownersKnown.map(o => `<option value="${escapeHtml(o)}">`).join('');
+  const selOwner = document.getElementById('filter-owner');
+  const cur = selOwner.value;
+  selOwner.innerHTML = '<option value="">Todos los responsables</option>' +
+    ownersKnown.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+  selOwner.value = ownersKnown.includes(cur) ? cur : '';
+
+  const selAgent = document.getElementById('filter-agent');
+  if (!selAgent.dataset.loaded) {
+    const agents = (d.servidores || []).map(s => s.agente);
+    selAgent.innerHTML = '<option value="">Todos los servidores</option>' +
+      agents.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+    selAgent.dataset.loaded = '1';
+  }
+
+  renderSevDonut(d.por_severidad || []);
+  renderPkgsChart(d.top_paquetes || []);
+  renderSrvChart(d.servidores || []);
+}
+
+// --- Donut por severidad ---
+function renderSevDonut(porSev) {
+  const el = document.getElementById('donutSev');
+  el.classList.remove('is-loading');
+  const entries = porSev.filter(s => s.n > 0);
+  if (!entries.length) {
+    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    document.getElementById('legSev').innerHTML = '';
+    return;
+  }
+  const colors = { Critical: '#b42318', High: '#c2410c', Medium: '#a16207', Low: '#15803d' };
+  const labels = entries.map(s => SEV_LABEL[s.severidad] || s.severidad);
+  const series = entries.map(s => s.n);
+  const cols = entries.map(s => colors[s.severidad] || '#868e96');
+  const opts = {
+    chart: { type: 'donut', height: 190, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore() },
+    series, labels, colors: cols,
+    stroke: { width: 0 },
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    plotOptions: { pie: { donut: { size: '70%', labels: {
+      show: true,
+      value: { fontSize: '21px', fontWeight: 700, color: chartFore() },
+      total: { show: true, label: 'Total', fontSize: '12px', color: chartFore() } } } } },
+    tooltip: { theme: isDark() ? 'dark' : 'light' },
+    noData: { text: 'Sin datos' },
+  };
+  if (donutChart) {
+    donutChart.updateOptions({ labels, colors: cols, chart: { foreColor: chartFore() } }, false, false);
+    donutChart.updateSeries(series);
+  } else {
+    el.innerHTML = '';
+    donutChart = new ApexCharts(el, opts);
+    donutChart.render();
+  }
+  const total = series.reduce((a, b) => a + b, 0) || 1;
+  document.getElementById('legSev').innerHTML = labels.map((lab, i) => {
+    const pct = Math.round(series[i] / total * 100);
+    return `<div class="dleg-item" style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+      <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;display:inline-block;background:${cols[i]}"></span>${escapeHtml(lab)}</span>
+      <span style="font-weight:600">${fmtNum.format(series[i])} · ${pct}%</span></div>`;
+  }).join('');
+}
+
+// --- Top paquetes vulnerables ---
+function renderPkgsLegend(top) {
+  const order = ['Critical', 'High', 'Medium', 'Low'];
+  const present = order.filter(s => top.some(p => p.severidad_max === s));
+  const use = present.length ? present : order;
+  document.getElementById('legPkgSev').innerHTML = use.map(s =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-gray-500)">
+      <span style="width:10px;height:10px;border-radius:3px;display:inline-block;background:${SEV_HEX[s]}"></span>${SEV_LABEL[s]}</span>`
+  ).join('');
+}
+function renderPkgsChart(paquetes) {
+  const el = document.getElementById('chartPkgs');
+  el.classList.remove('is-loading');
+  const top = (paquetes || []).slice(0, 10);
+  if (!top.length) {
+    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    document.getElementById('legPkgSev').innerHTML = '';
+    return;
+  }
+  renderPkgsLegend(top);
+  const cats = top.map(p => p.paquete);
+  const series = [{ name: 'CVEs', data: top.map(p => p.cves) }];
+  const cols = top.map(p => SEV_HEX[p.severidad_max] || '#868e96');
+  const opts = {
+    chart: { type: 'bar', height: 280, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore(), toolbar: { show: false } },
+    series,
+    colors: cols,
+    plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 5, borderRadiusApplication: 'end', barHeight: '70%' } },
+    dataLabels: { enabled: false },
+    xaxis: { categories: cats, labels: { style: { fontSize: '11px' } } },
+    legend: { show: false },
+    grid: { borderColor: isDark() ? '#ffffff14' : '#e4e7ec', strokeDashArray: 4 },
+    tooltip: {
+      theme: isDark() ? 'dark' : 'light',
+      custom: ({ dataPointIndex }) => {
+        const p = top[dataPointIndex];
+        if (!p) return '';
+        return `<div style="padding:8px 10px;font-size:12px;line-height:1.5">
+          <strong>${escapeHtml(p.paquete)}</strong><br>
+          ${fmtNum.format(p.cves)} CVE(s) únicos · versión ${escapeHtml(p.version || '—')}<br>
+          ${fmtNum.format(p.instalaciones)} instalación(es)</div>`;
+      },
+    },
+    noData: { text: 'Sin datos' },
+  };
+  if (pkgsChart) {
+    pkgsChart.updateOptions(opts, false, false);
+    pkgsChart.updateSeries(series);
+  } else {
+    el.innerHTML = '';
+    pkgsChart = new ApexCharts(el, opts);
+    pkgsChart.render();
+  }
+}
+
+// --- Vulnerabilidades por servidor ---
+function renderSrvChart(servidores) {
+  const el = document.getElementById('chartSrv');
+  el.classList.remove('is-loading');
+  const top = (servidores || []).slice(0, 12);
+  if (!top.length) {
+    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    return;
+  }
+  const cats = top.map(s => s.agente);
+  const series = [
+    { name: 'Crítica', data: top.map(s => s.critical) },
+    { name: 'Alta', data: top.map(s => s.high) },
+    { name: 'Media', data: top.map(s => s.medium) },
+    { name: 'Baja', data: top.map(s => s.low) },
+  ];
+  const opts = {
+    chart: { type: 'bar', height: 320, stacked: true, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore(), toolbar: { show: false },
+      events: {
+        dataPointSelection: (event, chartContext, config) => {
+          const srv = top[config.dataPointIndex];
+          if (!srv) return;
+          const sel = document.getElementById('filter-agent');
+          sel.value = srv.agente;
+          reloadCves();
+          document.getElementById('cves-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+      } },
+    series,
+    colors: [SEV_HEX.Critical, SEV_HEX.High, SEV_HEX.Medium, SEV_HEX.Low],
+    plotOptions: { bar: { horizontal: true, borderRadius: 4, borderRadiusApplication: 'end', barHeight: '65%' } },
+    dataLabels: { enabled: false },
+    xaxis: { categories: cats, labels: { style: { fontSize: '11px' } } },
+    legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 4 } },
+    grid: { borderColor: isDark() ? '#ffffff14' : '#e4e7ec', strokeDashArray: 4 },
+    tooltip: { theme: isDark() ? 'dark' : 'light' },
+    fill: { opacity: 1 },
+    noData: { text: 'Sin datos' },
+  };
+  if (srvChart) {
+    srvChart.updateOptions(opts, false, false);
+    srvChart.updateSeries(series);
+  } else {
+    el.innerHTML = '';
+    srvChart = new ApexCharts(el, opts);
+    srvChart.render();
+  }
+}
+
+// --- Evolución ---
+async function loadHistory() {
+  const res = await fetch('/vulnerabilities/history?days=120');
+  if (!res.ok) {
+    document.getElementById('chartEvol').classList.remove('is-loading');
+    return;
+  }
+  const d = await res.json();
+  const snaps = d.snapshots || [];
+  const el = document.getElementById('chartEvol');
+  el.classList.remove('is-loading');
+  if (snaps.length < 2) {
+    el.innerHTML = '<div class="dash-empty">Todavía no hay serie histórica suficiente.</div>';
+    return;
+  }
+  const cats = snaps.map(s => s.fecha);
+  const bySev = sev => snaps.map(s => (s.por_severidad || {})[sev] || 0);
+  const opts = {
+    chart: { type: 'area', height: 240, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore(),
+      toolbar: { show: false } },
+    series: [
+      { name: 'Críticas', data: bySev('Critical') },
+      { name: 'Altas', data: bySev('High') },
+      { name: 'Medias', data: bySev('Medium') },
+      { name: 'Bajas', data: bySev('Low') },
+    ],
+    xaxis: { categories: cats },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0.02 } },
+    colors: [SEV_HEX.Critical, SEV_HEX.High, SEV_HEX.Medium, SEV_HEX.Low],
+    dataLabels: { enabled: false },
+    tooltip: { theme: isDark() ? 'dark' : 'light' },
+    legend: { position: 'top' },
+    noData: { text: 'Sin datos' },
+  };
+  if (evolChart) {
+    evolChart.updateOptions(opts, false, false);
+  } else {
+    el.innerHTML = '';
+    evolChart = new ApexCharts(el, opts);
+    evolChart.render();
+  }
+}
+
+// --- Tabla de CVEs ---
+function filters() {
+  const qs = new URLSearchParams();
+  const sev = document.getElementById('filter-sev').value;
+  const owner = document.getElementById('filter-owner').value;
+  const estado = document.getElementById('filter-estado').value;
+  const agent = document.getElementById('filter-agent').value;
+  const q = document.getElementById('filter-q').value.trim();
+  if (sev) qs.set('severity', sev);
+  if (document.getElementById('filter-kev').checked) qs.set('kev', '1');
+  if (document.getElementById('filter-ransom').checked) qs.set('ransomware', '1');
+  if (owner) qs.set('owner', owner);
+  if (estado) qs.set('status', estado);
+  if (agent) qs.set('agent', agent);
+  if (q) qs.set('q', q);
+  return qs;
+}
+
+function fmtAgo(iso) {
+  if (!iso) return '';
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'hace instantes';
+  if (min < 60) return `hace ${min} min`;
+  return `hace ${Math.round(min / 60)} h`;
+}
+
+async function loadCves() {
+  const body = document.getElementById('cves-body');
+  try {
+    const res = await fetch(`/vulnerabilities/cves?${filters()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const d = await res.json();
+    allCves = d.cves || [];
+    visibleRows = ROWS_PER_CHUNK;
+    renderTable();
+  } catch (e) {
+    body.innerHTML = `<div class="alert alert-err">No se pudieron cargar los CVEs: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderTable() {
+  const body = document.getElementById('cves-body');
+  const counter = document.getElementById('events-count');
+  const shown = allCves.slice(0, visibleRows);
+  counter.textContent = allCves.length
+    ? `mostrando ${shown.length} de ${allCves.length} CVE(s)` : '';
+
+  if (!allCves.length) {
+    body.innerHTML = `<div class="empty"><h3>Sin CVEs con esos filtros</h3>
+      <p>Probá ampliar la búsqueda o sacar filtros.</p></div>`;
+    document.getElementById('moreWrap').hidden = true;
+    return;
+  }
+
+  const rows = shown.map(c => {
+    const sevCls = SEV_CLASS[c.severidad] || 'p-unknown';
+    const sevLab = SEV_LABEL[c.severidad] || c.severidad || '—';
+    const kevTitle = c.kev
+      ? (c.kev_vencimiento ? 'Plazo CISA: ' + c.kev_vencimiento : 'En CISA KEV')
+        + (c.kev_ransomware ? ' · campaña de ransomware conocida' : '')
+      : '';
+    const kev = c.kev
+      ? `<span class="kev-badge" title="${escapeHtml(kevTitle)}">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+          KEV</span>`
+      : '';
+    const ransom = c.kev_ransomware
+      ? `<span class="ransom-badge" title="Campaña de ransomware conocida asociada a este CVE (CISA KEV)">Ransomware</span>`
+      : '';
+    const epss = c.epss != null ? `${Math.round(c.epss * 100)}%` : '—';
+    const sla = (c.severidad === 'Critical' && (c.dias_detectado ?? 0) > SLA_DIAS)
+      ? `<span class="sla-badge">SLA vencido</span>` : '';
+    const flags = (kev || ransom || sla) ? `<div class="cve-flags">${kev}${ransom}${sla}</div>` : '';
+    const estado = c.estado
+      ? `<span class="sbadge s-${escapeHtml(c.estado)}">${escapeHtml(ESTADO_LABEL[c.estado] || c.estado)}</span>`
+      : '—';
+    const ownerMail = c.owner_email
+      ? ` <span title="Seguimiento por correo (deshabilitado en la demo): ${escapeHtml(c.owner_email)}">✉️</span>` : '';
+    const owner = c.owner ? `<span class="mono">${escapeHtml(c.owner)}</span>${ownerMail}` : '—';
+    const dias = c.dias_detectado != null ? `${c.dias_detectado} d` : '—';
+    const agentesAll = c.agentes || [];
+    const agentesShown = agentesAll.slice(0, 3).map(escapeHtml).join(', ');
+    const agentesMore = agentesAll.length > 3
+      ? ` <span class="agent-more" title="${escapeHtml(agentesAll.join(', '))}">+${agentesAll.length - 3} más</span>` : '';
+    const paquetesAll = c.paquetes || [];
+    const paquetes = paquetesAll.slice(0, 3).map(escapeHtml).join(', ')
+      + (paquetesAll.length > 3 ? ` <span class="agent-more" title="${escapeHtml(paquetesAll.join(', '))}">+${paquetesAll.length - 3}</span>` : '');
+    return `<tr>
+      <td><a class="mono" href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(c.cve)}" target="_blank" rel="noopener">${escapeHtml(c.cve)}</a>${flags}</td>
+      <td><span class="pbadge ${sevCls}">${escapeHtml(sevLab)}</span></td>
+      <td>${c.cvss != null ? c.cvss.toFixed(1) : '—'}</td>
+      <td>${epss}</td>
+      <td><strong>${c.priority_score != null ? c.priority_score : '—'}</strong></td>
+      <td title="${escapeHtml(c.descripcion || '')}">${paquetes || '—'}<br><span style="font-size:11px;color:var(--color-gray-400)">${agentesShown}${agentesMore}</span></td>
+      <td>${dias}</td>
+      <td>${owner}</td>
+      <td>${estado}${c.due_date ? `<br><span style="font-size:11px;color:var(--color-gray-400)">objetivo: ${escapeHtml(c.due_date)}</span>` : ''}</td>
+      <td><button type="button" class="btn-ghost btn-sm" onclick="openModal('${escapeHtml(c.cve)}')">Seguimiento</button></td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `<div class="dash-table-wrap"><table class="dash-table">
+    <thead><tr><th>CVE</th><th>Severidad</th><th>CVSS</th><th>EPSS</th><th>Prioridad</th><th>Paquetes / Servidores</th><th>Detectado hace</th><th>Responsable</th><th>Estado</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+  document.getElementById('moreWrap').hidden = visibleRows >= allCves.length;
+}
+
+function loadMore() {
+  visibleRows += ROWS_PER_CHUNK;
+  renderTable();
+}
+
+let SLA_DIAS = 15;
+function reloadCves() { loadCves(); loadSummary(); }
+function debouncedReload() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(reloadCves, 350);
+}
+
+// --- Modal de asignación ---
+let modalCve = null;
+function openModal(cve) {
+  modalCve = cve;
+  const cur = allCves.find(c => c.cve === cve) || {};
+  document.getElementById('modal-cve').textContent = cve;
+  document.getElementById('m-owner').value = cur.owner || '';
+  document.getElementById('m-owner-email').value = cur.owner_email || '';
+  document.getElementById('m-status').value = cur.estado || 'pendiente';
+  document.getElementById('m-due').value = cur.due_date || '';
+  document.getElementById('m-notes').value = cur.notes || '';
+  document.getElementById('m-delete').hidden = !cur.estado;
+  document.getElementById('modal').hidden = false;
+}
+function closeModal() {
+  modalCve = null;
+  document.getElementById('modal').hidden = true;
+}
+async function saveAssignment() {
+  if (!modalCve) return;
+  const res = await fetch('/vulnerabilities/assignments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      cve: modalCve,
+      owner: document.getElementById('m-owner').value,
+      owner_email: document.getElementById('m-owner-email').value,
+      status: document.getElementById('m-status').value,
+      due_date: document.getElementById('m-due').value,
+      notes: document.getElementById('m-notes').value,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.detail || `Error al guardar (HTTP ${res.status})`);
+    return;
+  }
+  closeModal();
+  await Promise.all([loadSummary(), loadCves()]);
+}
+async function deleteAssignment() {
+  if (!modalCve) return;
+  if (!confirm(`¿Quitar el seguimiento de ${modalCve}?`)) return;
+  const res = await fetch(`/vulnerabilities/assignments/${encodeURIComponent(modalCve)}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.detail || `Error al borrar (HTTP ${res.status})`);
+    return;
+  }
+  closeModal();
+  await Promise.all([loadSummary(), loadCves()]);
+}
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') closeModal();
+});
+
+// --- Theme hook ---
+window.__onThemeChange = function () {
+  if (donutChart || evolChart) { loadSummary(); loadHistory(); }
+};
+
+async function init() {
+  try { await loadSummary(); } catch (e) {
+    document.getElementById('cves-body').innerHTML =
+      `<div class="alert alert-err">No se pudo cargar el estado de vulnerabilidades: ${escapeHtml(e.message)}</div>`;
+    return;
+  }
+  loadHistory();
+  const cveParam = new URLSearchParams(location.search).get('cve');
+  if (cveParam) document.getElementById('filter-q').value = cveParam;
+  await loadCves();
+}
+init();
+</script>
+<script src="/static/sidebar.js"></script>
+</body>
+</html>

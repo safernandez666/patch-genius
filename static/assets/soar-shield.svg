@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="SOAR Platform">
+  <defs>
+    <linearGradient id="soarShield" x1="10" y1="3" x2="40" y2="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eaff00"/>
+      <stop offset="0.45" stop-color="#84cc16"/>
+      <stop offset="1" stop-color="#4d7c0f"/>
+    </linearGradient>
+    <linearGradient id="soarGloss" x1="24" y1="4" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 3.5 41 9.2v11.4c0 11-7.2 19.6-17 23.9-9.8-4.3-17-12.9-17-23.9V9.2L24 3.5Z"
+        fill="url(#soarShield)"/>
+  <path d="M24 3.5 41 9.2v11.4c0 11-7.2 19.6-17 23.9-9.8-4.3-17-12.9-17-23.9V9.2L24 3.5Z"
+        fill="url(#soarGloss)"/>
+  <path d="M16.5 24.2l5.1 5.1 10-10.4" fill="none" stroke="#142a08" stroke-width="3.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
