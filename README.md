@@ -7,6 +7,8 @@
 **Seguimiento de vulnerabilidades y parcheo sobre tu propio Wazuh.**
 Prioriza con CISA KEV y EPSS, calcula SLA y aging reales, y separa Linux de Windows.
 
+Un producto de **[Zebra Security](https://zebrasecurity.io)**.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-76ABAE.svg)](LICENSE)
 ![Wazuh 4.8+](https://img.shields.io/badge/Wazuh-4.8%2B-303841)
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-303841)
@@ -16,8 +18,6 @@ Prioriza con CISA KEV y EPSS, calcula SLA y aging reales, y separa Linux de Wind
 ---
 
 > **No trae datos de ejemplo.** Muestra lo que reporta el Wazuh que configures, o nada.
-> Extraído de un panel SOC productivo y reescrito para que cualquiera lo apunte a su
-> instalación.
 
 ![Panel principal](docs/img/dashboard.png)
 
@@ -156,3 +156,9 @@ deploy/       nginx + notas para desplegar en un VPS propio
 
 MIT — ver [LICENSE](LICENSE). Los assets de terceros conservan la suya:
 ver [static/assets/CREDITS.md](static/assets/CREDITS.md).
+
+---
+
+<div align="center">
+<sub>Hecho por <a href="https://zebrasecurity.io"><b>Zebra Security</b></a></sub>
+</div>
