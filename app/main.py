@@ -360,6 +360,28 @@ def _top_paquetes_from_rows(rows: List[dict]) -> List[dict]:
     return top
 
 
+def _sort_by_priority(rows: List[dict]) -> List[dict]:
+    """Highest priority first — the whole point of the screen.
+
+    priority_score already folds in CVSS, EPSS and the KEV bonus, so it leads.
+    A row with no score at all sinks to the bottom instead of tying with a
+    genuine zero. Ties break by KEV, then severity, then age, then CVE id, so
+    the order stays stable between reloads rather than shuffling under whoever
+    is reading it.
+    """
+    return sorted(
+        rows,
+        key=lambda r: (
+            1 if r.get("priority_score") is None else 0,
+            -(r.get("priority_score") or 0.0),
+            0 if r.get("kev") else 1,
+            -sev_rank(r.get("severidad") or ""),
+            -(r.get("dias_detectado") or 0),
+            r.get("cve", ""),
+        ),
+    )
+
+
 def _apply_vuln_filters(
     rows: List[dict],
     severity: Optional[str] = None,
@@ -540,7 +562,7 @@ async def vuln_cves(
         q=q,
         ransomware=ransomware,
     )
-    return {"cves": rows, "total": len(rows)}
+    return {"cves": _sort_by_priority(rows), "total": len(rows)}
 
 
 @app.get("/vulnerabilities/history")
