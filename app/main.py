@@ -1,9 +1,9 @@
-"""Vulnerability & Patch Tracking — demo pública.
+"""Vulnerability & Patch Tracking.
 
-Extraído de un panel SOC productivo: acá se sacó todo lo que no hace falta
-para un demo público y anónimo sobre datos sintéticos — autenticación,
-auditoría, Wazuh en vivo, EPSS/KEV en vivo, correo. Las 6 rutas de lectura y
-seguimiento son las mismas que en el sistema original.
+Reads vulnerability state from a Wazuh deployment the operator configures on
+first run, scores it with CVSS + EPSS + CISA KEV, and tracks patching per CVE
+and per agent. Every route requires a login: the screen lists unpatched CVEs of
+live hosts and the configuration holds Wazuh credentials.
 """
 
 from __future__ import annotations
@@ -20,14 +20,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.auth import SESSION_COOKIE, AuthManager
+from app.auth import SESSION_COOKIE, AuthError, AuthManager
 from app.config_store import ConfigError, ConfigStore
-from app.ingest import migrate_assignments, purge_demo_data, run_ingest
+from app.ingest import migrate_assignments, run_ingest
 from app.scoring import SEV_RANK, sev_rank
 from app.settings import settings
 from app.vuln_store import ASSIGNMENT_STATUSES, VulnStore
 from app.wazuh.indexer import WazuhIndexerClient, WazuhIndexerError
-from seed.generate_seed import seed_if_empty
 
 logger = structlog.get_logger(__name__)
 
@@ -49,12 +48,6 @@ async def lifespan(app: FastAPI):
     app.state.config_store = config_store
     app.state.auth = auth
 
-    cfg = await config_store.load()
-    if cfg["data_source"] == "demo":
-        # Only seed synthetic data while the deployment has no real source; a
-        # Wazuh-backed install must never have demo CVEs mixed into its inventory.
-        if await seed_if_empty(store):
-            logger.info("vuln_demo_seeded")
     app.state.refresh_task = asyncio.create_task(_refresh_loop(app))
 
     yield
@@ -63,11 +56,11 @@ async def lifespan(app: FastAPI):
 
 
 async def _refresh_loop(app: FastAPI) -> None:
-    """Periodically re-ingest from Wazuh while the data source is not the demo."""
+    """Periodically re-ingest from Wazuh once a connection is configured."""
     while True:
         try:
             cfg = await app.state.config_store.load()
-            if cfg["data_source"] == "wazuh" and cfg["indexer_url"]:
+            if cfg["indexer_url"]:
                 await run_ingest(app.state.pg_pool, cfg, settings)
             await asyncio.sleep(max(5, int(cfg["refresh_minutes"])) * 60)
         except asyncio.CancelledError:
@@ -82,8 +75,9 @@ async def _refresh_loop(app: FastAPI) -> None:
 app = FastAPI(title="Vulnerability & Patch Tracking", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    # A deployment reading a real Wazuh must name its origin; the wildcard stays
-    # only for the synthetic demo, where there is nothing to protect.
+    # This serves a live vulnerability inventory, so a deployment should name its
+    # origin. The wildcard remains the fallback for a single-host install where
+    # the API is only ever called from the page it serves.
     allow_origins=settings.cors_origin_list or ["*"],
     allow_credentials=bool(settings.cors_origin_list),
     allow_methods=["GET", "POST", "DELETE"],
@@ -103,26 +97,20 @@ async def healthz():
 
 @app.get("/version")
 async def version():
-    return {"version": "public-demo"}
+    return {"version": "1.0"}
 
 
 @app.get("/")
 async def index(request: Request):
-    if await _auth_required(request) and not await current_user(request):
+    if not await current_user(request):
         return RedirectResponse("/login", status_code=302)
     return FileResponse("static/index.html")
 
 
 # ---------------------------------------------------------------------------
-# Authentication. Enabled automatically whenever the data source is real Wazuh:
-# the dashboard then lists unpatched CVEs of live hosts, and the Configuration
-# tab holds Wazuh credentials. The synthetic demo stays open.
+# Authentication. Always required: the dashboard lists unpatched CVEs of live
+# hosts and the Configuration tab holds Wazuh credentials.
 # ---------------------------------------------------------------------------
-async def _auth_required(request: Request) -> bool:
-    cfg = await request.app.state.config_store.load_public()
-    return cfg["data_source"] != "demo"
-
-
 async def current_user(request: Request) -> Optional[str]:
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
@@ -132,18 +120,15 @@ async def current_user(request: Request) -> Optional[str]:
 
 
 async def require_user(request: Request) -> str:
-    """Reject anonymous callers once the deployment is backed by real data."""
+    """Reject anonymous callers. There is no unauthenticated view."""
     user = await current_user(request)
     if user:
         return user
-    if not await _auth_required(request):
-        return "visitante-demo"
     raise HTTPException(status_code=401, detail="authentication required")
 
 
 async def require_admin(request: Request) -> str:
-    """Guard the Configuration tab. Never open, even in demo mode: it stores
-    the Wazuh password and can switch the whole deployment onto live data."""
+    """Guard the Configuration tab, which stores the Wazuh password."""
     user = await current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="authentication required")
@@ -184,10 +169,7 @@ async def api_logout(response: Response):
 
 @app.get("/api/session")
 async def api_session(request: Request):
-    return {
-        "user": await current_user(request),
-        "auth_required": await _auth_required(request),
-    }
+    return {"user": await current_user(request)}
 
 
 # ---------------------------------------------------------------------------
@@ -206,17 +188,10 @@ async def api_config_get(request: Request, user: str = Depends(require_admin)):
 @app.put("/api/config")
 async def api_config_put(request: Request, user: str = Depends(require_admin)):
     body = await request.json()
-    previous = await request.app.state.config_store.load_public()
     try:
-        saved = await request.app.state.config_store.save(body, updated_by=user)
+        return await request.app.state.config_store.save(body, updated_by=user)
     except ConfigError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    # Leaving demo mode: clear the synthetic seed so it cannot be mistaken for,
-    # or mixed into, the real inventory.
-    if previous["data_source"] == "demo" and saved["data_source"] == "wazuh":
-        purged = await purge_demo_data(request.app.state.pg_pool)
-        saved["demo_purgado"] = purged
-    return saved
 
 
 @app.post("/api/config/test")
@@ -241,12 +216,29 @@ async def api_config_test(request: Request, user: str = Depends(require_admin)):
         return {"ok": False, "error": str(exc)}
 
 
+@app.post("/api/password")
+async def api_password(request: Request, user: str = Depends(require_admin)):
+    """Change the signed-in account's password.
+
+    Whoever deploys this sets a bootstrap password in the environment; this is
+    how they replace it without touching .env or the database by hand.
+    """
+    body = await request.json()
+    current = str(body.get("current_password", ""))
+    new_password = str(body.get("new_password", ""))
+    if not await request.app.state.auth.authenticate(user, current):
+        raise HTTPException(status_code=401, detail="la contraseña actual no es correcta")
+    try:
+        await request.app.state.auth.set_password(user, new_password)
+    except AuthError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True}
+
+
 @app.post("/api/ingest")
 async def api_ingest(request: Request, user: str = Depends(require_admin)):
     """Run an ingest now, instead of waiting for the refresh interval."""
     cfg = await request.app.state.config_store.load()
-    if cfg["data_source"] != "wazuh":
-        raise HTTPException(status_code=400, detail="el origen de datos no es wazuh")
     try:
         return await run_ingest(request.app.state.pg_pool, cfg, settings)
     except (WazuhIndexerError, ValueError) as exc:
@@ -280,8 +272,8 @@ def _vuln_rows(state: dict, lifecycle: dict, assigns: dict) -> List[dict]:
     for c in state.get("cves", []):
         life = lifecycle.get(c["cve"]) or {}
         # A Wazuh ingest computes first_seen per (CVE, agent) and stores it on the
-        # cached row; vuln_cve_state only ever holds the synthetic demo lifecycle.
-        # Prefer the ingested value so aging and the patch SLA work on real data.
+        # cached row. Prefer it so aging and the patch SLA measure how long the
+        # fleet has actually carried the CVE.
         first_seen = c.get("first_seen") or life.get("first_seen")
         if isinstance(first_seen, str) and first_seen:
             try:

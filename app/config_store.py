@@ -4,6 +4,9 @@ Connection settings are entered through the Configuration tab rather than baked
 into the image, because this repo is public and every deployment points at a
 different Wazuh. Secrets are encrypted at rest with Fernet; the key lives in
 APP_SECRET_KEY and never touches the database or the repository.
+
+There is no demo or sample mode: the dashboard shows what the configured Wazuh
+reports, or nothing at all.
 """
 
 from __future__ import annotations
@@ -19,7 +22,6 @@ logger = structlog.get_logger(__name__)
 CONFIG_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS app_config (
     id SMALLINT PRIMARY KEY DEFAULT 1,
-    data_source TEXT NOT NULL DEFAULT 'demo',
     indexer_url TEXT NOT NULL DEFAULT '',
     indexer_user TEXT NOT NULL DEFAULT '',
     indexer_password_enc BYTEA,
@@ -33,12 +35,7 @@ CREATE TABLE IF NOT EXISTS app_config (
 );
 """
 
-# Values the data_source column accepts. 'demo' keeps the synthetic seed active so
-# a fresh clone runs with no configuration at all.
-DATA_SOURCES = ("demo", "wazuh")
-
 DEFAULTS: Dict[str, Any] = {
-    "data_source": "demo",
     "indexer_url": "",
     "indexer_user": "",
     "verify_tls": False,
@@ -93,10 +90,6 @@ class ConfigStore:
     async def save(self, updates: Dict[str, Any], updated_by: str) -> Dict[str, Any]:
         current = await self.load()
 
-        data_source = updates.get("data_source", current["data_source"])
-        if data_source not in DATA_SOURCES:
-            raise ConfigError(f"data_source must be one of {DATA_SOURCES}")
-
         refresh = int(updates.get("refresh_minutes", current["refresh_minutes"]))
         if not 5 <= refresh <= 1440:
             raise ConfigError("refresh_minutes must be between 5 and 1440")
@@ -109,12 +102,11 @@ class ConfigStore:
         await self._pool.execute(
             """
             UPDATE app_config SET
-                data_source = $1, indexer_url = $2, indexer_user = $3,
-                indexer_password_enc = $4, verify_tls = $5, enrich_epss = $6,
-                enrich_kev = $7, refresh_minutes = $8, updated_at = NOW(), updated_by = $9
+                indexer_url = $1, indexer_user = $2,
+                indexer_password_enc = $3, verify_tls = $4, enrich_epss = $5,
+                enrich_kev = $6, refresh_minutes = $7, updated_at = NOW(), updated_by = $8
             WHERE id = 1
             """,
-            data_source,
             (updates.get("indexer_url", current["indexer_url"]) or "").strip().rstrip("/"),
             (updates.get("indexer_user", current["indexer_user"]) or "").strip(),
             enc,
@@ -124,7 +116,7 @@ class ConfigStore:
             refresh,
             updated_by,
         )
-        logger.info("app_config_updated", data_source=data_source, by=updated_by)
+        logger.info("app_config_updated", by=updated_by)
         return await self.load_public()
 
     def _encrypt(self, value: str) -> Optional[bytes]:

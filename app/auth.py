@@ -1,10 +1,11 @@
 """Session authentication.
 
-The public demo runs without accounts, but a deployment pointed at a real Wazuh
-is showing an unpatched-CVE inventory of live infrastructure — an attacker's
-shopping list — and the Configuration tab stores Wazuh credentials. Both require
-a login, so authentication turns on automatically whenever the data source is not
-the synthetic demo.
+The dashboard lists the unpatched CVEs of live infrastructure — an attacker's
+shopping list — and the Configuration tab stores Wazuh credentials, so every
+route behind the login is closed to anonymous callers. There is no open mode.
+
+The first account is created from ADMIN_USER / ADMIN_PASSWORD on an empty
+install; the password is changed from the Configuration tab afterwards.
 """
 
 from __future__ import annotations
@@ -67,8 +68,13 @@ class AuthManager:
         if count:
             return
         if not bootstrap_user or not bootstrap_password:
-            logger.warning("auth_no_bootstrap_user")
-            return
+            # Every route requires a login, so starting with no account at all
+            # would lock the deployment out with no way back in. Fail loudly.
+            raise AuthError(
+                "No account exists and ADMIN_PASSWORD is not set, which would "
+                "leave this deployment unreachable. Set ADMIN_USER and "
+                "ADMIN_PASSWORD in .env (see .env.example) and start again."
+            )
         if len(bootstrap_password) < 12:
             raise AuthError("ADMIN_PASSWORD must be at least 12 characters")
         await self._pool.execute(

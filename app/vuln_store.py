@@ -125,26 +125,10 @@ class VulnStore:
             self._pool = None
 
     # ------------------------------------------------------------------
-    # Seed / mantenimiento (propio de la demo, no existe en el original)
+    # Mantenimiento
     # ------------------------------------------------------------------
-    async def seed_cve_state(
-        self, cve: str, first_seen: date, status: str, severity: str, max_cvss: Optional[float]
-    ) -> None:
-        if self._pool is None:
-            raise RuntimeError("VulnStore not connected")
-        await self._pool.execute(
-            """INSERT INTO vuln_cve_state (cve, first_seen, last_seen, status, severity, max_cvss)
-               VALUES ($1, $2, CURRENT_DATE, $3, $4, $5)
-               ON CONFLICT (cve) DO NOTHING""",
-            cve,
-            first_seen,
-            status,
-            severity,
-            max_cvss,
-        )
-
     async def truncate_all(self) -> None:
-        """Vacía las cinco tablas — usado por ``seed/generate_seed.py --reset``."""
+        """Vacía las tablas de seguimiento. Solo para reiniciar una instalación."""
         if self._pool is None:
             raise RuntimeError("VulnStore not connected")
         await self._pool.execute(
@@ -294,7 +278,7 @@ class VulnStore:
         return out
 
     async def import_snapshots(self, snapshots: List[Dict[str, Any]]) -> int:
-        """Carga masiva de snapshots (usa el seed). Idempotente (ON CONFLICT por fecha)."""
+        """Carga masiva de snapshots. Idempotente (ON CONFLICT por fecha)."""
         if self._pool is None:
             raise RuntimeError("VulnStore not connected")
         n = 0

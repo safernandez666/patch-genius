@@ -4,10 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Public demo extracted from a production SOC L1 panel. FastAPI + asyncpg + Postgres 15,
-vanilla JS frontend, no build step. All data is synthetic except a few genuinely public
-CVEs (Log4Shell, PrintNightmare, Citrix Bleed, Zerologon) used as KEV examples — never
-describe the data as real, and never add anything resembling real client infrastructure.
+**Patch Genius** — vulnerability and patch tracking over a Wazuh deployment the operator
+configures at runtime. FastAPI + asyncpg + Postgres 15, vanilla JS frontend, no build step.
+
+There is no demo or sample data: the dashboard shows what the configured Wazuh reports, or
+nothing. Never reintroduce a synthetic seed, and never write a real host, IP or credential
+into the repository — it is public and every deployment points at a different Wazuh.
 
 ## Running it
 
@@ -18,14 +20,9 @@ cp .env.example .env
 docker compose up --build      # http://localhost:8000
 ```
 
-The API auto-seeds on startup when `vuln_state_cache` is empty (`seed_if_empty`), so
-there is no manual seed step. Reseed explicitly with:
-
-```bash
-docker compose exec -T api python -m seed.generate_seed --reset --yes   # destructive
-```
-
-`--reset` requires `--yes`. The seed is deterministic (`SEED = 20260822`).
+`./scripts/setup-env.sh` generates `.env` with a Fernet `APP_SECRET_KEY` and a bootstrap
+admin password. Every route requires a login; startup fails deliberately if no account
+exists and `ADMIN_PASSWORD` is unset, because that would lock the deployment out.
 
 **Gotcha:** `postgres_host` defaults to `postgres`, which only resolves inside the compose
 network. Running uvicorn or the seed script on the host needs `POSTGRES_HOST=localhost`

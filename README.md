@@ -1,63 +1,70 @@
-# Vulnerability & Patch Tracking — Demo
+# Patch Genius
 
-Pantalla de seguimiento de vulnerabilidades (SLA de parcheo, priorización
-CVSS/EPSS/KEV, asignación de responsables) extraída de un panel SOC L1
-productivo, para mostrarla como demo pública.
+Seguimiento de vulnerabilidades y parcheo sobre datos de **tu propio Wazuh**:
+prioriza CVEs con CISA KEV y EPSS, calcula SLA de parcheo y aging, y permite
+asignar responsable, estado y fecha objetivo por CVE.
 
-**Todos los datos son sintéticos.** Ningún CVE, servidor o paquete listado
-corresponde a infraestructura real, salvo un puñado de CVEs públicos de alto
-perfil (Log4Shell, PrintNightmare, Citrix Bleed, Zerologon) usados solo como
-ejemplo de cómo se ve una alerta de CISA KEV / ransomware conocido — son
-vulnerabilidades de dominio público, no información de ningún cliente.
+Extraído de un panel SOC productivo y reescrito para que cualquiera lo apunte a
+su instalación. **No trae datos de ejemplo**: muestra lo que reporta el Wazuh que
+configures, o nada.
 
 ## Qué hace
 
-- Prioriza CVEs con el mismo criterio que un panel SOC real: **CISA KEV**
-  (explotación activa confirmada) primero, **EPSS** (probabilidad de
-  explotación a 30 días) después, y un **score de prioridad** ponderado
-  (`CVSS·peso + EPSS·peso + bonus si está en KEV`).
-- Calcula SLA de parcheo de críticas, aging, altas/resueltas de los últimos
-  7 días, todo desde un ciclo de vida por CVE guardado en Postgres.
-- Permite asignar responsable/estado/fecha objetivo a cada CVE (sin
-  autenticación: cualquier visitante puede crear o borrar asignaciones —
-  ver [Notas de la demo](#notas-de-la-demo)).
-- Gráficos de evolución, distribución por severidad, top paquetes y
-  distribución por servidor (ApexCharts, vendorizado, sin CDN).
+- Lee el índice `wazuh-states-vulnerabilities-*` del Wazuh Indexer (4.8 o
+  superior — en 4.8 los datos salieron de la API del manager al indexer).
+- Prioriza con el mismo criterio que un panel SOC: **CISA KEV** (explotación
+  activa confirmada) primero, **EPSS** (probabilidad de explotación a 30 días)
+  después, y un **score ponderado** (`CVSS·peso + EPSS·peso + bonus si KEV`).
+- Separa **Linux y Windows**: los hallazgos a nivel sistema operativo se cierran
+  con una actualización acumulativa o KB, no actualizando un paquete, así que van
+  aparte del ranking de paquetes.
+- Calcula **aging y SLA con fecha propia**. Wazuh reescribe
+  `vulnerability.detected_at` cada vez que reindexa un registro, así que un reloj
+  basado en ese campo se reinicia solo y nunca vence.
+- Deriva **resuelto y reabierto** comparando cada ingesta con la anterior: el
+  índice de Wazuh solo contiene vulnerabilidades activas y borra el registro
+  cuando el paquete se parchea.
 
-## Correr localmente
+## Requisitos
+
+- Wazuh **4.8+** y acceso de red al Indexer (puerto 9200).
+- Docker y Docker Compose.
+
+## Instalación
 
 ```bash
-cp .env.example .env
-docker compose up --build
+./scripts/setup-env.sh     # genera .env con secretos nuevos e imprime tu contraseña
+docker compose up -d --build
 ```
 
-Abrí `http://localhost:8000`. La primera vez que levanta, el contenedor de la
-API siembra la base con datos sintéticos automáticamente (`seed/generate_seed.py`)
-— no hace falta ningún paso manual.
+Abrí `http://localhost:8000`, ingresá con las credenciales que imprimió el
+script, y conectá tu Wazuh desde la pestaña **Configuración**.
+
+Si el Indexer solo escucha en `127.0.0.1` y esta app corre en otro host, leé
+primero **[docs/ONBOARDING.md](docs/ONBOARDING.md)** — es el paso donde se traba
+la mayoría.
+
+## Seguridad
+
+- **Todas las rutas requieren login.** La pantalla lista los CVEs sin parchear de
+  máquinas vivas; no hay modo abierto.
+- Las credenciales de Wazuh se guardan **cifradas** (Fernet) con la llave de
+  `APP_SECRET_KEY`, que nunca va a la base ni al repositorio, y **no se devuelven
+  al navegador**.
+- Usá un **usuario de solo lectura** del Indexer, no `admin` — ver ONBOARDING.
+- Cambiá la contraseña inicial desde Configuración después del primer ingreso.
 
 ## Estructura
 
 ```
-app/          FastAPI: rutas de lectura/seguimiento, sin autenticación
-seed/         Generador de datos sintéticos (CVEs, snapshots, asignaciones)
+app/          FastAPI: rutas, ingesta, scoring, auth y configuración
+app/wazuh/    Cliente del Indexer y mapeo a la vista por CVE
 static/       Frontend (HTML/CSS/JS vanilla + ApexCharts vendorizado)
+docs/         Onboarding de Wazuh
 deploy/       nginx + notas para desplegar en un VPS propio
 ```
 
-## Notas de la demo
-
-- **Sin autenticación.** El backend original tiene login (Entra ID / Basic)
-  y auditoría; se sacaron para esta demo pública. Cualquiera puede crear o
-  borrar asignaciones de seguimiento vía la UI o la API.
-- **Reset periódico recomendado.** Para que la demo no degrade con el tiempo,
-  conviene correr `python -m seed.generate_seed --reset --yes` con un cron
-  (ver `deploy/DEPLOY.md`), que vacía y vuelve a sembrar los datos.
-- **Sin Wazuh/EPSS/CISA en vivo.** El endpoint de refresh manual del sistema
-  original no existe acá — los datos son estáticos entre resets.
-- **Origen.** Este repo es un extracto de un panel SOC L1 productivo
-  (Postgres + FastAPI + Wazuh), reescrito para no depender de ninguna
-  infraestructura ni dato de cliente real.
-
 ## Licencia
 
-MIT — ver [LICENSE](LICENSE).
+MIT — ver [LICENSE](LICENSE). Los assets de terceros tienen su propia licencia:
+ver [static/assets/CREDITS.md](static/assets/CREDITS.md).

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/static/assets/soar-shield.svg">
 <meta name="theme-color" content="#465fff">
-<title>Vulnerability &amp; Patch Tracking — Demo</title>
+<title>Patch Genius — Vulnerabilidades</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="preload" href="/static/tailwind.css" as="style">
 <link rel="stylesheet" href="/static/tailwind.css">
 <link rel="stylesheet" href="/static/sidebar.css">
@@ -15,12 +16,12 @@
   (function () {
     try {
       var t = localStorage.getItem('soc.theme');
-      if (t !== 'soc' && t !== 'light') t = 'light';
+      if (t !== 'soc' && t !== 'light') t = 'soc';
       document.documentElement.setAttribute('data-theme', t === 'soc' ? 'dark' : 'light');
       document.documentElement.setAttribute('data-brand', t);
     } catch (e) {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.setAttribute('data-brand', 'light');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-brand', 'soc');
     }
   })();
 </script>
@@ -158,12 +159,43 @@
 .footer{margin-top:26px;padding:18px 0;color:var(--color-gray-400);font-size:12px;text-align:center}
 .footer a{color:inherit}
 .footer .sep{margin:0 8px;opacity:.5}
+
+/* Paleta "Genius" — colorhunt F5F5F5 / 76ABAE / 303841 / FF5722.
+   Se redefine sobre los tokens del tema oscuro en vez de tocar tailwind.css,
+   que es un build congelado sin fuente en este repo.
+   El naranja de la paleta se reserva para severidad Alta: en un panel de
+   seguridad el naranja ya significa algo, y usarlo tambien de color de marca
+   volveria ambiguo cada boton. La marca es el teal. */
+[data-theme="dark"]{
+  --color-gray-dark:#39424c;   /* superficie de tarjetas */
+  --color-gray-900:#303841;    /* fondo de pagina */
+  --color-gray-950:#272e36;
+  --color-gray-800:#4a5561;    /* bordes */
+  --color-gray-700:#5a6672;
+  --color-gray-400:#a8b3bd;
+  --color-gray-300:#c9d1d9;
+  --color-white:#f5f5f5;
+  --color-brand-500:#76abae;
+  --color-brand-400:#8fbfc2;
+  --color-brand-300:#a9d2d4;
+}
+[data-theme="dark"] body{background:#303841;color:#f5f5f5}
+[data-theme="dark"] .sidebar{background:#272e36;border-right:1px solid #4a5561}
+[data-theme="dark"] .brand-platform{color:#f5f5f5}
+[data-theme="dark"] .side-nav a{color:#a8b3bd}
+[data-theme="dark"] .side-nav a:hover{background:#39424c;color:#f5f5f5}
+[data-theme="dark"] .side-nav a.active{background:#3d4d50;color:#76abae}
+[data-theme="dark"] .footer{color:#a8b3bd}
+[data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:#76abae;border-color:#76abae;color:#1d2529}
+[data-theme="dark"] a{color:#76abae}
+[data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid #76abae}
+.brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
 </style>
 </head>
 <body>
 <div class="app-shell">
 <aside class="sidebar">
-  <span class="brand-platform"><img class="shield" src="/static/assets/soar-shield.svg" alt="">SOC <b>L1</b></span>
+  <span class="brand-platform"><img class="shield" src="/static/assets/genie.svg" alt=""><span>Patch <b>Genius</b></span></span>
   <nav class="side-nav" aria-label="Navegación principal">
     <a href="/" class="active" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -176,8 +208,8 @@
   </nav>
   <div class="sidebar-spacer"></div>
   <div class="side-status">
-    <span class="side-status-h">Demo pública</span>
-    <span class="build-version">datos sintéticos</span>
+    <span class="side-status-h">Origen</span>
+    <span class="build-version" id="sideSource">Wazuh</span>
   </div>
   <div class="sidebar-foot">
     <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
@@ -192,14 +224,18 @@
 </aside>
 <div class="app-main">
 <main class="container">
-  <div class="demo-banner">
-    ⚠️ Demo pública con <strong>datos 100% sintéticos</strong> — ningún CVE, servidor o paquete listado corresponde a infraestructura real (salvo un puñado de CVEs públicos de alto perfil, usados solo como ejemplo de CISA KEV/ransomware). Cualquier visitante puede crear o borrar asignaciones de seguimiento; se resetean periódicamente.
-  </div>
   <div class="page-header">
     <h1 class="page-title">Vulnerabilidades — Seguimiento y patching</h1>
-    <p class="page-desc">Estado del parque priorizado igual que en el sistema original del que se extrajo esta pantalla: <strong>CISA KEV</strong> (explotación activa confirmada) primero, <strong>EPSS</strong> (probabilidad de explotación a 30 días) después, y el <strong>score de prioridad</strong> = CVSS×peso + EPSS×peso + bonus si está en KEV. Cada CVE se puede <strong>asignar un responsable</strong>, un estado de remediación y una fecha objetivo; el ciclo de vida (días detectado, SLA de críticas) se alimenta del snapshot diario.</p>
+    <p class="page-desc">Estado del parque leído de tu Wazuh y priorizado así: <strong>CISA KEV</strong> (explotación activa confirmada) primero, <strong>EPSS</strong> (probabilidad de explotación a 30 días) después, y el <strong>score de prioridad</strong> = CVSS×peso + EPSS×peso + bonus si está en KEV. Cada CVE se puede <strong>asignar un responsable</strong>, un estado de remediación y una fecha objetivo; el aging y el SLA de críticas se calculan desde la primera vez que Patch Genius vio el CVE, no desde la fecha que reporta Wazuh.</p>
   </div>
 
+  <div id="setupHint" style="display:none;background:#332612;color:#fcd34d;border:1px solid #6b4e14;
+       border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+    <b>Todavía no hay datos.</b> Conectá tu Wazuh en
+    <a href="/config" style="color:#fcd34d;text-decoration:underline">Configuración</a>
+    y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
+    corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
+  </div>
   <div class="toolbar">
     <label class="visually-hidden" for="filter-sev">Filtrar por severidad</label>
     <select class="select" id="filter-sev" aria-label="Filtrar por severidad" onchange="reloadCves()">
@@ -260,12 +296,12 @@
   </section>
 
   <div id="sin-datos" hidden>
-    <div class="alert alert-err">El estado sintético todavía no se generó — reintentá en unos segundos.</div>
+    <div class="alert alert-err">Todavía no hay datos. Conectá tu Wazuh en <a href="/config">Configuración</a>.</div>
   </div>
 
   <section class="section" aria-label="Evolución" style="margin-bottom:18px;">
     <h3 class="card-h">Evolución</h3>
-    <p class="card-sub">Snapshots diarios (los últimos 90 días son datos sintéticos generados al desplegar la demo)</p>
+    <p class="card-sub">Un snapshot por día desde la primera ingesta. Wazuh no guarda historia, así que la serie se construye hacia adelante.</p>
     <div class="donut-box is-loading" id="chartEvol" style="min-height:240px"></div>
   </section>
 
@@ -306,7 +342,7 @@
   </section>
 
   <footer class="footer">
-    Vulnerability &amp; Patch Tracking — demo pública, datos sintéticos <span class="sep">|</span> extraído de un panel SOC L1 productivo
+    Patch Genius <span class="sep">|</span> datos de tu Wazuh, priorizados con CVSS, EPSS y CISA KEV
   </footer>
 </main>
 </div><!-- /app-main -->
@@ -367,7 +403,7 @@ let debounceTimer = null;
 const SEV_CLASS = { Critical: 'p-critical', High: 'p-high', Medium: 'p-medium', Low: 'p-low', Untriaged: 'p-unknown' };
 const SEV_LABEL = { Critical: 'Crítica', High: 'Alta', Medium: 'Media', Low: 'Baja', Untriaged: 'Sin triar' };
 // Sin triar = gris: Wazuh todavia no tiene score de NVD, no es una severidad baja.
-const SEV_HEX = { Critical: '#b42318', High: '#c2410c', Medium: '#a16207', Low: '#15803d', Untriaged: '#6b7280' };
+const SEV_HEX = { Critical: '#f04438', High: '#ff5722', Medium: '#eab308', Low: '#22c55e', Untriaged: '#94a3b8' };
 const ESTADO_LABEL = {
   pendiente: 'Pendiente', en_curso: 'En curso', parcial: 'Parcial',
   resuelto: 'Resuelto', aceptado_riesgo: 'Riesgo aceptado',
@@ -386,7 +422,7 @@ async function loadSummary() {
   const d = await res.json();
   document.getElementById('sin-datos').hidden = !d.sin_datos;
   document.getElementById('cache-age').textContent = d.actualizado
-    ? `Datos sembrados ${fmtAgo(d.actualizado)}` : '';
+    ? `Actualizado ${fmtAgo(d.actualizado)}` : '';
 
   const set = (id, v) => {
     const el = document.getElementById(id);
@@ -439,10 +475,19 @@ async function loadSummary() {
     selAgent.dataset.loaded = '1';
   }
 
+  showSetupHint(d);
   populatePlatformFilter(d.plataformas || []);
   renderSevDonut(d.por_severidad || []);
   renderPkgsChart(d.top_paquetes || []);
   renderSrvChart(d.servidores || []);
+}
+
+// Sin Wazuh configurado no hay nada que mostrar: en vez de una pantalla vacia
+// sin explicacion, mandamos al usuario a la configuracion.
+function showSetupHint(d) {
+  var box = document.getElementById('setupHint');
+  if (!box) return;
+  box.style.display = d && d.sin_datos ? 'block' : 'none';
 }
 
 function populatePlatformFilter(plats) {

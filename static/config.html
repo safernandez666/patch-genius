@@ -3,32 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Configuración — Patch Tracking</title>
+<title>Configuración — Patch Genius</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/tailwind.css">
 <style>
-  body{margin:0;background:#0b1020;color:#e6ecff;font-family:Outfit,system-ui,-apple-system,sans-serif}
+  body{margin:0;background:#303841;color:#f5f5f5;font-family:Outfit,system-ui,-apple-system,sans-serif}
   .wrap{max-width:760px;margin:0 auto;padding:34px 20px 60px}
   h1{font-size:1.3rem;margin:0 0 6px}
-  .sub{color:#8b97b8;font-size:.85rem;margin:0 0 26px}
-  .card{background:#141a2f;border:1px solid #26304d;border-radius:14px;padding:22px;margin-bottom:18px}
+  .sub{color:#a8b3bd;font-size:.85rem;margin:0 0 26px}
+  .card{background:#39424c;border:1px solid #4a5561;border-radius:14px;padding:22px;margin-bottom:18px}
   h2{font-size:.95rem;margin:0 0 4px}
-  .hint{color:#8b97b8;font-size:.78rem;margin:0 0 16px;line-height:1.5}
-  label{display:block;font-size:.78rem;color:#8b97b8;margin:14px 0 5px}
+  .hint{color:#a8b3bd;font-size:.78rem;margin:0 0 16px;line-height:1.5}
+  label{display:block;font-size:.78rem;color:#a8b3bd;margin:14px 0 5px}
   input[type=text],input[type=password],input[type=number],select{
     width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;
-    border:1px solid #2d3856;background:#0e1426;color:#e6ecff;font-size:.88rem}
+    border:1px solid #55606c;background:#2b333b;color:#f5f5f5;font-size:.88rem}
   .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:200px}
-  .check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.84rem;color:#c7d0e8}
+  .check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.84rem;color:#dbe2e8}
   .check input{width:16px;height:16px}
   button{padding:9px 16px;border:0;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer}
-  .primary{background:#3b82f6;color:#fff}.ghost{background:#243050;color:#c7d0e8}
+  .primary{background:#76abae;color:#1d2529}.ghost{background:#454f5a;color:#dbe2e8}
   .actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
   .msg{margin-top:16px;font-size:.82rem;padding:11px 13px;border-radius:8px;display:none;line-height:1.5}
   .ok{background:#0e2e1d;color:#86efac;border:1px solid #17593a;display:block}
   .bad{background:#331519;color:#fca5a5;border:1px solid #6b2027;display:block}
   .warn{background:#332612;color:#fcd34d;border:1px solid #6b4e14;font-size:.8rem;
         padding:11px 13px;border-radius:8px;margin-bottom:18px;line-height:1.5}
-  a.back{color:#8b97b8;font-size:.82rem;text-decoration:none}
+  a.back{color:#a8b3bd;font-size:.82rem;text-decoration:none}
 </style>
 </head>
 <body>
@@ -37,25 +38,7 @@
   <h1 style="margin-top:14px">Configuración</h1>
   <p class="sub">Conexión con tu Wazuh. Las credenciales se guardan cifradas y nunca se devuelven al navegador.</p>
 
-  <div class="warn" id="demoWarn" style="display:none">
-    Estás en <b>modo demo</b> con datos sintéticos. Al pasar a <b>wazuh</b> el panel muestra
-    tu inventario real de CVEs sin parchear y el acceso pasa a requerir login.
-  </div>
-
   <form id="f">
-    <div class="card">
-      <h2>Origen de datos</h2>
-      <p class="hint">El modo demo genera CVEs sintéticos y no toca la red. Cambiá a
-        <code>wazuh</code> recién cuando la prueba de conexión dé verde.</p>
-      <label for="data_source">Origen</label>
-      <select id="data_source" name="data_source">
-        <option value="demo">demo — datos sintéticos</option>
-        <option value="wazuh">wazuh — datos reales del indexer</option>
-      </select>
-      <label for="refresh_minutes">Intervalo de actualización (minutos)</label>
-      <input type="number" id="refresh_minutes" name="refresh_minutes" min="5" max="1440">
-    </div>
-
     <div class="card">
       <h2>Wazuh Indexer</h2>
       <p class="hint">Puerto 9200. En Wazuh 4.8+ los datos de vulnerabilidades viven acá, no
@@ -77,7 +60,7 @@
       </div>
       <label class="check"><input type="checkbox" id="verify_tls" name="verify_tls">
         Verificar certificado TLS
-        <span style="color:#8b97b8">— desactivalo si usás el autofirmado de Wazuh</span></label>
+        <span style="color:#a8b3bd">— desactivalo si usás el autofirmado de Wazuh</span></label>
     </div>
 
     <div class="card">
@@ -97,13 +80,34 @@
     </div>
     <div class="msg" id="msg"></div>
   </form>
+
+  <div class="card" style="margin-top:26px">
+    <h2>Cambiar contraseña</h2>
+    <p class="hint">La contraseña inicial viene de <code>ADMIN_PASSWORD</code> en
+      <code>.env</code>. Cambiala acá después del primer ingreso — mínimo 12 caracteres.</p>
+    <form id="pf">
+      <label for="cur">Contraseña actual</label>
+      <input type="password" id="cur" autocomplete="current-password" required>
+      <div class="row">
+        <div>
+          <label for="np">Nueva contraseña</label>
+          <input type="password" id="np" autocomplete="new-password" minlength="12" required>
+        </div>
+        <div>
+          <label for="np2">Repetir nueva contraseña</label>
+          <input type="password" id="np2" autocomplete="new-password" minlength="12" required>
+        </div>
+      </div>
+      <div class="actions"><button type="submit" class="primary">Cambiar contraseña</button></div>
+      <div class="msg" id="pmsg"></div>
+    </form>
+  </div>
 </div>
 <script>
 var msg = document.getElementById('msg');
 function show(kind, text) { msg.className = 'msg ' + kind; msg.textContent = text; }
 function body() {
   var b = {
-    data_source: document.getElementById('data_source').value,
     indexer_url: document.getElementById('indexer_url').value.trim(),
     indexer_user: document.getElementById('indexer_user').value.trim(),
     verify_tls: document.getElementById('verify_tls').checked,
@@ -119,7 +123,6 @@ async function load() {
   var r = await fetch('/api/config');
   if (r.status === 401) { window.location = '/login'; return; }
   var c = await r.json();
-  document.getElementById('data_source').value = c.data_source;
   document.getElementById('indexer_url').value = c.indexer_url || '';
   document.getElementById('indexer_user').value = c.indexer_user || '';
   document.getElementById('verify_tls').checked = !!c.verify_tls;
@@ -128,7 +131,6 @@ async function load() {
   document.getElementById('refresh_minutes').value = c.refresh_minutes;
   document.getElementById('indexer_password').placeholder =
     c.has_password ? '(guardada — dejar vacío para no cambiarla)' : 'sin configurar';
-  document.getElementById('demoWarn').style.display = c.data_source === 'demo' ? 'block' : 'none';
 }
 document.getElementById('testBtn').addEventListener('click', async function () {
   show('', 'Probando…');
@@ -143,7 +145,19 @@ document.getElementById('f').addEventListener('submit', async function (ev) {
   ev.preventDefault();
   var r = await fetch('/api/config', {method: 'PUT',
     headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body())});
-  if (r.ok) { document.getElementById('indexer_password').value = ''; await load();
+  if (r.ok) { document.getElementById('indexer_password').value = ''; await document.getElementById('pf').addEventListener('submit', async function (ev) {
+  ev.preventDefault();
+  var pm = document.getElementById('pmsg');
+  var np = document.getElementById('np').value, np2 = document.getElementById('np2').value;
+  if (np !== np2) { pm.className = 'msg bad'; pm.textContent = 'Las contraseñas nuevas no coinciden.'; return; }
+  var r = await fetch('/api/password', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({current_password: document.getElementById('cur').value, new_password: np})});
+  var d = await r.json();
+  if (r.ok) { pm.className = 'msg ok'; pm.textContent = 'Contraseña cambiada.';
+              document.getElementById('pf').reset(); }
+  else { pm.className = 'msg bad'; pm.textContent = d.detail || ('Error ' + r.status); }
+});
+load();
               show('ok', 'Configuración guardada.'); }
   else { var d = await r.json(); show('bad', 'No se pudo guardar: ' + (d.detail || r.status)); }
 });

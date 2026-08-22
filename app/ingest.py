@@ -75,21 +75,6 @@ async def migrate_assignments(pool: asyncpg.Pool) -> None:
         logger.info("vuln_assignments_key_widened")
 
 
-async def purge_demo_data(pool: asyncpg.Pool) -> Dict[str, int]:
-    """Drop synthetic seed rows so they cannot mix into a real inventory.
-
-    The demo seeds 90 days of snapshots and a fleet of invented CVEs. Left in
-    place they would show up as history on the trend charts and as phantom
-    resolved CVEs, which is worse than an empty chart.
-    """
-    counts = {}
-    for table in ("vuln_snapshots", "vuln_cve_state", "vuln_assignments"):
-        counts[table] = int((await pool.fetchval(f"SELECT COUNT(*) FROM {table}")) or 0)
-        await pool.execute(f"TRUNCATE {table}")
-    logger.info("demo_data_purged", **counts)
-    return counts
-
-
 def _entry_priority(row: Dict[str, Any], settings: Any) -> Optional[float]:
     return priority_score(
         row.get("cvss"),
