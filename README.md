@@ -111,8 +111,8 @@ sequenceDiagram
 Requisitos: **Wazuh 4.8+**, acceso al Indexer (9200), Docker y Docker Compose.
 
 ```bash
-git clone https://github.com/safernandez666/patch-tracker.git
-cd patch-tracker
+git clone https://github.com/safernandez666/patch-genius.git
+cd patch-genius
 ./scripts/setup-env.sh      # genera .env e imprime tu contraseña inicial
 docker compose up -d --build
 ```
