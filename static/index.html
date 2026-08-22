@@ -190,6 +190,18 @@
 [data-theme="dark"] a{color:#76abae}
 [data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid #76abae}
 .brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
+.qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--color-gray-800);background:transparent;color:var(--color-gray-400)}
+.qf:hover{border-color:#76abae;color:#76abae}
+.qf.on{background:#76abae;border-color:#76abae;color:#1d2529;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px 4px 10px;
+      border-radius:999px;background:var(--color-gray-dark);border:1px solid var(--color-gray-800);
+      color:var(--color-gray-300)}
+.chip b{font-weight:600;color:var(--color-white)}
+.chip button{border:0;background:transparent;color:var(--color-gray-400);cursor:pointer;
+             font-size:14px;line-height:1;padding:0 2px}
+.chip button:hover{color:#ff5722}
+.chip-clear{font-size:12px;color:#76abae;background:none;border:0;cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -204,6 +216,10 @@
     <a href="/config">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Configuración
+    </a>
+    <a href="/ayuda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Ayuda
     </a>
   </nav>
   <div class="sidebar-spacer"></div>
@@ -226,7 +242,7 @@
 <main class="container">
   <div class="page-header">
     <h1 class="page-title">Vulnerabilidades — Seguimiento y patching</h1>
-    <p class="page-desc">Estado del parque leído de tu Wazuh y priorizado así: <strong>CISA KEV</strong> (explotación activa confirmada) primero, <strong>EPSS</strong> (probabilidad de explotación a 30 días) después, y el <strong>score de prioridad</strong> = CVSS×peso + EPSS×peso + bonus si está en KEV. Cada CVE se puede <strong>asignar un responsable</strong>, un estado de remediación y una fecha objetivo; el aging y el SLA de críticas se calculan desde la primera vez que Patch Genius vio el CVE, no desde la fecha que reporta Wazuh.</p>
+    <p class="page-desc">Estado del parque leído de tu Wazuh, priorizado por <strong>CISA KEV</strong> y <strong>EPSS</strong>. <a href="/ayuda">Cómo funciona la priorización, el aging y el SLA &rarr;</a></p>
   </div>
 
   <div id="setupHint" style="display:none;background:#332612;color:#fcd34d;border:1px solid #6b4e14;
@@ -236,6 +252,15 @@
     y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
     corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
   </div>
+  <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Vistas rápidas:</span>
+    <button type="button" class="qf" data-qf="kev">Explotación activa (KEV)</button>
+    <button type="button" class="qf" data-qf="score">Prioridad ≥ 80</button>
+    <button type="button" class="qf" data-qf="sla">Críticas fuera de SLA</button>
+    <button type="button" class="qf" data-qf="os">Parches de sistema operativo</button>
+    <button type="button" class="qf" data-qf="untriaged">Sin triar</button>
+  </div>
+  <div id="activeChips" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
   <div class="toolbar">
     <label class="visually-hidden" for="filter-sev">Filtrar por severidad</label>
     <select class="select" id="filter-sev" aria-label="Filtrar por severidad" onchange="reloadCves()">
@@ -305,11 +330,20 @@
     <div class="donut-box is-loading" id="chartEvol" style="min-height:240px"></div>
   </section>
 
-  <section class="section" aria-label="Distribución por severidad" style="margin-bottom:18px;">
-    <h3 class="card-h">Distribución por severidad</h3>
-    <div class="donut-box is-loading" id="donutSev" style="min-height:190px"></div>
-    <div class="donut-legend" id="legSev"></div>
-  </section>
+  <div class="dist-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:18px">
+    <section class="section" aria-label="Distribución por severidad" style="margin-bottom:0">
+      <h3 class="card-h">Distribución por severidad</h3>
+      <div class="donut-box is-loading" id="donutSev" style="min-height:190px"></div>
+      <div class="donut-legend" id="legSev"></div>
+    </section>
+
+    <section class="section" aria-label="Distribución por plataforma" style="margin-bottom:0">
+      <h3 class="card-h">Distribución por plataforma</h3>
+      <p class="card-sub">Un CVE presente en Linux y en Windows cuenta en los dos, así que el total puede superar la cantidad de CVEs únicos.</p>
+      <div class="donut-box is-loading" id="donutPlat" style="min-height:190px"></div>
+      <div class="donut-legend" id="legPlat"></div>
+    </section>
+  </div>
 
   <section class="section" aria-label="Top paquetes vulnerables" style="margin-bottom:18px;">
     <h3 class="card-h">Top paquetes vulnerables</h3>
@@ -396,6 +430,7 @@ let allCves = [];
 let ownersKnown = [];
 let evolChart = null;
 let donutChart = null;
+let platChart = null;
 let pkgsChart = null;
 let srvChart = null;
 let debounceTimer = null;
@@ -476,8 +511,10 @@ async function loadSummary() {
   }
 
   showSetupHint(d);
+  renderChips();
   populatePlatformFilter(d.plataformas || []);
   renderSevDonut(d.por_severidad || []);
+  renderPlatDonut(d.por_plataforma || []);
   renderPkgsChart(d.top_paquetes || []);
   renderSrvChart(d.servidores || []);
 }
@@ -541,6 +578,58 @@ function renderSevDonut(porSev) {
     const pct = Math.round(series[i] / total * 100);
     return `<div class="dleg-item" style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
       <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;display:inline-block;background:${cols[i]}"></span>${escapeHtml(lab)}</span>
+      <span style="font-weight:600">${fmtNum.format(series[i])} · ${pct}%</span></div>`;
+  }).join('');
+}
+
+// --- Donut por plataforma ---
+// Paleta propia, deliberadamente fuera de la escala de severidad: si Windows
+// fuera naranja se leeria como "alto" en vez de como un sistema operativo.
+const PLAT_HEX = { windows: '#76abae', debian: '#c2708a', ubuntu: '#e8834a',
+                   linux: '#8fbf7a', darwin: '#9b8fc4', macos: '#9b8fc4' };
+const PLAT_LABEL = { windows: 'Windows', debian: 'Debian', ubuntu: 'Ubuntu',
+                     linux: 'Linux', darwin: 'macOS', macos: 'macOS' };
+
+function renderPlatDonut(porPlat) {
+  const el = document.getElementById('donutPlat');
+  el.classList.remove('is-loading');
+  const entries = (porPlat || []).filter(p => p.total > 0);
+  if (!entries.length) {
+    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    document.getElementById('legPlat').innerHTML = '';
+    return;
+  }
+  const labels = entries.map(p => PLAT_LABEL[p.plataforma] || p.plataforma);
+  const series = entries.map(p => p.total);
+  const cols = entries.map((p, i) => PLAT_HEX[p.plataforma] || ['#76abae','#e8834a','#c2708a','#8fbf7a'][i % 4]);
+  const opts = {
+    chart: { type: 'donut', height: 190, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore() },
+    series, labels, colors: cols,
+    stroke: { width: 0 },
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    plotOptions: { pie: { donut: { size: '70%', labels: {
+      show: true,
+      value: { fontSize: '21px', fontWeight: 700, color: chartFore() },
+      total: { show: true, label: 'Detecciones', fontSize: '12px', color: chartFore() } } } } },
+    tooltip: { theme: isDark() ? 'dark' : 'light' },
+    noData: { text: 'Sin datos' },
+  };
+  if (platChart) {
+    platChart.updateOptions({ labels, colors: cols, chart: { foreColor: chartFore() } }, false, false);
+    platChart.updateSeries(series);
+  } else {
+    el.innerHTML = '';
+    platChart = new ApexCharts(el, opts);
+    platChart.render();
+  }
+  const total = series.reduce((a, b) => a + b, 0) || 1;
+  document.getElementById('legPlat').innerHTML = entries.map((p, i) => {
+    const pct = Math.round(series[i] / total * 100);
+    const crit = (p.critical || 0) + (p.high || 0);
+    return `<div class="dleg-item" style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+      <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;display:inline-block;background:${cols[i]}"></span>${escapeHtml(labels[i])}
+        <span style="color:var(--color-gray-500);font-size:11.5px">${fmtNum.format(crit)} crít.+altas</span></span>
       <span style="font-weight:600">${fmtNum.format(series[i])} · ${pct}%</span></div>`;
   }).join('');
 }
@@ -732,8 +821,81 @@ function filters() {
   const plat = document.getElementById('filter-plat').value;
   if (plat) qs.set('plataforma', plat);
   if (q) qs.set('q', q);
+  // Las vistas rapidas son filtros como cualquier otro; viven aparte para poder
+  // resaltar el boton, pero viajan en la misma query.
+  Object.keys(QUICK).forEach(function (k) {
+    if (quickOn[k]) Object.entries(QUICK[k].params).forEach(([a, b]) => qs.set(a, b));
+  });
   return qs;
 }
+
+const QUICK = {
+  kev:       { label: 'Explotación activa (KEV)', params: { kev: '1' } },
+  score:     { label: 'Prioridad ≥ 80', params: { score_min: '80' } },
+  sla:       { label: 'Críticas fuera de SLA', params: { sla: 'vencidos' } },
+  os:        { label: 'Parches de sistema operativo', params: { tipo: 'os_update' } },
+  untriaged: { label: 'Sin triar', params: { severity: 'untriaged' } },
+};
+const quickOn = {};
+
+function renderChips() {
+  const box = document.getElementById('activeChips');
+  const chips = [];
+  Object.keys(QUICK).forEach(function (k) {
+    if (quickOn[k]) chips.push({ key: 'qf:' + k, label: QUICK[k].label });
+  });
+  [['filter-sev', 'Severidad'], ['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
+   ['filter-estado', 'Estado'], ['filter-agent', 'Servidor']].forEach(function (pair) {
+    const el = document.getElementById(pair[0]);
+    if (el && el.value) chips.push({ key: pair[0], label: pair[1], value: el.selectedOptions[0].textContent });
+  });
+  const q = document.getElementById('filter-q').value.trim();
+  if (q) chips.push({ key: 'filter-q', label: 'Busca', value: q });
+  if (document.getElementById('filter-kev').checked) chips.push({ key: 'filter-kev', label: 'Solo KEV' });
+  if (document.getElementById('filter-ransom').checked) chips.push({ key: 'filter-ransom', label: 'Ransomware' });
+
+  if (!chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'flex';
+  box.innerHTML = chips.map(function (c) {
+    const txt = c.value ? `${escapeHtml(c.label)}: <b>${escapeHtml(c.value)}</b>` : `<b>${escapeHtml(c.label)}</b>`;
+    return `<span class="chip">${txt}<button type="button" data-clear="${c.key}" aria-label="Quitar filtro">&times;</button></span>`;
+  }).join('') + '<button type="button" class="chip-clear" id="clearAll">Limpiar todo</button>';
+}
+
+function clearFilter(key) {
+  if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
+  else {
+    const el = document.getElementById(key);
+    if (el.type === 'checkbox') el.checked = false; else el.value = '';
+  }
+  reloadCves();
+}
+
+function clearAllFilters() {
+  Object.keys(QUICK).forEach(k => { quickOn[k] = false; });
+  syncQuickButtons();
+  ['filter-sev', 'filter-plat', 'filter-owner', 'filter-estado', 'filter-agent'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('filter-q').value = '';
+  document.getElementById('filter-kev').checked = false;
+  document.getElementById('filter-ransom').checked = false;
+  reloadCves();
+}
+
+function syncQuickButtons() {
+  document.querySelectorAll('.qf').forEach(function (b) {
+    b.classList.toggle('on', !!quickOn[b.dataset.qf]);
+  });
+}
+
+document.addEventListener('click', function (ev) {
+  const qf = ev.target.closest('.qf');
+  if (qf) { quickOn[qf.dataset.qf] = !quickOn[qf.dataset.qf]; syncQuickButtons(); reloadCves(); return; }
+  if (ev.target.id === 'clearAll') { clearAllFilters(); return; }
+  const rm = ev.target.closest('[data-clear]');
+  if (rm) clearFilter(rm.dataset.clear);
+});
 
 function fmtAgo(iso) {
   if (!iso) return '';

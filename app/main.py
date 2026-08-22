@@ -175,6 +175,11 @@ async def api_session(request: Request):
 # ---------------------------------------------------------------------------
 # Configuration tab — Wazuh onboarding.
 # ---------------------------------------------------------------------------
+@app.get("/ayuda")
+async def help_page():
+    return FileResponse("static/ayuda.html")
+
+
 @app.get("/config")
 async def config_page():
     return FileResponse("static/config.html")
@@ -365,6 +370,9 @@ def _apply_vuln_filters(
     agent: Optional[str] = None,
     q: Optional[str] = None,
     ransomware: Optional[int] = None,
+    tipo: Optional[str] = None,
+    score_min: Optional[float] = None,
+    sla: Optional[str] = None,
 ) -> List[dict]:
     if severity:
         sev = severity.lower()
@@ -372,6 +380,19 @@ def _apply_vuln_filters(
     if plataforma:
         plat = plataforma.lower()
         rows = [r for r in rows if plat in [p.lower() for p in r.get("plataformas", [])]]
+    if tipo:
+        rows = [r for r in rows if tipo in r.get("tipos", [])]
+    if score_min is not None:
+        rows = [r for r in rows if (r.get("priority_score") or 0) >= score_min]
+    if sla == "vencidos":
+        # Only criticals carry a patching SLA, so "breached" means a critical that
+        # has been open longer than the configured window.
+        rows = [
+            r
+            for r in rows
+            if r["severidad"] == "Critical"
+            and (r.get("dias_detectado") or 0) > settings.vuln_sla_critical_days
+        ]
     if kev:
         rows = [r for r in rows if r["kev"]]
     if ransomware:
@@ -400,6 +421,9 @@ async def vuln_summary(
     user: str = Depends(require_user),
     severity: Optional[str] = None,
     plataforma: Optional[str] = None,
+    tipo: Optional[str] = None,
+    score_min: Optional[float] = None,
+    sla: Optional[str] = None,
     kev: Optional[int] = None,
     owner: Optional[str] = None,
     status: Optional[str] = None,
@@ -418,6 +442,9 @@ async def vuln_summary(
         _vuln_rows(state, lifecycle, assigns),
         severity=severity,
         plataforma=plataforma,
+        tipo=tipo,
+        score_min=score_min,
+        sla=sla,
         kev=kev,
         owner=owner,
         status=status,
@@ -455,6 +482,7 @@ async def vuln_summary(
         "cves_unicos": len(rows),
         "paquetes_unicos": state.get("paquetes_unicos", 0),
         "plataformas": state.get("plataformas", []),
+        "por_plataforma": state.get("por_plataforma", []),
         "por_severidad": por_sev,
         "servidores": servidores,
         "servidores_count": len({a for r in rows for a in r["agentes"]}),
@@ -483,6 +511,9 @@ async def vuln_cves(
     user: str = Depends(require_user),
     severity: Optional[str] = None,
     plataforma: Optional[str] = None,
+    tipo: Optional[str] = None,
+    score_min: Optional[float] = None,
+    sla: Optional[str] = None,
     kev: Optional[int] = None,
     owner: Optional[str] = None,
     status: Optional[str] = None,
@@ -499,6 +530,9 @@ async def vuln_cves(
         _vuln_rows(state, lifecycle, assigns),
         severity=severity,
         plataforma=plataforma,
+        tipo=tipo,
+        score_min=score_min,
+        sla=sla,
         kev=kev,
         owner=owner,
         status=status,

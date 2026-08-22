@@ -14,7 +14,7 @@ SLA clock based on it silently restarts and never breaches.
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import asyncpg
 import structlog
@@ -73,6 +73,29 @@ async def migrate_assignments(pool: asyncpg.Pool) -> None:
         await pool.execute(f'ALTER TABLE vuln_assignments DROP CONSTRAINT "{pk}"')
         await pool.execute("ALTER TABLE vuln_assignments ADD PRIMARY KEY (cve, agent_id)")
         logger.info("vuln_assignments_key_widened")
+
+
+async def collect(config: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
+    """Yield raw vulnerability records from whichever scanner is configured.
+
+    This is the seam for a second scanner. Everything downstream — the CVE
+    aggregation, scoring, lifecycle and the whole dashboard — consumes the
+    normalised shape that app/wazuh/mapper.py produces, not Wazuh's wire format.
+    Adding OpenVAS means writing a collector that yields records with the same
+    `vulnerability` / `package` / `agent` / `host.os` keys and registering it
+    here; nothing else has to change.
+    """
+    scanner = config.get("scanner", "wazuh")
+    if scanner != "wazuh":
+        raise ValueError(f"unsupported scanner: {scanner}")
+    client = WazuhIndexerClient(
+        base_url=config["indexer_url"],
+        username=config["indexer_user"],
+        password=config["indexer_password"],
+        verify_tls=bool(config.get("verify_tls")),
+    )
+    async for doc in client.iter_vulnerabilities():
+        yield doc
 
 
 def _entry_priority(row: Dict[str, Any], settings: Any) -> Optional[float]:
@@ -138,14 +161,7 @@ async def run_ingest(pool: asyncpg.Pool, config: Dict[str, Any], settings: Any) 
     if not config.get("indexer_url"):
         raise ValueError("no indexer URL configured")
 
-    client = WazuhIndexerClient(
-        base_url=config["indexer_url"],
-        username=config["indexer_user"],
-        password=config["indexer_password"],
-        verify_tls=bool(config.get("verify_tls")),
-    )
-
-    docs = [doc async for doc in client.iter_vulnerabilities()]
+    docs = [doc async for doc in collect(config)]
     if not docs:
         logger.warning("ingest_no_documents")
 
@@ -211,15 +227,18 @@ def _top_paquetes(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         for pkg in row["paquetes"]:
             entry = agg.setdefault(
                 pkg,
-                {"cves": set(), "severidad_max": "Untriaged",
-                 "tipo": "os" if is_os else "paquete"},
+                {"cves": set(), "severidad_max": "Untriaged", "tipo": "os" if is_os else "paquete"},
             )
             entry["cves"].add(row["cve"])
             if _SEV_RANK.get(row["severidad"], 0) > _SEV_RANK.get(entry["severidad_max"], 0):
                 entry["severidad_max"] = row["severidad"]
     top = [
-        {"paquete": k, "cves": len(v["cves"]), "severidad_max": v["severidad_max"],
-         "tipo": v["tipo"]}
+        {
+            "paquete": k,
+            "cves": len(v["cves"]),
+            "severidad_max": v["severidad_max"],
+            "tipo": v["tipo"],
+        }
         for k, v in agg.items()
     ]
     top.sort(key=lambda r: (-r["cves"], -_SEV_RANK.get(r["severidad_max"], 0)))
@@ -229,9 +248,21 @@ def _top_paquetes(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def _build_summary(rows: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
     por_sev: Dict[str, int] = {}
     por_agente: Dict[str, Dict[str, int]] = {}
+    por_plataforma: Dict[str, Dict[str, int]] = {}
     for row in rows:
         sev = row["severidad"]
         por_sev[sev] = por_sev.get(sev, 0) + 1
+        # A CVE present on both a Debian box and a Windows one counts under each
+        # platform, so these buckets intentionally sum to more than cves_unicos.
+        for plat in row["plataformas"]:
+            bucket = por_plataforma.setdefault(
+                plat,
+                {"critical": 0, "high": 0, "medium": 0, "low": 0, "untriaged": 0, "total": 0},
+            )
+            key = sev.lower()
+            if key in bucket:
+                bucket[key] += 1
+            bucket["total"] += 1
         for agent in row["detalle_agentes"]:
             bucket = por_agente.setdefault(
                 agent["agente"],
@@ -253,6 +284,10 @@ def _build_summary(rows: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
         "top_paquetes": top,
         "paquetes_unicos": len(top),
         "plataformas": sorted({p for r in rows for p in r["plataformas"]}),
+        "por_plataforma": [
+            {"plataforma": k, **v}
+            for k, v in sorted(por_plataforma.items(), key=lambda kv: -kv[1]["total"])
+        ],
         "sin_datos": not rows,
     }
 
