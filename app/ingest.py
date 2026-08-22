@@ -210,6 +210,37 @@ async def run_ingest(pool: asyncpg.Pool, config: Dict[str, Any], settings: Any) 
     return result
 
 
+_SEV_RANK = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1, "Untriaged": 0}
+
+
+def _top_paquetes(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Rank what is vulnerable, keeping OS findings distinct from packages.
+
+    A Windows OS entry aggregates every CVE of that build — thousands on a stock
+    server — so mixed into one ranking it buries every real package. `tipo` lets
+    the UI split them into separate charts.
+    """
+    agg: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        is_os = "os_update" in row["tipos"]
+        for pkg in row["paquetes"]:
+            entry = agg.setdefault(
+                pkg,
+                {"cves": set(), "severidad_max": "Untriaged",
+                 "tipo": "os" if is_os else "paquete"},
+            )
+            entry["cves"].add(row["cve"])
+            if _SEV_RANK.get(row["severidad"], 0) > _SEV_RANK.get(entry["severidad_max"], 0):
+                entry["severidad_max"] = row["severidad"]
+    top = [
+        {"paquete": k, "cves": len(v["cves"]), "severidad_max": v["severidad_max"],
+         "tipo": v["tipo"]}
+        for k, v in agg.items()
+    ]
+    top.sort(key=lambda r: (-r["cves"], -_SEV_RANK.get(r["severidad_max"], 0)))
+    return top
+
+
 def _build_summary(rows: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
     por_sev: Dict[str, int] = {}
     por_agente: Dict[str, Dict[str, int]] = {}
@@ -225,6 +256,7 @@ def _build_summary(rows: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
             if key in bucket:
                 bucket[key] += 1
             bucket["total"] += 1
+    top = _top_paquetes(rows)
     return {
         "actualizado": f"{today.isoformat()}T00:00:00+00:00",
         "cves": rows,
@@ -233,6 +265,9 @@ def _build_summary(rows: List[Dict[str, Any]], today: date) -> Dict[str, Any]:
         "criticas_altas": sum(1 for r in rows if r["severidad"] in ("Critical", "High")),
         "por_severidad": [{"severidad": k, "n": v} for k, v in sorted(por_sev.items())],
         "servidores": [{"agente": k, **v} for k, v in sorted(por_agente.items())],
+        "top_paquetes": top,
+        "paquetes_unicos": len(top),
+        "plataformas": sorted({p for r in rows for p in r["plataformas"]}),
         "sin_datos": not rows,
     }
 

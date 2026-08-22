@@ -300,6 +300,9 @@ def _vuln_rows(state: dict, lifecycle: dict, assigns: dict) -> List[dict]:
                 "publicado": c.get("publicado", ""),
                 "paquetes": c.get("paquetes", []),
                 "agentes": c.get("agentes", []),
+                "plataformas": c.get("plataformas", []),
+                "tipos": c.get("tipos", []),
+                "detalle_agentes": c.get("detalle_agentes", []),
                 "instalaciones": c.get("instalaciones", 0),
                 "epss": c.get("epss"),
                 "kev": c.get("kev", False),
@@ -363,6 +366,7 @@ def _top_paquetes_from_rows(rows: List[dict]) -> List[dict]:
 def _apply_vuln_filters(
     rows: List[dict],
     severity: Optional[str] = None,
+    plataforma: Optional[str] = None,
     kev: Optional[int] = None,
     owner: Optional[str] = None,
     status: Optional[str] = None,
@@ -373,6 +377,9 @@ def _apply_vuln_filters(
     if severity:
         sev = severity.lower()
         rows = [r for r in rows if (r["severidad"] or "").lower() == sev]
+    if plataforma:
+        plat = plataforma.lower()
+        rows = [r for r in rows if plat in [p.lower() for p in r.get("plataformas", [])]]
     if kev:
         rows = [r for r in rows if r["kev"]]
     if ransomware:
@@ -400,6 +407,7 @@ async def vuln_summary(
     request: Request,
     user: str = Depends(require_user),
     severity: Optional[str] = None,
+    plataforma: Optional[str] = None,
     kev: Optional[int] = None,
     owner: Optional[str] = None,
     status: Optional[str] = None,
@@ -417,6 +425,7 @@ async def vuln_summary(
     rows = _apply_vuln_filters(
         _vuln_rows(state, lifecycle, assigns),
         severity=severity,
+        plataforma=plataforma,
         kev=kev,
         owner=owner,
         status=status,
@@ -453,6 +462,7 @@ async def vuln_summary(
         "criticas_altas": criticas_altas,
         "cves_unicos": len(rows),
         "paquetes_unicos": state.get("paquetes_unicos", 0),
+        "plataformas": state.get("plataformas", []),
         "por_severidad": por_sev,
         "servidores": servidores,
         "servidores_count": len({a for r in rows for a in r["agentes"]}),
@@ -480,6 +490,7 @@ async def vuln_cves(
     request: Request,
     user: str = Depends(require_user),
     severity: Optional[str] = None,
+    plataforma: Optional[str] = None,
     kev: Optional[int] = None,
     owner: Optional[str] = None,
     status: Optional[str] = None,
@@ -495,6 +506,7 @@ async def vuln_cves(
     rows = _apply_vuln_filters(
         _vuln_rows(state, lifecycle, assigns),
         severity=severity,
+        plataforma=plataforma,
         kev=kev,
         owner=owner,
         status=status,
