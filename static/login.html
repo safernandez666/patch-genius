@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ingresar — Patch Tracking</title>
+<script>try{if(localStorage.getItem('soc.theme')==='light')document.documentElement.classList.add('theme-light')}catch(e){}</script>
+<link rel="stylesheet" href="/static/tailwind.css">
+<style>
+  body{min-height:100vh;display:grid;place-items:center;background:#0b1020;color:#e6ecff;
+       font-family:Outfit,system-ui,-apple-system,Segoe UI,sans-serif;margin:0}
+  .card{width:min(92vw,380px);background:#141a2f;border:1px solid #26304d;border-radius:14px;padding:28px}
+  h1{font-size:1.05rem;margin:0 0 4px}
+  p.sub{margin:0 0 20px;color:#8b97b8;font-size:.82rem}
+  label{display:block;font-size:.78rem;color:#8b97b8;margin:12px 0 5px}
+  input{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;
+        border:1px solid #2d3856;background:#0e1426;color:#e6ecff;font-size:.9rem}
+  input:focus{outline:2px solid #3b82f6;outline-offset:0}
+  button{width:100%;margin-top:18px;padding:10px;border:0;border-radius:8px;background:#3b82f6;
+         color:#fff;font-weight:600;font-size:.9rem;cursor:pointer}
+  button:disabled{opacity:.6;cursor:default}
+  .err{margin-top:12px;color:#fca5a5;font-size:.8rem;min-height:1em}
+</style>
+</head>
+<body>
+<form class="card" id="f">
+  <h1>Vulnerability &amp; Patch Tracking</h1>
+  <p class="sub">Ingresá para ver el inventario.</p>
+  <label for="u">Usuario</label>
+  <input id="u" name="username" autocomplete="username" required autofocus>
+  <label for="p">Contraseña</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <button id="b" type="submit">Ingresar</button>
+  <div class="err" id="e"></div>
+</form>
+<script>
+document.getElementById('f').addEventListener('submit', async function (ev) {
+  ev.preventDefault();
+  var b = document.getElementById('b'), e = document.getElementById('e');
+  b.disabled = true; e.textContent = '';
+  try {
+    var r = await fetch('/api/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: document.getElementById('u').value,
+                            password: document.getElementById('p').value})
+    });
+    if (r.ok) { window.location = '/'; return; }
+    e.textContent = 'Usuario o contraseña incorrectos.';
+  } catch (err) {
+    e.textContent = 'No se pudo contactar al servidor.';
+  }
+  b.disabled = false;
+});
+</script>
+</body>
+</html>
