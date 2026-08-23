@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ingresar — Patch Genius</title>
+<title>Sign in — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
@@ -17,14 +17,14 @@
         <img src="/static/assets/genie.svg" alt="">
         <span>Patch <b>Genius</b></span>
       </div>
-      <h1 data-i18n="login.title">Ingresar</h1>
-      <p class="sub" data-i18n="login.sub">Entrá con tu cuenta para ver el inventario de vulnerabilidades.</p>
+      <h1 data-i18n="login.title">Sign in</h1>
+      <p class="sub" data-i18n="login.sub">Sign in to your account to see the vulnerability inventory.</p>
       <form id="f" novalidate>
-        <label for="u" data-i18n="login.user">Usuario</label>
+        <label for="u" data-i18n="login.user">Username</label>
         <input id="u" type="text" autocomplete="username" required autofocus>
-        <label for="p" data-i18n="login.pass">Contraseña</label>
+        <label for="p" data-i18n="login.pass">Password</label>
         <input id="p" type="password" autocomplete="current-password" required>
-        <button id="b" type="submit" data-i18n="login.submit">Ingresar</button>
+        <button id="b" type="submit" data-i18n="login.submit">Sign in</button>
         <div class="msg" id="e" role="alert" aria-live="polite"></div>
       </form>
     </div>
@@ -34,8 +34,8 @@
     <div class="auth-brand-inner">
       <img src="/static/assets/genie.svg" alt="">
       <h2>Patch <b>Genius</b></h2>
-      <p data-i18n="brand.tagline">Seguimiento de vulnerabilidades y parcheo sobre tu propio Wazuh.
-        Priorizado con CISA KEV y EPSS.</p>
+      <p data-i18n="brand.tagline">Vulnerability and patch tracking on top of your own Wazuh.
+        Prioritised with CISA KEV and EPSS.</p>
     </div>
   </div>
 </div>
@@ -53,10 +53,10 @@ document.getElementById('f').addEventListener('submit', async function (ev) {
     });
     if (r.ok) { window.location = '/'; return; }
     e.className = 'msg err';
-    e.textContent = t('login.bad', 'Usuario o contraseña incorrectos.');
+    e.textContent = t('login.bad', 'Wrong username or password.');
   } catch (err) {
     e.className = 'msg err';
-    e.textContent = t('login.down', 'No se pudo contactar al servidor.');
+    e.textContent = t('login.down', 'Could not reach the server.');
   }
   b.disabled = false;
 });

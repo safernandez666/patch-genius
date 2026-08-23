@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ayuda — Patch Genius</title>
+<title>Help — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
@@ -43,118 +43,116 @@
 <body>
 <div class="wrap">
   <a class="back" href="/">&larr; Volver al panel</a>
-  <h1><img src="/static/assets/genie.svg" alt="">Cómo funciona Patch Genius</h1>
-  <p class="sub">Qué mira, cómo prioriza y por qué algunos números tardan en tener sentido.</p>
+  <h1><img src="/static/assets/genie.svg" alt="">How Patch Genius works</h1>
+  <p class="sub">What it reads, how it ranks, and why some numbers take a while to mean anything.</p>
 
   <div class="grid">
 
   <div class="card">
-    <h2>De dónde salen los datos</h2>
-    <p>Patch Genius lee el índice <code>wazuh-states-vulnerabilities-*</code> del Wazuh
-      Indexer. Desde Wazuh 4.8 los datos de vulnerabilidades ya no están en la API del
-      manager, así que esa es la única fuente soportada.</p>
-    <p>Ese índice contiene <b>solo vulnerabilidades activas</b>: cuando parcheás un paquete
-      —o instalás el KB que corrige un CVE en Windows— Wazuh <b>borra el registro</b>. No hay
-      campo de estado ni historial.</p>
+    <h2>Where the data comes from</h2>
+    <p>Patch Genius reads the <code>wazuh-states-vulnerabilities-*</code> index from the Wazuh
+      Indexer. Since Wazuh 4.8 vulnerability data no longer lives in the manager API, so that
+      index is the only supported source.</p>
+    <p>That index holds <b>only active vulnerabilities</b>: when you patch a package — or install
+      the KB that fixes a CVE on Windows — Wazuh <b>deletes the record</b>. There is no status
+      field and no history.</p>
   </div>
 
   <div class="card">
-    <h2>Cómo se prioriza</h2>
-    <p>El mismo criterio que usa un analista de SOC, en este orden:</p>
+    <h2>How it ranks</h2>
+    <p>The same order a SOC analyst would use:</p>
     <ol>
-      <li><b>CISA KEV</b> primero — explotación activa confirmada en el mundo real. Si un CVE
-        está acá, no importa mucho qué diga el CVSS: alguien ya lo está usando.</li>
-      <li><b>EPSS</b> después — probabilidad estimada de que se explote en los próximos 30 días.</li>
-      <li><b>Score de prioridad</b> como número único para ordenar:</li>
+      <li><b>CISA KEV</b> first — confirmed active exploitation in the wild. If a CVE is here, the
+        CVSS matters much less: somebody is already using it.</li>
+      <li><b>EPSS</b> next — estimated probability of exploitation within the next 30 days.</li>
+      <li><b>Priority score</b> as a single number to sort by:</li>
     </ol>
     <p style="text-align:center;background:var(--pg-surface-alt);padding:11px;border-radius:8px;font-size:.9rem">
-      <code>CVSS × peso + EPSS × peso + bonus si está en KEV</code>, tope 100
+      <code>CVSS × weight + EPSS × weight + bonus when listed in KEV</code>, capped at 100
     </p>
-    <p>Los pesos son configurables por variable de entorno. Sin EPSS disponible, el score
-      degrada a CVSS solo en vez de castigar al CVE.</p>
+    <p>The weights are environment variables. With no EPSS available the score degrades to
+      CVSS alone rather than penalising the CVE.</p>
   </div>
 
   <div class="card span">
-    <h2>Severidades</h2>
+    <h2>Severities</h2>
     <div class="sevgrid">
       <div class="sevcard" style="border-left-color:var(--pg-sev-critical)">
-        <h4>Crítica</h4><span class="rng">CVSS 9.0 – 10.0</span><p>Explotable con impacto total sobre el sistema. Es lo que se parchea primero, sobre todo si además está en KEV.</p></div>
+        <h4>Critical</h4><span class="rng">CVSS 9.0 – 10.0</span><p>Exploitable with full impact on the system. Patch these first, especially when also listed in KEV.</p></div>
       <div class="sevcard" style="border-left-color:var(--pg-sev-high)">
-        <h4>Alta</h4><span class="rng">CVSS 7.0 – 8.9</span><p>Impacto serio o explotación sencilla. Junto con las críticas forma el número que mira el panel.</p></div>
+        <h4>High</h4><span class="rng">CVSS 7.0 – 8.9</span><p>Serious impact or easy exploitation. Together with criticals, this is the headline number.</p></div>
       <div class="sevcard" style="border-left-color:var(--pg-sev-medium)">
-        <h4>Media</h4><span class="rng">CVSS 4.0 – 6.9</span><p>Necesita condiciones previas, o el impacto es parcial.</p></div>
+        <h4>Medium</h4><span class="rng">CVSS 4.0 – 6.9</span><p>Requires preconditions, or the impact is partial.</p></div>
       <div class="sevcard" style="border-left-color:var(--pg-sev-low)">
-        <h4>Baja</h4><span class="rng">CVSS 0.1 – 3.9</span><p>Impacto limitado. Suele entrar en la ventana de mantenimiento normal.</p></div>
+        <h4>Low</h4><span class="rng">CVSS 0.1 – 3.9</span><p>Limited impact. Usually fits the normal maintenance window.</p></div>
       <div class="sevcard" style="border-left-color:var(--pg-sev-untriaged)">
-        <h4>Sin triar</h4><span class="rng">sin puntaje de NVD</span>
-        <p>Wazuh los reporta con severidad <code>-</code> y <code>under_evaluation</code>.
-          <b>No son de severidad baja</b>: son desconocidos, y uno nuevo puede terminar
-          siendo crítico.</p></div>
+        <h4>Untriaged</h4><span class="rng">no NVD score yet</span>
+        <p>Wazuh reports these with severity <code>-</code> and <code>under_evaluation</code>.
+          <b>They are not low severity</b> — they are unknown, and a new one can turn out
+          to be critical.</p></div>
     </div>
   </div>
 
   <div class="card">
-    <h2>Aging y SLA de parcheo</h2>
-    <p>El aging se cuenta <b>desde la primera vez que Patch Genius vio el CVE</b>, no desde la
-      fecha que reporta Wazuh.</p>
+    <h2>Aging and the patching SLA</h2>
+    <p>Aging counts <b>from the first time Patch Genius saw the CVE</b>, not from the date Wazuh
+      reports.</p>
     <div class="note">
       Wazuh reescribe <code>vulnerability.detected_at</code> cada vez que reindexa un registro,
       cosa que pasa por motivos internos. Un SLA construido sobre ese campo se reinicia solo
       y nunca vence: mostraría todo en verde para siempre. Por eso guardamos fecha propia.
     </div>
-    <p>La consecuencia práctica: <b>el primer día todo figura con 0 días</b>. El aging y el SLA
-      recién dicen algo real después de correr un tiempo. Lo mismo con los gráficos de
-      evolución — Wazuh no guarda historia, así que la serie se construye hacia adelante,
-      un snapshot por día.</p>
+    <p>The practical consequence: <b>on day one everything shows 0 days</b>. Aging and the SLA
+      only mean something after the app has been running a while. Same for the trend charts —
+      Wazuh keeps no history, so the series is built forward, one snapshot per day.</p>
   </div>
 
   <div class="card">
-    <h2>Resuelto, reabierto, nuevo</h2>
-    <p>Como el índice no tiene estado, cada ingesta se compara con la anterior:</p>
+    <h2>Resolved, reopened, new</h2>
+    <p>Because the index has no status, each ingest is compared with the previous one:</p>
     <ul>
-      <li><b>Nuevo</b> — el par (CVE, agente) aparece por primera vez.</li>
-      <li><b>Resuelto</b> — estaba y ya no está. Wazuh borró el registro, o sea que se parcheó.</li>
-      <li><b>Reabierto</b> — estaba resuelto y volvió a aparecer. Suele ser un rollback, una
-        reinstalación, o una imagen vieja redesplegada.</li>
+      <li><b>New</b> — the (CVE, agent) pair appears for the first time.</li>
+      <li><b>Resolved</b> — it was there and is gone. Wazuh deleted the record, so it was patched.</li>
+      <li><b>Reopened</b> — it was resolved and came back. Usually a rollback, a reinstall, or an
+        old image redeployed.</li>
     </ul>
-    <p>Todo esto se lleva <b>por CVE y por agente</b>: podés tener el mismo CVE resuelto en un
-      servidor y pendiente en otro.</p>
+    <p>All of this is tracked <b>per CVE and per agent</b>: the same CVE can be resolved on one
+      server and open on another.</p>
   </div>
 
   <div class="card span">
-    <h2>Linux y Windows no se parchean igual</h2>
+    <h2>Linux and Windows do not patch the same way</h2>
     <table>
-      <tr><th>Tipo</th><th>Cómo se remedia</th></tr>
-      <tr><td>Sistema operativo</td><td>Actualización acumulativa o KB. Un solo SO acumula
-        miles de CVEs, por eso va aparte del ranking de paquetes: si compartieran gráfico,
-        Windows taparía todo lo demás.</td></tr>
-      <tr><td>Paquete de distribución</td><td><code>apt</code> / <code>yum</code> — actualizar
-        el paquete.</td></tr>
-      <tr><td>Aplicación</td><td>Programa instalado (Chrome, Edge). Se actualiza aparte del SO.</td></tr>
+      <tr><th>Type</th><th>How it closes</th></tr>
+      <tr><td>Operating system</td><td>A cumulative update or KB. A single OS carries thousands of CVEs, which is why it is
+        listed apart from the package ranking: sharing one chart, Windows would bury
+        everything else.</td></tr>
+      <tr><td>Distribution package</td><td><code>apt</code> / <code>yum</code> — upgrade the package.</td></tr>
+      <tr><td>Application</td><td>An installed program (Chrome, Edge). Updated separately from the OS.</td></tr>
     </table>
   </div>
 
   <div class="card span">
-    <h2>Vistas rápidas</h2>
+    <h2>Quick views</h2>
     <table>
-      <tr><th>Vista</th><th>Para qué</th></tr>
-      <tr><td>Explotación activa (KEV)</td><td>Lo que hay que mirar primero, siempre.</td></tr>
-      <tr><td>Prioridad ≥ 80</td><td>Corte por score combinado.</td></tr>
-      <tr><td>Críticas fuera de SLA</td><td>Críticas abiertas hace más días que el plazo configurado.</td></tr>
-      <tr><td>Parches de SO</td><td>Se agrupan: un KB suele cerrar cientos de CVEs de una.</td></tr>
-      <tr><td>Sin triar</td><td>Los que NVD todavía no puntuó y conviene revisar a mano.</td></tr>
+      <tr><th>View</th><th>What for</th></tr>
+      <tr><td>Active exploitation (KEV)</td><td>What to look at first, always.</td></tr>
+      <tr><td>Priority ≥ 80</td><td>A cut by combined score.</td></tr>
+      <tr><td>Criticals past SLA</td><td>Criticals open longer than the configured window.</td></tr>
+      <tr><td>OS patches</td><td>Grouped: one KB usually closes hundreds of CVEs at once.</td></tr>
+      <tr><td>Untriaged</td><td>The ones NVD has not scored yet, worth reviewing by hand.</td></tr>
     </table>
-    <p>Los filtros se acumulan. Lo aplicado aparece como etiquetas arriba de la tabla y se
-      saca de a una, o todo junto con “Limpiar todo”.</p>
+    <p>Filters stack. What is applied shows as chips above the table and comes off one at a time,
+      or all at once with “Clear all”.</p>
   </div>
 
   <div class="card">
-    <h2>Seguridad</h2>
+    <h2>Security</h2>
     <ul>
-      <li>Todas las rutas requieren login. Esta pantalla es el listado de lo que no está
-        parcheado en máquinas vivas.</li>
-      <li>Las credenciales de Wazuh se guardan cifradas y nunca vuelven al navegador.</li>
-      <li>Usá un usuario de <b>solo lectura</b> del Indexer, no <code>admin</code>.</li>
+      <li>Every route requires a login. This screen is the list of what is unpatched on live
+        machines.</li>
+      <li>Wazuh credentials are stored encrypted and never returned to the browser.</li>
+      <li>Use a <b>read-only</b> Indexer account, not <code>admin</code>.</li>
     </ul>
   </div>
   </div>

@@ -188,7 +188,7 @@ async def api_lang(request: Request):
     """Idioma de la interfaz. Sin autenticacion: las pantallas de login y de
     setup tambien se traducen, y el idioma no es informacion sensible."""
     cfg = await request.app.state.config_store.load_public()
-    return {"lang": cfg.get("lang", "es")}
+    return {"lang": cfg.get("lang", "en")}
 
 
 @app.get("/api/setup-state")
@@ -391,7 +391,7 @@ async def _make_brief(app: FastAPI, cfg: Optional[Dict[str, Any]] = None) -> Dic
     metrics = await store.patching_metrics(sla_days=settings.vuln_sla_critical_days)
     app_cfg = await app.state.config_store.load_public()
     snapshot = build_snapshot(state, rows, metrics or {})
-    result = await generate_brief(cfg, snapshot, language=app_cfg.get("lang", "es"))
+    result = await generate_brief(cfg, snapshot, language=app_cfg.get("lang", "en"))
     await store.save_priority_brief(result["text"], {
         "provider": result["provider"], "model": result["model"],
         "input_tokens": result.get("input_tokens"),

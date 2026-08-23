@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS app_config (
     enrich_epss BOOLEAN NOT NULL DEFAULT TRUE,
     enrich_kev BOOLEAN NOT NULL DEFAULT TRUE,
     refresh_minutes INTEGER NOT NULL DEFAULT 60,
-    lang TEXT NOT NULL DEFAULT 'es',
+    lang TEXT NOT NULL DEFAULT 'en',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_by TEXT NOT NULL DEFAULT '',
     CHECK (id = 1)
@@ -57,10 +57,10 @@ CREATE TABLE IF NOT EXISTS app_config (
 
 # Idiomas de la interfaz. Es una configuracion global de la instalacion: en un
 # SOC el panel lo mira el equipo entero.
-LANGS = ("es", "en")
+LANGS = ("en", "es")
 
 DEFAULTS: Dict[str, Any] = {
-    "lang": "es",
+    "lang": "en",
     "indexer_url": "",
     "indexer_user": "",
     "verify_tls": False,
@@ -92,7 +92,7 @@ class ConfigStore:
         await self._pool.execute(CONFIG_TABLE_SQL)
         # CREATE TABLE IF NOT EXISTS no agrega columnas a una tabla que ya existe.
         await self._pool.execute(
-            "ALTER TABLE app_config ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'es'"
+            "ALTER TABLE app_config ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'en'"
         )
         await self._pool.execute(
             "INSERT INTO app_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING"

@@ -56,6 +56,8 @@ Everything the dashboard shows about time is therefore derived here, not read fr
   on another, so owner, status and due date are tracked at that granularity.
 - **Onboarding in the app** — the Wazuh connection is configured from a tab, tested before
   it is saved, and stored encrypted. Nothing is baked into the image.
+- **English or Spanish** — set once for the installation, since a SOC screen is read by the
+  whole team.
 - **No build step** — clone, `docker compose up`. No Node, no CDN, no external asset
   fetches, which matters on isolated networks.
 
@@ -160,5 +162,5 @@ Environment variables — `VULN_CVSS_WEIGHT`, `VULN_EPSS_WEIGHT`, `VULN_KEV_WEIG
 ---
 
 <div align="center">
-<sub>Built by <a href="https://zebrasecurity.io"><b>Zebra Security</b></a> · interface in Spanish, docs and code in English</sub>
+<sub>Built by <a href="https://zebrasecurity.io"><b>Zebra Security</b></a></sub>
 </div>
