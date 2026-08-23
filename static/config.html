@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuración — Patch Genius</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/tailwind.css">
+<style>
+  body{margin:0;background:var(--pg-bg);color:var(--pg-text);font-family:Outfit,system-ui,-apple-system,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:34px 20px 60px}
+  h1{font-size:1.3rem;margin:0 0 6px}
+  .sub{color:var(--pg-text-muted);font-size:.85rem;margin:0 0 26px}
+  .card{background:var(--pg-surface);border:1px solid var(--pg-border);border-radius:14px;padding:22px;margin-bottom:18px}
+  h2{font-size:.95rem;margin:0 0 4px}
+  .hint{color:var(--pg-text-muted);font-size:.78rem;margin:0 0 16px;line-height:1.5}
+  label{display:block;font-size:.78rem;color:var(--pg-text-muted);margin:14px 0 5px}
+  input[type=text],input[type=password],input[type=number],select{
+    width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;
+    border:1px solid var(--pg-border-strong);background:var(--pg-surface-alt);color:var(--pg-text);font-size:.88rem}
+  .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:200px}
+  .check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.84rem;color:var(--pg-text-soft)}
+  .check input{width:16px;height:16px}
+  button{padding:9px 16px;border:0;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer}
+  .primary{background:var(--pg-brand);color:var(--pg-on-brand)}.ghost{background:var(--pg-ghost);color:var(--pg-text-soft)}
+  .actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+  .msg{margin-top:16px;font-size:.82rem;padding:11px 13px;border-radius:8px;display:none;line-height:1.5}
+  .ok{background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border);display:block}
+  .bad{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border);display:block}
+  .warn{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);font-size:.8rem;
+        padding:11px 13px;border-radius:8px;margin-bottom:18px;line-height:1.5}
+  a.back{color:var(--pg-text-muted);font-size:.82rem;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; Volver al panel</a>
+  <h1 style="margin-top:14px">Configuración</h1>
+  <p class="sub">Conexión con tu Wazuh. Las credenciales se guardan cifradas y nunca se devuelven al navegador.</p>
+
+  <form id="f">
+    <div class="card">
+      <h2>Wazuh Indexer</h2>
+      <p class="hint">Puerto 9200. En Wazuh 4.8+ los datos de vulnerabilidades viven acá, no
+        en la API del manager. Si el indexer solo escucha en 127.0.0.1 y esta app corre en
+        otro host, seguí <code>docs/ONBOARDING.md</code> antes de continuar.</p>
+      <label for="indexer_url">URL</label>
+      <input type="text" id="indexer_url" name="indexer_url" placeholder="https://wazuh.example.com:9200">
+      <div class="row">
+        <div>
+          <label for="indexer_user">Usuario</label>
+          <input type="text" id="indexer_user" name="indexer_user" autocomplete="off"
+                 placeholder="usuario de solo lectura">
+        </div>
+        <div>
+          <label for="indexer_password">Contraseña</label>
+          <input type="password" id="indexer_password" name="indexer_password"
+                 autocomplete="new-password" placeholder="(sin cambios)">
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="verify_tls" name="verify_tls">
+        Verificar certificado TLS
+        <span style="color:var(--pg-text-muted)">— desactivalo si usás el autofirmado de Wazuh</span></label>
+    </div>
+
+    <div class="card">
+      <h2>Enriquecimiento</h2>
+      <p class="hint">Se consultan solo por identificador de CVE: no sale ningún dato de tu
+        infraestructura. Desactivalos en una red aislada — el score degrada a CVSS solo.</p>
+      <label class="check"><input type="checkbox" id="enrich_epss" name="enrich_epss">
+        EPSS (FIRST.org)</label>
+      <label class="check"><input type="checkbox" id="enrich_kev" name="enrich_kev">
+        CISA KEV</label>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="ghost" id="testBtn">Probar conexión</button>
+      <button type="submit" class="primary" id="saveBtn">Guardar</button>
+      <button type="button" class="ghost" id="ingestBtn">Actualizar ahora</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </form>
+
+  <div class="card" style="margin-top:26px">
+    <h2>Cambiar contraseña</h2>
+    <p class="hint">La contraseña inicial viene de <code>ADMIN_PASSWORD</code> en
+      <code>.env</code>. Cambiala acá después del primer ingreso — mínimo 12 caracteres.</p>
+    <form id="pf">
+      <label for="cur">Contraseña actual</label>
+      <input type="password" id="cur" autocomplete="current-password" required>
+      <div class="row">
+        <div>
+          <label for="np">Nueva contraseña</label>
+          <input type="password" id="np" autocomplete="new-password" minlength="12" required>
+        </div>
+        <div>
+          <label for="np2">Repetir nueva contraseña</label>
+          <input type="password" id="np2" autocomplete="new-password" minlength="12" required>
+        </div>
+      </div>
+      <div class="actions"><button type="submit" class="primary">Cambiar contraseña</button></div>
+      <div class="msg" id="pmsg"></div>
+    </form>
+  </div>
+</div>
+<script>
+var msg = document.getElementById('msg');
+function show(kind, text) { msg.className = 'msg ' + kind; msg.textContent = text; }
+function body() {
+  var b = {
+    indexer_url: document.getElementById('indexer_url').value.trim(),
+    indexer_user: document.getElementById('indexer_user').value.trim(),
+    verify_tls: document.getElementById('verify_tls').checked,
+    enrich_epss: document.getElementById('enrich_epss').checked,
+    enrich_kev: document.getElementById('enrich_kev').checked,
+    refresh_minutes: parseInt(document.getElementById('refresh_minutes').value, 10)
+  };
+  var pw = document.getElementById('indexer_password').value;
+  if (pw) b.indexer_password = pw;   // omitted means "keep the stored one"
+  return b;
+}
+async function load() {
+  var r = await fetch('/api/config');
+  if (r.status === 401) { window.location = '/login'; return; }
+  var c = await r.json();
+  document.getElementById('indexer_url').value = c.indexer_url || '';
+  document.getElementById('indexer_user').value = c.indexer_user || '';
+  document.getElementById('verify_tls').checked = !!c.verify_tls;
+  document.getElementById('enrich_epss').checked = !!c.enrich_epss;
+  document.getElementById('enrich_kev').checked = !!c.enrich_kev;
+  document.getElementById('refresh_minutes').value = c.refresh_minutes;
+  document.getElementById('indexer_password').placeholder =
+    c.has_password ? '(guardada — dejar vacío para no cambiarla)' : 'sin configurar';
+}
+document.getElementById('testBtn').addEventListener('click', async function () {
+  show('', 'Probando…');
+  var r = await fetch('/api/config/test', {method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body())});
+  var d = await r.json();
+  if (d.ok) show('ok', 'Conectado a "' + d.cluster_name + '" — cluster ' + d.status +
+                       ', ' + d.nodes + ' nodo(s), ' + d.vulnerability_docs + ' documentos de vulnerabilidades.');
+  else show('bad', 'No conectó: ' + d.error);
+});
+document.getElementById('f').addEventListener('submit', async function (ev) {
+  ev.preventDefault();
+  var r = await fetch('/api/config', {method: 'PUT',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body())});
+  if (r.ok) { document.getElementById('indexer_password').value = ''; await document.getElementById('pf').addEventListener('submit', async function (ev) {
+  ev.preventDefault();
+  var pm = document.getElementById('pmsg');
+  var np = document.getElementById('np').value, np2 = document.getElementById('np2').value;
+  if (np !== np2) { pm.className = 'msg bad'; pm.textContent = 'Las contraseñas nuevas no coinciden.'; return; }
+  var r = await fetch('/api/password', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({current_password: document.getElementById('cur').value, new_password: np})});
+  var d = await r.json();
+  if (r.ok) { pm.className = 'msg ok'; pm.textContent = 'Contraseña cambiada.';
+              document.getElementById('pf').reset(); }
+  else { pm.className = 'msg bad'; pm.textContent = d.detail || ('Error ' + r.status); }
+});
+load();
+              show('ok', 'Configuración guardada.'); }
+  else { var d = await r.json(); show('bad', 'No se pudo guardar: ' + (d.detail || r.status)); }
+});
+document.getElementById('ingestBtn').addEventListener('click', async function () {
+  show('', 'Ingestando desde Wazuh…');
+  var r = await fetch('/api/ingest', {method: 'POST'});
+  var d = await r.json();
+  if (r.ok) show('ok', d.cves + ' CVEs desde ' + d.documentos + ' registros · ' +
+                       d.nuevos + ' nuevos · ' + d.resueltos + ' resueltos · ' +
+                       d.kev_coincidencias + ' en CISA KEV.');
+  else show('bad', 'Falló la ingesta: ' + (d.detail || r.status));
+});
+load();
+</script>
+</body>
+</html>

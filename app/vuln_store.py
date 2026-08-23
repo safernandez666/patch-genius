@@ -17,6 +17,7 @@ Cinco tablas, creadas con ``CREATE TABLE IF NOT EXISTS`` al conectar:
 * ``vuln_priority_brief`` — fila única con un párrafo de "qué priorizar"
   (no se genera en esta demo — queda vacía salvo que se cargue a mano).
 """
+
 from __future__ import annotations
 
 import json
@@ -35,8 +36,11 @@ RESOLVED_TTL_DAYS = 180
 ASSIGNMENT_STATUSES = ("pendiente", "en_curso", "parcial", "resuelto", "aceptado_riesgo")
 
 ASSIGNMENT_STATUS_LABEL = {
-    "pendiente": "Pendiente", "en_curso": "En curso", "parcial": "Parcial",
-    "resuelto": "Resuelto", "aceptado_riesgo": "Riesgo aceptado",
+    "pendiente": "Pendiente",
+    "en_curso": "En curso",
+    "parcial": "Parcial",
+    "resuelto": "Resuelto",
+    "aceptado_riesgo": "Riesgo aceptado",
 }
 
 _WS_RE = re.compile(r"\s+")
@@ -50,6 +54,7 @@ def next_status(prev: Optional[Dict[str, Any]], today: date) -> str:
     if prev["status"] == "resolved":
         return "reopened"
     return "new" if prev["first_seen"] == today else "ongoing"
+
 
 TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS vuln_cve_state (
@@ -120,22 +125,10 @@ class VulnStore:
             self._pool = None
 
     # ------------------------------------------------------------------
-    # Seed / mantenimiento (propio de la demo, no existe en el original)
+    # Mantenimiento
     # ------------------------------------------------------------------
-    async def seed_cve_state(
-        self, cve: str, first_seen: date, status: str, severity: str, max_cvss: Optional[float]
-    ) -> None:
-        if self._pool is None:
-            raise RuntimeError("VulnStore not connected")
-        await self._pool.execute(
-            """INSERT INTO vuln_cve_state (cve, first_seen, last_seen, status, severity, max_cvss)
-               VALUES ($1, $2, CURRENT_DATE, $3, $4, $5)
-               ON CONFLICT (cve) DO NOTHING""",
-            cve, first_seen, status, severity, max_cvss,
-        )
-
     async def truncate_all(self) -> None:
-        """Vacía las cinco tablas — usado por ``seed/generate_seed.py --reset``."""
+        """Vacía las tablas de seguimiento. Solo para reiniciar una instalación."""
         if self._pool is None:
             raise RuntimeError("VulnStore not connected")
         await self._pool.execute(
@@ -169,7 +162,8 @@ class VulnStore:
               COUNT(*) FILTER (
                   WHERE status <> 'resolved' AND severity = 'Critical'
               ) AS criticas_activas,
-              COALESCE(AVG($3::date - first_seen) FILTER (WHERE status <> 'resolved'), 0) AS aging_promedio_dias,
+              COALESCE(AVG($3::date - first_seen)
+                       FILTER (WHERE status <> 'resolved'), 0) AS aging_promedio_dias,
               COUNT(*) FILTER (
                   WHERE status = 'resolved' AND severity = 'Critical'
               ) AS criticas_resueltas,
@@ -179,14 +173,18 @@ class VulnStore:
               ) AS criticas_resueltas_en_sla
             FROM vuln_cve_state
             """,
-            week_ago, sla_cutoff, today, sla_days,
+            week_ago,
+            sla_cutoff,
+            today,
+            sla_days,
         )
         out = dict(row) if row else {}
         out["aging_promedio_dias"] = round(float(out.get("aging_promedio_dias") or 0), 1)
         resueltas = out.get("criticas_resueltas") or 0
         out["sla_criticas_pct"] = (
             round(100.0 * (out.get("criticas_resueltas_en_sla") or 0) / resueltas, 1)
-            if resueltas else None
+            if resueltas
+            else None
         )
         out["sla_dias"] = sla_days
         return out
@@ -280,7 +278,7 @@ class VulnStore:
         return out
 
     async def import_snapshots(self, snapshots: List[Dict[str, Any]]) -> int:
-        """Carga masiva de snapshots (usa el seed). Idempotente (ON CONFLICT por fecha)."""
+        """Carga masiva de snapshots. Idempotente (ON CONFLICT por fecha)."""
         if self._pool is None:
             raise RuntimeError("VulnStore not connected")
         n = 0
@@ -385,19 +383,29 @@ class VulnStore:
                    notes = EXCLUDED.notes,
                    updated_by = EXCLUDED.updated_by,
                    updated_at = NOW()""",
-            cve, owner, owner_email, status, due, notes, updated_by,
+            cve,
+            owner,
+            owner_email,
+            status,
+            due,
+            notes,
+            updated_by,
         )
         logger.info("vuln_assignment_updated", cve=cve, owner=owner, status=status, by=updated_by)
-        return {"cve": cve, "owner": owner, "owner_email": owner_email, "status": status,
-                "due_date": due_date, "notes": notes}
+        return {
+            "cve": cve,
+            "owner": owner,
+            "owner_email": owner_email,
+            "status": status,
+            "due_date": due_date,
+            "notes": notes,
+        }
 
     async def delete_assignment(self, cve: str, deleted_by: str) -> bool:
         """Borra el seguimiento de un CVE. True si existía."""
         if self._pool is None:
             return False
-        result = await self._pool.execute(
-            "DELETE FROM vuln_assignments WHERE cve = $1", cve
-        )
+        result = await self._pool.execute("DELETE FROM vuln_assignments WHERE cve = $1", cve)
         deleted = result.endswith("1")
         if deleted:
             logger.info("vuln_assignment_deleted", cve=cve, by=deleted_by)

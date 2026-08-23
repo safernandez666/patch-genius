@@ -1,63 +1,200 @@
-# Vulnerability & Patch Tracking — Demo
+<div align="center">
 
-Pantalla de seguimiento de vulnerabilidades (SLA de parcheo, priorización
-CVSS/EPSS/KEV, asignación de responsables) extraída de un panel SOC L1
-productivo, para mostrarla como demo pública.
+<img src="static/assets/genie.svg" alt="" align="center" height="120" />
 
-**Todos los datos son sintéticos.** Ningún CVE, servidor o paquete listado
-corresponde a infraestructura real, salvo un puñado de CVEs públicos de alto
-perfil (Log4Shell, PrintNightmare, Citrix Bleed, Zerologon) usados solo como
-ejemplo de cómo se ve una alerta de CISA KEV / ransomware conocido — son
-vulnerabilidades de dominio público, no información de ningún cliente.
+# Patch Genius
 
-## Qué hace
+**Vulnerability and patch tracking on top of your own Wazuh.**
 
-- Prioriza CVEs con el mismo criterio que un panel SOC real: **CISA KEV**
-  (explotación activa confirmada) primero, **EPSS** (probabilidad de
-  explotación a 30 días) después, y un **score de prioridad** ponderado
-  (`CVSS·peso + EPSS·peso + bonus si está en KEV`).
-- Calcula SLA de parcheo de críticas, aging, altas/resueltas de los últimos
-  7 días, todo desde un ciclo de vida por CVE guardado en Postgres.
-- Permite asignar responsable/estado/fecha objetivo a cada CVE (sin
-  autenticación: cualquier visitante puede crear o borrar asignaciones —
-  ver [Notas de la demo](#notas-de-la-demo)).
-- Gráficos de evolución, distribución por severidad, top paquetes y
-  distribución por servidor (ApexCharts, vendorizado, sin CDN).
+[![License](https://img.shields.io/badge/License-MIT-76ABAE?style=flat-square)](LICENSE)
+[![Wazuh](https://img.shields.io/badge/Wazuh-4.8+-303841?style=flat-square)](https://wazuh.com)
+![Python](https://img.shields.io/badge/Python-3.11-303841?style=flat-square)
+![Postgres](https://img.shields.io/badge/Postgres-15-303841?style=flat-square)
+[![Zebra Security](https://img.shields.io/badge/by-Zebra_Security-FF5722?style=flat-square)](https://zebrasecurity.io)
 
-## Correr localmente
+[Overview](#overview) • [Features](#features) • [How it works](#how-it-works) • [Get started](#get-started) • [Security](#security) • [FAQ](#faq)
+
+![Dashboard](docs/img/dashboard.png)
+
+</div>
+
+Wazuh tells you **what** is unpatched. It does not tell you what to patch **first**, how
+long it has been that way, or who owns it. Patch Genius reads the vulnerability state out
+of your Wazuh Indexer, ranks it the way an analyst would, and tracks remediation per CVE
+and per agent.
+
+> [!IMPORTANT]
+> There is no sample data and no demo mode. The dashboard shows what the Wazuh you
+> configure reports, or nothing at all.
+
+## Overview
+
+Wazuh 4.8 moved vulnerability data out of the manager API and into the indexer, so
+`wazuh-states-vulnerabilities-*` is the only supported source. That index holds
+**currently active vulnerabilities only** — a record is deleted the moment a package is
+patched, and there is no status field and no history.
+
+Everything the dashboard shows about time is therefore derived here, not read from Wazuh:
+
+- **Resolved and reopened** come from diffing each ingest against the previous one.
+- **Aging and SLA** run on a first-seen date this app records itself. Wazuh rewrites
+  `vulnerability.detected_at` whenever it re-indexes a record, so a clock built on that
+  field silently restarts and never breaches.
+
+## Features
+
+- **Ranked the way an analyst would** — CISA KEV first (confirmed exploitation in the
+  wild), EPSS next (probability of exploitation within 30 days), then a single weighted
+  score to sort by: `CVSS·w + EPSS·w + KEV bonus`.
+- **Linux and Windows kept apart** — an OS-level finding closes with a cumulative update
+  or KB, not with `apt`. A single Windows build can carry thousands of CVEs, so those are
+  summarised separately instead of flattening every real package out of the ranking.
+- **Untriaged CVEs kept visible** — Wazuh reports unscored CVEs with severity `-` and the
+  sentinel score `-1.0`. They get their own bucket rather than being dropped or ranked as
+  a genuine zero: unscored means unknown, not harmless.
+- **Ownership per CVE and per agent** — the same CVE can be resolved on one host and open
+  on another, so owner, status and due date are tracked at that granularity.
+- **Onboarding in the app** — the Wazuh connection is configured from a tab, tested before
+  it is saved, and stored encrypted. Nothing is baked into the image.
+- **No build step** — clone, `docker compose up`. No Node, no CDN, no external asset
+  fetches, which matters on isolated networks.
+
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph infra["Your infrastructure"]
+        AL["Linux agents<br/>deb / rpm"]
+        AW["Windows agents<br/>programs + KB"]
+        MGR["Wazuh Manager"]
+        IDX[("Wazuh Indexer<br/>wazuh-states-<br/>vulnerabilities-*")]
+        AL --> MGR
+        AW --> MGR
+        MGR -->|Vulnerability Detector| IDX
+    end
+
+    subgraph pg["Patch Genius"]
+        COL["Collector<br/>PIT + search_after"]
+        MAP["Mapper<br/>group by CVE"]
+        SCORE["Scoring<br/>CVSS + EPSS + KEV"]
+        LIFE["Lifecycle<br/>per CVE and agent"]
+        API["FastAPI + Auth"]
+        COL --> MAP --> SCORE --> LIFE --> API
+    end
+
+    subgraph feeds["Public feeds"]
+        EPSS["EPSS<br/>FIRST.org"]
+        KEV["CISA KEV"]
+    end
+
+    DB[("Postgres<br/>state · lifecycle · snapshots<br/>assignments · encrypted config")]
+
+    IDX -->|"HTTPS 9200, read only"| COL
+    EPSS -.->|"CVE id only"| SCORE
+    KEV -.->|"CVE id only"| SCORE
+    LIFE <--> DB
+    API --> UI["Web dashboard"]
+```
+
+> [!NOTE]
+> The public feeds are queried **by CVE identifier only** — nothing about your
+> infrastructure leaves the network. On an air-gapped host, turn them off and scoring
+> degrades to CVSS alone.
+
+A single ingest:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S as Scheduler
+    participant I as Ingest
+    participant W as Wazuh Indexer
+    participant F as EPSS / CISA KEV
+    participant P as Postgres
+
+    S->>I: every N minutes
+    I->>W: open point-in-time
+    Note over I,W: The scanner deletes rows the moment<br/>a package is patched. Without a PIT the<br/>view shifts under the cursor, and a<br/>skipped record reads as "resolved".
+    loop paginated with search_after
+        I->>W: search (size 1000)
+        W-->>I: records
+    end
+    I->>W: close point-in-time
+    I->>I: group by CVE
+    I->>F: request EPSS and KEV by CVE id
+    F-->>I: probabilities and catalog
+    I->>I: score = CVSS·w + EPSS·w + KEV bonus
+    I->>P: mark (CVE, agent) pairs present
+    P-->>I: own first-seen dates
+    I->>P: close the absent ones as resolved
+    I->>P: save state + daily snapshot
+```
+
+## Get started
+
+You need **Wazuh 4.8 or newer**, network access to its Indexer on port 9200, and Docker
+with Docker Compose.
 
 ```bash
-cp .env.example .env
-docker compose up --build
+git clone https://github.com/safernandez666/patch-genius.git
+cd patch-genius
+./scripts/setup-env.sh
+docker compose up -d --build
 ```
 
-Abrí `http://localhost:8000`. La primera vez que levanta, el contenedor de la
-API siembra la base con datos sintéticos automáticamente (`seed/generate_seed.py`)
-— no hace falta ningún paso manual.
+`setup-env.sh` generates `.env` with a fresh encryption key and a random admin password,
+and prints the credentials. Open `http://localhost:8000`, sign in, and connect your Wazuh
+from the configuration tab.
 
-## Estructura
+![Configuration](docs/img/configuracion.png)
 
-```
-app/          FastAPI: rutas de lectura/seguimiento, sin autenticación
-seed/         Generador de datos sintéticos (CVEs, snapshots, asignaciones)
-static/       Frontend (HTML/CSS/JS vanilla + ApexCharts vendorizado)
-deploy/       nginx + notas para desplegar en un VPS propio
-```
+**Test connection** reports the cluster status, the Wazuh version and how many
+vulnerability documents it can see. A green result means you can run the first ingest.
 
-## Notas de la demo
+> [!WARNING]
+> A default Wazuh install binds the Indexer to `127.0.0.1` only. If Patch Genius runs on a
+> different host you must either expose port 9200 or tunnel to it — and exposing it
+> switches OpenSearch into production mode, where failed bootstrap checks stop the service
+> from starting. [docs/ONBOARDING.md](docs/ONBOARDING.md) covers the preconditions to
+> verify first, and how to roll back.
 
-- **Sin autenticación.** El backend original tiene login (Entra ID / Basic)
-  y auditoría; se sacaron para esta demo pública. Cualquiera puede crear o
-  borrar asignaciones de seguimiento vía la UI o la API.
-- **Reset periódico recomendado.** Para que la demo no degrade con el tiempo,
-  conviene correr `python -m seed.generate_seed --reset --yes` con un cron
-  (ver `deploy/DEPLOY.md`), que vacía y vuelve a sembrar los datos.
-- **Sin Wazuh/EPSS/CISA en vivo.** El endpoint de refresh manual del sistema
-  original no existe acá — los datos son estáticos entre resets.
-- **Origen.** Este repo es un extracto de un panel SOC L1 productivo
-  (Postgres + FastAPI + Wazuh), reescrito para no depender de ninguna
-  infraestructura ni dato de cliente real.
+The app explains its own scoring, lifecycle and SLA rules at `/ayuda`:
 
-## Licencia
+![Help](docs/img/ayuda.png)
 
-MIT — ver [LICENSE](LICENSE).
+## Security
+
+This dashboard is an inventory of what is unpatched on live machines, and the
+configuration holds Wazuh credentials. Both are treated accordingly.
+
+- **Every route requires a login.** There is no anonymous view.
+- **Credentials are encrypted at rest** with Fernet, using `APP_SECRET_KEY`, which never
+  reaches the database or the repository. They are never returned to the browser.
+- **Use a read-only Indexer account**, not `admin`. ONBOARDING walks through creating one
+  scoped to `wazuh-states-*` with `cluster_composite_ops_ro`.
+- **Change the bootstrap password** from the configuration tab after signing in.
+
+## FAQ
+
+**Why are the trend charts empty on day one?**
+Wazuh keeps no history, so the series is built forward from your first ingest — one
+snapshot per day. Aging is 0 for everything until the app has been running a while.
+
+**Why does the platform breakdown add up to more than the CVE count?**
+A CVE present on both a Debian box and a Windows one is genuinely open in two places, so
+it is counted under both.
+
+**Can it read from something other than Wazuh?**
+Not yet, but the collector is the only Wazuh-specific part. `app/ingest.py:collect()`
+dispatches on the configured scanner, and everything downstream consumes a normalised
+record shape, so adding another source means writing one collector.
+
+**Where do I change the scoring weights?**
+Environment variables — `VULN_CVSS_WEIGHT`, `VULN_EPSS_WEIGHT`, `VULN_KEV_WEIGHT`,
+`VULN_SLA_CRITICAL_DAYS` and friends. See `app/settings.py`.
+
+---
+
+<div align="center">
+<sub>Built by <a href="https://zebrasecurity.io"><b>Zebra Security</b></a> · interface in Spanish, docs and code in English</sub>
+</div>

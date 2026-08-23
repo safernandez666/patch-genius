@@ -1,4 +1,5 @@
 """Configuración mínima de la demo — solo lo que usan las rutas de vulnerabilidades."""
+
 from __future__ import annotations
 
 import os
@@ -29,6 +30,23 @@ class Settings(BaseSettings):
     vuln_epss_high_threshold: float = Field(default=0.5)
     vuln_priority_critical_threshold: float = Field(default=80.0)
     vuln_sla_critical_days: int = Field(default=15)
+
+    # Fernet key protecting the Wazuh credentials stored in app_config. Generated
+    # on first start and written to .env when absent; rotating it makes the stored
+    # password unreadable and it has to be re-entered in the Configuration tab.
+    app_secret_key: str = Field(default="")
+
+    # Bootstrap account, used only while app_users is empty.
+    admin_user: str = Field(default="admin")
+    admin_password: str = Field(default="")
+
+    # Origins allowed to call the API. "*" is only tolerable while the data is
+    # synthetic; a Wazuh-backed deployment must name its real origin.
+    cors_origins: str = Field(default="")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
     def postgres_dsn(self) -> str:

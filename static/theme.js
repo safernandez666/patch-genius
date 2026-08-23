@@ -2,7 +2,7 @@
  * (el original soporta varios "brands" de cliente; acá solo hay dos temas
  * visuales, sin logos ni paletas de marca).
  *
- * El estado se guarda en localStorage('soc.theme'); default = "light".
+ * El estado se guarda en localStorage('soc.theme'); default = "soc" (oscuro).
  * El <head> ya fija data-theme ANTES de pintar para no parpadear; acá
  * reaplicamos (idempotente) + favicon + meta + hook de página. */
 (function () {
@@ -10,16 +10,16 @@
   var THEMES = {
     light: {
       mode: "light",
-      favicon: "/static/assets/soar-shield.svg",
+      favicon: "/static/assets/genie.svg",
       faviconType: "image/svg+xml",
       metaColor: "#465fff",
       label: "Claro",
     },
     soc: {
       mode: "dark",
-      favicon: "/static/assets/soar-shield.svg",
+      favicon: "/static/assets/genie.svg",
       faviconType: "image/svg+xml",
-      metaColor: "#0a0a0a",
+      metaColor: "#0b1020",
       label: "Oscuro",
     },
   };
@@ -28,9 +28,9 @@
   function get() {
     try {
       var v = localStorage.getItem(KEY);
-      return THEMES[v] ? v : "light";
+      return THEMES[v] ? v : "soc";
     } catch (e) {
-      return "light";
+      return "soc";
     }
   }
 
@@ -71,7 +71,7 @@
   function updateUI(name) {
     var btn = document.getElementById("themeToggle");
     if (btn) {
-      var idx = ORDER.indexOf(THEMES[name] ? name : "light");
+      var idx = ORDER.indexOf(THEMES[name] ? name : "soc");
       var other = THEMES[ORDER[(idx + 1) % ORDER.length]].label;
       btn.setAttribute("title", "Cambiar a tema " + other);
       btn.setAttribute("aria-label", "Cambiar a tema " + other);

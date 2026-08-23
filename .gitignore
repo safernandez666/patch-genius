@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+CLAUDE.local.md
+
+# Skills de terceros instalados con `npx skills add` (no son parte de la app)
+.agents/
+.claude/skills/tailwind-design-system

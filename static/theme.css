@@ -1,0 +1,62 @@
+/* Paleta de Patch Genius — fuente única.
+ *
+ * Antes estos colores estaban escritos a mano en los cuatro HTML: 65 apariciones
+ * de 7 colores sin un solo lugar donde cambiarlos. Un cambio de paleta obligaba a
+ * tocar cuatro archivos y olvidarse de uno era la norma, no la excepción.
+ *
+ * Base: colorhunt F5F5F5 / 76ABAE / 303841 / FF5722.
+ *
+ * Los tokens de severidad no salen de esa paleta por casualidad: el naranja
+ * FF5722 es "alta" porque en un panel de seguridad el naranja ya significa algo.
+ * Por eso la marca es el teal — si los botones fueran naranjas, cada control se
+ * leería como una alerta.
+ */
+:root {
+  /* Superficies */
+  --pg-bg:            #303841;  /* fondo de página */
+  --pg-surface:       #39424c;  /* tarjetas y paneles */
+  --pg-surface-alt:   #2b333b;  /* inputs, fondos hundidos */
+  --pg-surface-deep:  #272e36;  /* sidebar */
+  --pg-border:        #4a5561;
+  --pg-border-strong: #55606c;
+
+  /* Texto */
+  --pg-text:          #f5f5f5;
+  --pg-text-muted:    #a8b3bd;
+  --pg-text-soft:     #dbe2e8;
+
+  /* Marca */
+  --pg-brand:         #76abae;
+  --pg-brand-soft:    #8fbfc2;
+  --pg-brand-pale:    #a9d2d4;
+  --pg-on-brand:      #1d2529;  /* texto sobre fondo de marca: el teal es claro,
+                                   así que encima va oscuro, no blanco */
+  --pg-ghost:         #454f5a;
+
+  /* Severidad. Grises para "sin triar": la ausencia de puntaje es desconocido,
+     no inofensivo, y pintarlo de verde lo diría al revés. */
+  --pg-sev-critical:  #f04438;
+  --pg-sev-high:      #ff5722;
+  --pg-sev-medium:    #eab308;
+  --pg-sev-low:       #22c55e;
+  --pg-sev-untriaged: #94a3b8;
+
+  /* Estados */
+  --pg-ok-bg:         #0e2e1d;
+  --pg-ok-fg:         #86efac;
+  --pg-ok-border:     #17593a;
+  --pg-bad-bg:        #331519;
+  --pg-bad-fg:        #fca5a5;
+  --pg-bad-border:    #6b2027;
+  --pg-warn-bg:       #332612;
+  --pg-warn-fg:       #fcd34d;
+  --pg-warn-border:   #6b4e14;
+
+  /* Plataformas. Deliberadamente fuera de la escala de severidad: si Windows
+     fuera naranja se leería como "alto" en vez de como un sistema operativo. */
+  --pg-plat-windows:  #76abae;
+  --pg-plat-debian:   #c2708a;
+  --pg-plat-ubuntu:   #e8834a;
+  --pg-plat-linux:    #8fbf7a;
+  --pg-plat-macos:    #9b8fc4;
+}

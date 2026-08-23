@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/static/assets/soar-shield.svg">
 <meta name="theme-color" content="#465fff">
-<title>Vulnerability &amp; Patch Tracking — Demo</title>
+<title>Patch Genius — Vulnerabilidades</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="preload" href="/static/tailwind.css" as="style">
+<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
 <link rel="stylesheet" href="/static/sidebar.css">
 <script>try{if(localStorage.getItem('soc.navCollapsed')==='1')document.documentElement.classList.add('nav-collapsed')}catch(e){}</script>
@@ -15,12 +17,12 @@
   (function () {
     try {
       var t = localStorage.getItem('soc.theme');
-      if (t !== 'soc' && t !== 'light') t = 'light';
+      if (t !== 'soc' && t !== 'light') t = 'soc';
       document.documentElement.setAttribute('data-theme', t === 'soc' ? 'dark' : 'light');
       document.documentElement.setAttribute('data-brand', t);
     } catch (e) {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.setAttribute('data-brand', 'light');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-brand', 'soc');
     }
   })();
 </script>
@@ -67,7 +69,7 @@
 [data-theme="dark"] .stat-card .value{color:var(--color-white)}
 [data-theme="dark"] .stat-card .label{color:var(--color-gray-400)}
 [data-theme="dark"] .stat-card.is-bad .value{color:#fda29b}
-[data-theme="dark"] .stat-card.is-good .value{color:#86efac}
+[data-theme="dark"] .stat-card.is-good .value{color:var(--pg-ok-fg)}
 
 .card-h{font-size:14px;font-weight:600;color:var(--color-gray-800);margin:0 0 2px}
 .card-sub{font-size:12px;color:var(--color-gray-500);margin:0 0 10px}
@@ -90,7 +92,7 @@
 .kev-badge svg{width:10px;height:10px;flex:none}
 .sla-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;
   background:#fde7e9;color:#b42318}
-[data-theme="dark"] .sla-badge{background:#f0443826;color:#fda29b}
+[data-theme="dark"] .sla-badge{background:var(--pg-sev-critical)26;color:#fda29b}
 .ransom-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;
   font-size:10.5px;font-weight:700;background:#3b0764;color:#fff}
 [data-theme="dark"] .ransom-badge{background:#a855f740;color:#e9d5ff}
@@ -137,7 +139,7 @@
 [data-theme="dark"] .empty h3{color:var(--color-gray-200)}
 .alert{border-radius:var(--radius-lg);padding:12px 14px;font-size:13px}
 .alert-err{background:var(--color-error-50);color:var(--color-error-700);border:1px solid var(--color-error-200)}
-[data-theme="dark"] .alert-err{background:#f0443826;color:#fda29b;border-color:#f0443840}
+[data-theme="dark"] .alert-err{background:var(--pg-sev-critical)26;color:#fda29b;border-color:var(--pg-sev-critical)40}
 
 /* Modal de asignación */
 .modal-backdrop{position:fixed;inset:0;background:#00000066;display:flex;align-items:center;justify-content:center;z-index:100}
@@ -158,22 +160,118 @@
 .footer{margin-top:26px;padding:18px 0;color:var(--color-gray-400);font-size:12px;text-align:center}
 .footer a{color:inherit}
 .footer .sep{margin:0 8px;opacity:.5}
+
+/* Paleta "Genius" — colorhunt F5F5F5 / 76ABAE / 303841 / FF5722.
+   Se redefine sobre los tokens del tema oscuro en vez de tocar tailwind.css,
+   que es un build congelado sin fuente en este repo.
+   El naranja de la paleta se reserva para severidad Alta: en un panel de
+   seguridad el naranja ya significa algo, y usarlo tambien de color de marca
+   volveria ambiguo cada boton. La marca es el teal. */
+[data-theme="dark"]{
+  --color-gray-dark:var(--pg-surface);   /* superficie de tarjetas */
+  --color-gray-900:var(--pg-bg);    /* fondo de pagina */
+  --color-gray-950:var(--pg-surface-deep);
+  --color-gray-800:var(--pg-border);    /* bordes */
+  --color-gray-700:#5a6672;
+  --color-gray-400:var(--pg-text-muted);
+  --color-gray-300:#c9d1d9;
+  --color-white:var(--pg-text);
+  --color-brand-500:var(--pg-brand);
+  --color-brand-400:var(--pg-brand-soft);
+  --color-brand-300:var(--pg-brand-pale);
+}
+[data-theme="dark"] body{background:var(--pg-bg);color:var(--pg-text)}
+[data-theme="dark"] .sidebar{background:var(--pg-surface-deep);border-right:1px solid var(--pg-border)}
+[data-theme="dark"] .brand-platform{color:var(--pg-text)}
+[data-theme="dark"] .side-nav a{color:var(--pg-text-muted)}
+[data-theme="dark"] .side-nav a:hover{background:var(--pg-surface);color:var(--pg-text)}
+[data-theme="dark"] .side-nav a.active{background:#3d4d50;color:var(--pg-brand)}
+[data-theme="dark"] .footer{color:var(--pg-text-muted)}
+[data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand)}
+[data-theme="dark"] a{color:var(--pg-brand)}
+[data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid var(--pg-brand)}
+.brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
+.qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--color-gray-800);background:transparent;color:var(--color-gray-400)}
+.qf:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
+.qf.on{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px 4px 10px;
+      border-radius:999px;background:var(--color-gray-dark);border:1px solid var(--color-gray-800);
+      color:var(--color-gray-300)}
+.chip b{font-weight:600;color:var(--color-white)}
+.chip button{border:0;background:transparent;color:var(--color-gray-400);cursor:pointer;
+             font-size:14px;line-height:1;padding:0 2px}
+.chip button:hover{color:var(--pg-sev-high)}
+.chip-clear{font-size:12px;color:var(--pg-brand);background:none;border:0;cursor:pointer;text-decoration:underline}
+/* Jerarquia de indicadores, siguiendo el patron de TailAdmin: pocas tarjetas
+   grandes con icono arriba, el resto compacto debajo. Antes eran catorce cajas
+   identicas y ninguna se leia primero. */
+.stat-grid-hero{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-bottom:14px}
+.stat-grid-sub{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:14px}
+.stat-hero{padding:20px 22px}
+.stat-hero .value{font-size:34px;letter-spacing:-.5px}
+.stat-hero .label{font-size:13px}
+.stat-ico{display:flex;align-items:center;justify-content:center;width:44px;height:44px;
+          border-radius:12px;margin-bottom:14px;background:var(--pg-border)33;color:var(--pg-brand)}
+.stat-ico svg{width:22px;height:22px}
+.stat-hero.is-bad .stat-ico{background:var(--pg-sev-high)26;color:var(--pg-sev-high)}
+[data-theme="dark"] .stat-ico{background:var(--pg-border)40}
+.stat-grid-sub .stat-card{padding:14px 16px}
+.stat-grid-sub .value{font-size:20px}
+/* Metricas de contexto agrupadas en una sola tarjeta con divisores internos
+   (patron del dashboard SaaS de TailAdmin). Diez cajas bordeadas sueltas eran
+   mucho borde para numeros que son contexto, y no decian que va con que. */
+.stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  border:1px solid var(--pg-border);border-radius:var(--radius-2xl,16px);
+  background:var(--pg-surface);margin-bottom:14px;overflow:hidden}
+.strip-cell{padding:15px 18px;border-left:1px solid var(--pg-border)}
+.strip-cell:first-child{border-left:0}
+.strip-cell .label{font-size:12.5px;color:var(--pg-text-muted);font-weight:500}
+.strip-cell .value{font-size:21px;font-weight:700;color:var(--pg-text);
+  font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.strip-cell .value.is-muted{color:var(--pg-text-muted);opacity:.55}
+.strip-cell .hint{font-size:11px;color:var(--pg-text-muted);margin-top:3px;line-height:1.4}
+@media (max-width:640px){.strip-cell{border-left:0;border-top:1px solid var(--pg-border)}
+  .strip-cell:first-child{border-top:0}}
+/* Paginacion del lado del servidor: cada fila trae su detalle por agente y por
+   paquete, asi que traer el parque entero para pintar una pagina eran 2,6 MB. */
+.pager{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--pg-border)}
+.pager-size{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--pg-text-muted)}
+.pager-size .select{width:auto;padding-right:30px}
+.pager-range{font-size:12.5px;color:var(--pg-text-muted)}
+.pager-nav{display:flex;align-items:center;gap:6px}
+.pg-num{min-width:32px;height:32px;padding:0 8px;border-radius:8px;font-size:12.5px;cursor:pointer;
+  border:1px solid var(--pg-border);background:transparent;color:var(--pg-text-muted)}
+.pg-num:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
+.pg-num.on{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
+.pg-gap{color:var(--pg-text-muted);padding:0 2px;font-size:12.5px}
+.pager button[disabled]{opacity:.4;cursor:default}
+@media (max-width:640px){.pager{justify-content:center}}
 </style>
 </head>
 <body>
 <div class="app-shell">
 <aside class="sidebar">
-  <span class="brand-platform"><img class="shield" src="/static/assets/soar-shield.svg" alt="">SOC <b>L1</b></span>
+  <span class="brand-platform"><img class="shield" src="/static/assets/genie.svg" alt=""><span>Patch <b>Genius</b></span></span>
   <nav class="side-nav" aria-label="Navegación principal">
     <a href="/" class="active" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Vulnerabilidades
     </a>
+    <a href="/config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configuración
+    </a>
+    <a href="/ayuda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Ayuda
+    </a>
   </nav>
   <div class="sidebar-spacer"></div>
   <div class="side-status">
-    <span class="side-status-h">Demo pública</span>
-    <span class="build-version">datos sintéticos</span>
+    <span class="side-status-h">Origen</span>
+    <span class="build-version" id="sideSource">Wazuh</span>
   </div>
   <div class="sidebar-foot">
     <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
@@ -188,14 +286,27 @@
 </aside>
 <div class="app-main">
 <main class="container">
-  <div class="demo-banner">
-    ⚠️ Demo pública con <strong>datos 100% sintéticos</strong> — ningún CVE, servidor o paquete listado corresponde a infraestructura real (salvo un puñado de CVEs públicos de alto perfil, usados solo como ejemplo de CISA KEV/ransomware). Cualquier visitante puede crear o borrar asignaciones de seguimiento; se resetean periódicamente.
-  </div>
   <div class="page-header">
     <h1 class="page-title">Vulnerabilidades — Seguimiento y patching</h1>
-    <p class="page-desc">Estado del parque priorizado igual que en el sistema original del que se extrajo esta pantalla: <strong>CISA KEV</strong> (explotación activa confirmada) primero, <strong>EPSS</strong> (probabilidad de explotación a 30 días) después, y el <strong>score de prioridad</strong> = CVSS×peso + EPSS×peso + bonus si está en KEV. Cada CVE se puede <strong>asignar un responsable</strong>, un estado de remediación y una fecha objetivo; el ciclo de vida (días detectado, SLA de críticas) se alimenta del snapshot diario.</p>
+    <p class="page-desc">Estado del parque leído de tu Wazuh, priorizado por <strong>CISA KEV</strong> y <strong>EPSS</strong>. <a href="/ayuda">Cómo funciona la priorización, el aging y el SLA &rarr;</a></p>
   </div>
 
+  <div id="setupHint" style="display:none;background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
+       border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
+    <b>Todavía no hay datos.</b> Conectá tu Wazuh en
+    <a href="/config" style="color:var(--pg-warn-fg);text-decoration:underline">Configuración</a>
+    y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
+    corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
+  </div>
+  <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Vistas rápidas:</span>
+    <button type="button" class="qf" data-qf="kev">Explotación activa (KEV)</button>
+    <button type="button" class="qf" data-qf="score">Prioridad ≥ 80</button>
+    <button type="button" class="qf" data-qf="sla">Críticas fuera de SLA</button>
+    <button type="button" class="qf" data-qf="os">Parches de sistema operativo</button>
+    <button type="button" class="qf" data-qf="untriaged">Sin triar</button>
+  </div>
+  <div id="activeChips" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
   <div class="toolbar">
     <label class="visually-hidden" for="filter-sev">Filtrar por severidad</label>
     <select class="select" id="filter-sev" aria-label="Filtrar por severidad" onchange="reloadCves()">
@@ -204,6 +315,11 @@
       <option value="high">Alta</option>
       <option value="medium">Media</option>
       <option value="low">Baja</option>
+      <option value="untriaged">Sin triar</option>
+    </select>
+    <label class="visually-hidden" for="filter-plat">Filtrar por plataforma</label>
+    <select class="select" id="filter-plat" aria-label="Filtrar por plataforma" onchange="reloadCves()">
+      <option value="">Todas las plataformas</option>
     </select>
     <label class="check"><input type="checkbox" id="filter-kev" onchange="reloadCves()"> Solo CISA KEV (explotación activa)</label>
     <label class="check"><input type="checkbox" id="filter-ransom" onchange="reloadCves()"> Con ransomware conocido</label>
@@ -230,47 +346,65 @@
   </div>
   <p class="cache-age" id="cache-age" style="margin:-14px 0 20px"></p>
 
-  <section class="stat-grid" aria-label="Indicadores">
-    <div class="stat-card"><div class="label">Vulnerabilidades activas</div><div class="value is-muted" id="stat-total">…</div></div>
-    <div class="stat-card"><div class="label">Críticas + altas</div><div class="value is-muted" id="stat-ca">…</div></div>
-    <div class="stat-card"><div class="label">CVEs únicos</div><div class="value is-muted" id="stat-cves">…</div></div>
-    <div class="stat-card"><div class="label">Servidores</div><div class="value is-muted" id="stat-srv">…</div></div>
-    <div class="stat-card"><div class="label">En CISA KEV</div><div class="value is-muted" id="stat-kev">…</div><div class="hint">explotación activa confirmada</div></div>
-    <div class="stat-card"><div class="label">Ransomware conocido</div><div class="value is-muted" id="stat-ransom">…</div><div class="hint">campaña de ransomware confirmada (KEV)</div></div>
-    <div class="stat-card"><div class="label">EPSS alto</div><div class="value is-muted" id="stat-epss">…</div><div class="hint" id="hint-epss">probabilidad ≥ 50%</div></div>
-    <div class="stat-card"><div class="label">Prioridad crítica</div><div class="value is-muted" id="stat-prio">…</div><div class="hint" id="hint-prio">score ≥ 80</div></div>
+  <section class="stat-grid stat-grid-hero" aria-label="Indicadores prioritarios">
+    <div class="stat-card stat-hero" id="card-kev"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="label">En CISA KEV</div><div class="value is-muted" id="stat-kev">…</div><div class="hint">explotación activa confirmada</div></div>
+    <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.6 6.6L22 9.3l-5 4.6 1.3 7L12 17.8 5.7 20.9 7 13.9l-5-4.6 7.4-.7L12 2z"/></svg></span><div class="label">Prioridad crítica</div><div class="value is-muted" id="stat-prio">…</div><div class="hint" id="hint-prio">score ≥ 80</div></div>
+    <div class="stat-card stat-hero" id="card-sla"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="label">Críticas fuera de SLA</div><div class="value is-muted" id="stat-sla">…</div><div class="hint" id="hint-sla">más de 15 días sin remediar</div></div>
+    <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><div class="label">Críticas + altas</div><div class="value is-muted" id="stat-ca">…</div><div class="hint">de los CVEs únicos del parque</div></div>
   </section>
 
-  <section class="stat-grid" aria-label="Métricas de patching" style="grid-template-columns:repeat(6,1fr);">
-    <div class="stat-card" id="card-sla"><div class="label">Críticas fuera de SLA</div><div class="value is-muted" id="stat-sla">…</div><div class="hint" id="hint-sla">más de 15 días sin remediar</div></div>
-    <div class="stat-card"><div class="label">Nuevas (7 días)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
-    <div class="stat-card"><div class="label">Resueltas (7 días)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
-    <div class="stat-card"><div class="label">Reabiertas (7 días)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
-    <div class="stat-card"><div class="label">Aging promedio</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">días desde detección (activas)</div></div>
-    <div class="stat-card"><div class="label">SLA críticas resueltas</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% remediadas dentro del plazo</div></div>
+  <section class="stat-strip" aria-label="Contexto del parque">
+      <div class="strip-cell"><div class="label">Vulnerabilidades activas</div><div class="value is-muted" id="stat-total">…</div></div>
+      <div class="strip-cell"><div class="label">CVEs únicos</div><div class="value is-muted" id="stat-cves">…</div></div>
+      <div class="strip-cell"><div class="label">Servidores</div><div class="value is-muted" id="stat-srv">…</div></div>
+      <div class="strip-cell"><div class="label">Ransomware conocido</div><div class="value is-muted" id="stat-ransom">…</div></div>
+      <div class="strip-cell"><div class="label">EPSS alto</div><div class="value is-muted" id="stat-epss">…</div><div class="hint"><span id="hint-epss">probabilidad ≥ 50%</span></div></div>
+  </section>
+
+  <section class="stat-strip" aria-label="Movimiento de los últimos 7 días">
+      <div class="strip-cell"><div class="label">Nuevas (7 días)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
+      <div class="strip-cell"><div class="label">Resueltas (7 días)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
+      <div class="strip-cell"><div class="label">Reabiertas (7 días)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
+      <div class="strip-cell"><div class="label">Aging promedio</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">días desde detección</div></div>
+      <div class="strip-cell"><div class="label">SLA críticas resueltas</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% dentro del plazo</div></div>
   </section>
 
   <div id="sin-datos" hidden>
-    <div class="alert alert-err">El estado sintético todavía no se generó — reintentá en unos segundos.</div>
+    <div class="alert alert-err">Todavía no hay datos. Conectá tu Wazuh en <a href="/config">Configuración</a>.</div>
   </div>
 
   <section class="section" aria-label="Evolución" style="margin-bottom:18px;">
     <h3 class="card-h">Evolución</h3>
-    <p class="card-sub">Snapshots diarios (los últimos 90 días son datos sintéticos generados al desplegar la demo)</p>
+    <p class="card-sub">Un snapshot por día desde la primera ingesta. Wazuh no guarda historia, así que la serie se construye hacia adelante.</p>
     <div class="donut-box is-loading" id="chartEvol" style="min-height:240px"></div>
   </section>
 
-  <section class="section" aria-label="Distribución por severidad" style="margin-bottom:18px;">
-    <h3 class="card-h">Distribución por severidad</h3>
-    <div class="donut-box is-loading" id="donutSev" style="min-height:190px"></div>
-    <div class="donut-legend" id="legSev"></div>
-  </section>
+  <div class="dist-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:18px">
+    <section class="section" aria-label="Distribución por severidad" style="margin-bottom:0">
+      <h3 class="card-h">Distribución por severidad</h3>
+      <div class="donut-box is-loading" id="donutSev" style="min-height:190px"></div>
+      <div class="donut-legend" id="legSev"></div>
+    </section>
+
+    <section class="section" aria-label="Distribución por plataforma" style="margin-bottom:0">
+      <h3 class="card-h">Distribución por plataforma</h3>
+      <p class="card-sub">Un CVE presente en Linux y en Windows cuenta en los dos, así que el total puede superar la cantidad de CVEs únicos.</p>
+      <div class="donut-box is-loading" id="donutPlat" style="min-height:190px"></div>
+      <div class="donut-legend" id="legPlat"></div>
+    </section>
+  </div>
 
   <section class="section" aria-label="Top paquetes vulnerables" style="margin-bottom:18px;">
     <h3 class="card-h">Top paquetes vulnerables</h3>
     <p class="card-sub">Por cantidad de CVEs únicos · color = severidad más alta que trae ese paquete · se ajusta a los filtros activos (vista global del parque si no filtraste nada)</p>
     <div class="donut-legend" id="legPkgSev" style="flex-direction:row;flex-wrap:wrap;gap:14px;margin-bottom:8px"></div>
     <div id="chartPkgs" class="is-loading" style="min-height:280px"></div>
+    <div id="osSummary" style="display:none;margin-top:14px">
+      <h4 style="font-size:13px;margin:0 0 4px;font-weight:600">Vulnerabilidades a nivel sistema operativo</h4>
+      <p style="font-size:11.5px;color:var(--color-gray-500);margin:0 0 6px;line-height:1.5">
+        Se remedian con una actualizaci&oacute;n acumulativa o KB, no actualizando un paquete.
+        Van aparte porque un solo SO acumula miles de CVEs y tapar&iacute;a el ranking.</p>
+    </div>
   </section>
 
   <section class="section" aria-label="Vulnerabilidades por servidor" style="margin-bottom:18px;">
@@ -285,13 +419,27 @@
     <div id="cves-body">
       <div class="loading">Cargando CVEs…</div>
     </div>
-    <div class="more-wrap" id="moreWrap" hidden style="display:flex;justify-content:center;margin-top:14px">
-      <button type="button" class="btn-ghost btn-sm" id="moreBtn" onclick="loadMore()">Cargar más</button>
+    <div class="pager" id="pager" hidden>
+      <div class="pager-size">
+        <label for="page-size">Filas por página</label>
+        <select class="select" id="page-size" onchange="changePageSize()">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+      </div>
+      <div class="pager-range" id="pagerRange"></div>
+      <div class="pager-nav">
+        <button type="button" class="btn-ghost btn-sm" id="pgPrev" onclick="goPage(page-1)">Anterior</button>
+        <span id="pagerPages"></span>
+        <button type="button" class="btn-ghost btn-sm" id="pgNext" onclick="goPage(page+1)">Siguiente</button>
+      </div>
     </div>
   </section>
 
   <footer class="footer">
-    Vulnerability &amp; Patch Tracking — demo pública, datos sintéticos <span class="sep">|</span> extraído de un panel SOC L1 productivo
+    Patch Genius <span class="sep">|</span> datos de tu Wazuh, priorizados con CVSS, EPSS y CISA KEV <span class="sep">|</span> <a href="https://zebrasecurity.io" target="_blank" rel="noopener">Zebra Security</a>
   </footer>
 </main>
 </div><!-- /app-main -->
@@ -339,19 +487,32 @@ function escapeHtml(text) {
 const fmtNum = new Intl.NumberFormat('es-AR');
 
 // --- Estado ---
-const ROWS_PER_CHUNK = 50;
-let visibleRows = ROWS_PER_CHUNK;
+let pageSize = 50;
+let page = 1;
+let totalCves = 0;
 let allCves = [];
 let ownersKnown = [];
 let evolChart = null;
 let donutChart = null;
+let platChart = null;
 let pkgsChart = null;
 let srvChart = null;
 let debounceTimer = null;
 
-const SEV_CLASS = { Critical: 'p-critical', High: 'p-high', Medium: 'p-medium', Low: 'p-low' };
-const SEV_LABEL = { Critical: 'Crítica', High: 'Alta', Medium: 'Media', Low: 'Baja' };
-const SEV_HEX = { Critical: '#b42318', High: '#c2410c', Medium: '#a16207', Low: '#15803d' };
+const SEV_CLASS = { Critical: 'p-critical', High: 'p-high', Medium: 'p-medium', Low: 'p-low', Untriaged: 'p-unknown' };
+const SEV_LABEL = { Critical: 'Crítica', High: 'Alta', Medium: 'Media', Low: 'Baja', Untriaged: 'Sin triar' };
+// Los colores de los graficos salen de los mismos tokens que el CSS (theme.css),
+// no de literales duplicados: cambiar la paleta en un solo lugar alcanza.
+const cssVar = (name, fallback) =>
+  (getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim() || fallback;
+// Sin triar = gris: Wazuh todavia no tiene score de NVD, no es una severidad baja.
+const SEV_HEX = {
+  Critical:  cssVar('--pg-sev-critical',  '#f04438'),
+  High:      cssVar('--pg-sev-high',      '#ff5722'),
+  Medium:    cssVar('--pg-sev-medium',    '#eab308'),
+  Low:       cssVar('--pg-sev-low',       '#22c55e'),
+  Untriaged: cssVar('--pg-sev-untriaged', '#94a3b8'),
+};
 const ESTADO_LABEL = {
   pendiente: 'Pendiente', en_curso: 'En curso', parcial: 'Parcial',
   resuelto: 'Resuelto', aceptado_riesgo: 'Riesgo aceptado',
@@ -370,7 +531,7 @@ async function loadSummary() {
   const d = await res.json();
   document.getElementById('sin-datos').hidden = !d.sin_datos;
   document.getElementById('cache-age').textContent = d.actualizado
-    ? `Datos sembrados ${fmtAgo(d.actualizado)}` : '';
+    ? `Actualizado ${fmtAgo(d.actualizado)}` : '';
 
   const set = (id, v) => {
     const el = document.getElementById(id);
@@ -382,6 +543,9 @@ async function loadSummary() {
   set('stat-cves', d.cves_unicos);
   set('stat-srv', d.servidores_count);
   set('stat-kev', d.kev_count);
+  // Explotacion activa confirmada: si hay aunque sea uno, es lo mas urgente de
+  // la pantalla y tiene que leerse antes que cualquier otro numero.
+  document.getElementById('card-kev').classList.toggle('is-bad', (d.kev_count ?? 0) > 0);
   set('stat-ransom', d.ransomware_count);
   set('stat-epss', d.epss_alto_count);
   set('stat-prio', d.prioridad_critica_count);
@@ -423,9 +587,32 @@ async function loadSummary() {
     selAgent.dataset.loaded = '1';
   }
 
+  showSetupHint(d);
+  renderChips();
+  populatePlatformFilter(d.plataformas || []);
   renderSevDonut(d.por_severidad || []);
+  renderPlatDonut(d.por_plataforma || []);
   renderPkgsChart(d.top_paquetes || []);
   renderSrvChart(d.servidores || []);
+}
+
+// Sin Wazuh configurado no hay nada que mostrar: en vez de una pantalla vacia
+// sin explicacion, mandamos al usuario a la configuracion.
+function showSetupHint(d) {
+  var box = document.getElementById('setupHint');
+  if (!box) return;
+  box.style.display = d && d.sin_datos ? 'block' : 'none';
+}
+
+function populatePlatformFilter(plats) {
+  const sel = document.getElementById('filter-plat');
+  if (!sel || sel.dataset.filled === '1' || !plats.length) return;
+  plats.forEach(function (pl) {
+    const o = document.createElement('option');
+    o.value = pl; o.textContent = pl.charAt(0).toUpperCase() + pl.slice(1);
+    sel.appendChild(o);
+  });
+  sel.dataset.filled = '1';
 }
 
 // --- Donut por severidad ---
@@ -438,7 +625,7 @@ function renderSevDonut(porSev) {
     document.getElementById('legSev').innerHTML = '';
     return;
   }
-  const colors = { Critical: '#b42318', High: '#c2410c', Medium: '#a16207', Low: '#15803d' };
+  const colors = SEV_HEX;
   const labels = entries.map(s => SEV_LABEL[s.severidad] || s.severidad);
   const series = entries.map(s => s.n);
   const cols = entries.map(s => colors[s.severidad] || '#868e96');
@@ -472,9 +659,84 @@ function renderSevDonut(porSev) {
   }).join('');
 }
 
+// --- Donut por plataforma ---
+// Paleta propia, deliberadamente fuera de la escala de severidad: si Windows
+// fuera naranja se leeria como "alto" en vez de como un sistema operativo.
+const PLAT_HEX = {
+  windows: cssVar('--pg-plat-windows', '#76abae'),
+  debian:  cssVar('--pg-plat-debian',  '#c2708a'),
+  ubuntu:  cssVar('--pg-plat-ubuntu',  '#e8834a'),
+  linux:   cssVar('--pg-plat-linux',   '#8fbf7a'),
+  darwin:  cssVar('--pg-plat-macos',   '#9b8fc4'),
+  macos:   cssVar('--pg-plat-macos',   '#9b8fc4'),
+};
+const PLAT_LABEL = { windows: 'Windows', debian: 'Debian', ubuntu: 'Ubuntu',
+                     linux: 'Linux', darwin: 'macOS', macos: 'macOS' };
+
+function renderPlatDonut(porPlat) {
+  const el = document.getElementById('donutPlat');
+  el.classList.remove('is-loading');
+  const entries = (porPlat || []).filter(p => p.total > 0);
+  if (!entries.length) {
+    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    document.getElementById('legPlat').innerHTML = '';
+    return;
+  }
+  const labels = entries.map(p => PLAT_LABEL[p.plataforma] || p.plataforma);
+  const series = entries.map(p => p.total);
+  const fallbacks = [PLAT_HEX.windows, PLAT_HEX.ubuntu, PLAT_HEX.debian, PLAT_HEX.linux];
+  const cols = entries.map((p, i) => PLAT_HEX[p.plataforma] || fallbacks[i % 4]);
+  const opts = {
+    chart: { type: 'donut', height: 190, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore() },
+    series, labels, colors: cols,
+    stroke: { width: 0 },
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    plotOptions: { pie: { donut: { size: '70%', labels: {
+      show: true,
+      value: { fontSize: '21px', fontWeight: 700, color: chartFore() },
+      total: { show: true, label: 'Detecciones', fontSize: '12px', color: chartFore() } } } } },
+    tooltip: { theme: isDark() ? 'dark' : 'light' },
+    noData: { text: 'Sin datos' },
+  };
+  if (platChart) {
+    platChart.updateOptions({ labels, colors: cols, chart: { foreColor: chartFore() } }, false, false);
+    platChart.updateSeries(series);
+  } else {
+    el.innerHTML = '';
+    platChart = new ApexCharts(el, opts);
+    platChart.render();
+  }
+  const total = series.reduce((a, b) => a + b, 0) || 1;
+  document.getElementById('legPlat').innerHTML = entries.map((p, i) => {
+    const pct = Math.round(series[i] / total * 100);
+    const crit = (p.critical || 0) + (p.high || 0);
+    return `<div class="dleg-item" style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+      <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;display:inline-block;background:${cols[i]}"></span>${escapeHtml(labels[i])}
+        <span style="color:var(--color-gray-500);font-size:11.5px">${fmtNum.format(crit)} crít.+altas</span></span>
+      <span style="font-weight:600">${fmtNum.format(series[i])} · ${pct}%</span></div>`;
+  }).join('');
+}
+
+// --- Sistemas operativos con CVEs a nivel SO ---
+function renderOsSummary(os) {
+  const box = document.getElementById('osSummary');
+  if (!box) return;
+  if (!os.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = os.slice(0, 4).map(function (o) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+              padding:8px 0;border-bottom:1px solid var(--color-gray-200)">
+      <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;min-width:0">
+        <span style="width:10px;height:10px;border-radius:3px;flex:none;background:${SEV_HEX[o.severidad_max] || '#868e96'}"></span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(o.paquete)}</span></span>
+      <span style="font-weight:600;font-size:13px;flex:none">${fmtNum.format(o.cves)} CVEs</span></div>`;
+  }).join('');
+}
+
 // --- Top paquetes vulnerables ---
 function renderPkgsLegend(top) {
-  const order = ['Critical', 'High', 'Medium', 'Low'];
+  const order = ['Critical', 'High', 'Medium', 'Low', 'Untriaged'];
   const present = order.filter(s => top.some(p => p.severidad_max === s));
   const use = present.length ? present : order;
   document.getElementById('legPkgSev').innerHTML = use.map(s =>
@@ -485,7 +747,13 @@ function renderPkgsLegend(top) {
 function renderPkgsChart(paquetes) {
   const el = document.getElementById('chartPkgs');
   el.classList.remove('is-loading');
-  const top = (paquetes || []).slice(0, 10);
+  // A Windows OS entry carries every CVE of that build — thousands on a stock
+  // server — so it buries every real package if they share one ranking. Show
+  // applications and distro packages here; the OS rows get their own summary.
+  const all = paquetes || [];
+  const os = all.filter(p => p.tipo === 'os');
+  const top = all.filter(p => p.tipo !== 'os').slice(0, 10);
+  renderOsSummary(os);
   if (!top.length) {
     el.innerHTML = '<div class="dash-empty">Sin datos</div>';
     document.getElementById('legPkgSev').innerHTML = '';
@@ -556,7 +824,7 @@ function renderSrvChart(servidores) {
         },
       } },
     series,
-    colors: [SEV_HEX.Critical, SEV_HEX.High, SEV_HEX.Medium, SEV_HEX.Low],
+    colors: [SEV_HEX.Critical, SEV_HEX.High, SEV_HEX.Medium, SEV_HEX.Low, SEV_HEX.Untriaged],
     plotOptions: { bar: { horizontal: true, borderRadius: 4, borderRadiusApplication: 'end', barHeight: '65%' } },
     dataLabels: { enabled: false },
     xaxis: { categories: cats, labels: { style: { fontSize: '11px' } } },
@@ -605,7 +873,7 @@ async function loadHistory() {
     xaxis: { categories: cats },
     stroke: { curve: 'smooth', width: 2 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0.02 } },
-    colors: [SEV_HEX.Critical, SEV_HEX.High, SEV_HEX.Medium, SEV_HEX.Low],
+    colors: [SEV_HEX.Critical, SEV_HEX.High, SEV_HEX.Medium, SEV_HEX.Low, SEV_HEX.Untriaged],
     dataLabels: { enabled: false },
     tooltip: { theme: isDark() ? 'dark' : 'light' },
     legend: { position: 'top' },
@@ -634,9 +902,84 @@ function filters() {
   if (owner) qs.set('owner', owner);
   if (estado) qs.set('status', estado);
   if (agent) qs.set('agent', agent);
+  const plat = document.getElementById('filter-plat').value;
+  if (plat) qs.set('plataforma', plat);
   if (q) qs.set('q', q);
+  // Las vistas rapidas son filtros como cualquier otro; viven aparte para poder
+  // resaltar el boton, pero viajan en la misma query.
+  Object.keys(QUICK).forEach(function (k) {
+    if (quickOn[k]) Object.entries(QUICK[k].params).forEach(([a, b]) => qs.set(a, b));
+  });
   return qs;
 }
+
+const QUICK = {
+  kev:       { label: 'Explotación activa (KEV)', params: { kev: '1' } },
+  score:     { label: 'Prioridad ≥ 80', params: { score_min: '80' } },
+  sla:       { label: 'Críticas fuera de SLA', params: { sla: 'vencidos' } },
+  os:        { label: 'Parches de sistema operativo', params: { tipo: 'os_update' } },
+  untriaged: { label: 'Sin triar', params: { severity: 'untriaged' } },
+};
+const quickOn = {};
+
+function renderChips() {
+  const box = document.getElementById('activeChips');
+  const chips = [];
+  Object.keys(QUICK).forEach(function (k) {
+    if (quickOn[k]) chips.push({ key: 'qf:' + k, label: QUICK[k].label });
+  });
+  [['filter-sev', 'Severidad'], ['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
+   ['filter-estado', 'Estado'], ['filter-agent', 'Servidor']].forEach(function (pair) {
+    const el = document.getElementById(pair[0]);
+    if (el && el.value) chips.push({ key: pair[0], label: pair[1], value: el.selectedOptions[0].textContent });
+  });
+  const q = document.getElementById('filter-q').value.trim();
+  if (q) chips.push({ key: 'filter-q', label: 'Busca', value: q });
+  if (document.getElementById('filter-kev').checked) chips.push({ key: 'filter-kev', label: 'Solo KEV' });
+  if (document.getElementById('filter-ransom').checked) chips.push({ key: 'filter-ransom', label: 'Ransomware' });
+
+  if (!chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'flex';
+  box.innerHTML = chips.map(function (c) {
+    const txt = c.value ? `${escapeHtml(c.label)}: <b>${escapeHtml(c.value)}</b>` : `<b>${escapeHtml(c.label)}</b>`;
+    return `<span class="chip">${txt}<button type="button" data-clear="${c.key}" aria-label="Quitar filtro">&times;</button></span>`;
+  }).join('') + '<button type="button" class="chip-clear" id="clearAll">Limpiar todo</button>';
+}
+
+function clearFilter(key) {
+  if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
+  else {
+    const el = document.getElementById(key);
+    if (el.type === 'checkbox') el.checked = false; else el.value = '';
+  }
+  reloadCves();
+}
+
+function clearAllFilters() {
+  Object.keys(QUICK).forEach(k => { quickOn[k] = false; });
+  syncQuickButtons();
+  ['filter-sev', 'filter-plat', 'filter-owner', 'filter-estado', 'filter-agent'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('filter-q').value = '';
+  document.getElementById('filter-kev').checked = false;
+  document.getElementById('filter-ransom').checked = false;
+  reloadCves();
+}
+
+function syncQuickButtons() {
+  document.querySelectorAll('.qf').forEach(function (b) {
+    b.classList.toggle('on', !!quickOn[b.dataset.qf]);
+  });
+}
+
+document.addEventListener('click', function (ev) {
+  const qf = ev.target.closest('.qf');
+  if (qf) { quickOn[qf.dataset.qf] = !quickOn[qf.dataset.qf]; syncQuickButtons(); reloadCves(); return; }
+  if (ev.target.id === 'clearAll') { clearAllFilters(); return; }
+  const rm = ev.target.closest('[data-clear]');
+  if (rm) clearFilter(rm.dataset.clear);
+});
 
 function fmtAgo(iso) {
   if (!iso) return '';
@@ -649,14 +992,21 @@ function fmtAgo(iso) {
 async function loadCves() {
   const body = document.getElementById('cves-body');
   try {
-    const res = await fetch(`/vulnerabilities/cves?${filters()}`);
+    const qs = filters();
+    qs.set('limit', pageSize);
+    qs.set('offset', (page - 1) * pageSize);
+    const res = await fetch(`/vulnerabilities/cves?${qs}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const d = await res.json();
     allCves = d.cves || [];
-    visibleRows = ROWS_PER_CHUNK;
+    totalCves = d.total || 0;
+    // Un filtro puede dejar menos paginas que la actual; volver atras en vez de
+    // mostrar una pagina vacia sin explicacion.
+    const maxPage = Math.max(1, Math.ceil(totalCves / pageSize));
+    if (page > maxPage) { page = maxPage; return reloadCves(true); }
     renderTable();
   } catch (e) {
     body.innerHTML = `<div class="alert alert-err">No se pudieron cargar los CVEs: ${escapeHtml(e.message)}</div>`;
@@ -666,14 +1016,13 @@ async function loadCves() {
 function renderTable() {
   const body = document.getElementById('cves-body');
   const counter = document.getElementById('events-count');
-  const shown = allCves.slice(0, visibleRows);
-  counter.textContent = allCves.length
-    ? `mostrando ${shown.length} de ${allCves.length} CVE(s)` : '';
+  const shown = allCves;
+  counter.textContent = totalCves ? `${fmtNum.format(totalCves)} CVE(s)` : '';
 
   if (!allCves.length) {
     body.innerHTML = `<div class="empty"><h3>Sin CVEs con esos filtros</h3>
       <p>Probá ampliar la búsqueda o sacar filtros.</p></div>`;
-    document.getElementById('moreWrap').hidden = true;
+    document.getElementById('pager').hidden = true;
     return;
   }
 
@@ -728,16 +1077,61 @@ function renderTable() {
     <thead><tr><th>CVE</th><th>Severidad</th><th>CVSS</th><th>EPSS</th><th>Prioridad</th><th>Paquetes / Servidores</th><th>Detectado hace</th><th>Responsable</th><th>Estado</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
-  document.getElementById('moreWrap').hidden = visibleRows >= allCves.length;
+  renderPager();
 }
 
-function loadMore() {
-  visibleRows += ROWS_PER_CHUNK;
-  renderTable();
+function renderPager() {
+  const pager = document.getElementById('pager');
+  const pages = Math.max(1, Math.ceil(totalCves / pageSize));
+  pager.hidden = totalCves === 0;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, totalCves);
+  document.getElementById('pagerRange').textContent =
+    `Mostrando ${fmtNum.format(from)}–${fmtNum.format(to)} de ${fmtNum.format(totalCves)}`;
+  document.getElementById('pgPrev').disabled = page <= 1;
+  document.getElementById('pgNext').disabled = page >= pages;
+
+  // Ventana de numeros alrededor de la actual: con 2848 CVEs a 25 por pagina son
+  // 114 paginas, y pintarlas todas no ayuda a nadie.
+  const win = [];
+  const push = n => { if (!win.includes(n) && n >= 1 && n <= pages) win.push(n); };
+  push(1); push(2);
+  for (let i = page - 1; i <= page + 1; i++) push(i);
+  push(pages - 1); push(pages);
+  win.sort((a, b) => a - b);
+
+  let html = '', prev = 0;
+  win.forEach(function (n) {
+    if (prev && n - prev > 1) html += '<span class="pg-gap">…</span>';
+    html += `<button type="button" class="pg-num${n === page ? ' on' : ''}" onclick="goPage(${n})">${n}</button>`;
+    prev = n;
+  });
+  document.getElementById('pagerPages').innerHTML = html;
+}
+
+function goPage(n) {
+  const pages = Math.max(1, Math.ceil(totalCves / pageSize));
+  n = Math.min(Math.max(1, n), pages);
+  if (n === page) return;
+  page = n;
+  reloadCves(true);
+  document.getElementById('cves-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('page-size').value, 10) || 50;
+  page = 1;
+  reloadCves();
 }
 
 let SLA_DIAS = 15;
-function reloadCves() { loadCves(); loadSummary(); }
+function reloadCves(keepPage) {
+  // Cambiar un filtro cambia el conjunto: seguir en la pagina 7 del anterior no
+  // significa nada. Solo la navegacion explicita conserva la pagina.
+  if (!keepPage) page = 1;
+  loadCves();
+  loadSummary();
+}
 function debouncedReload() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(reloadCves, 350);
