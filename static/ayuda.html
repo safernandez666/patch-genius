@@ -14,7 +14,9 @@
   /* Dos columnas cuando hay lugar: a 1440px una sola columna de 820 dejaba
      mas margen vacio que contenido. */
   .grid{display:grid;gap:16px}
-  @media (min-width:980px){.grid{grid-template-columns:1fr 1fr;align-items:start}
+  /* Sin align-items:start las dos tarjetas de cada fila comparten altura, en
+     vez de que cada una se corte donde termina su texto. */
+  @media (min-width:980px){.grid{grid-template-columns:1fr 1fr}
     .grid .span{grid-column:1 / -1}}
   h1{font-size:1.45rem;margin:14px 0 6px;display:flex;align-items:center;gap:10px}
   h1 img{width:32px;height:32px}
