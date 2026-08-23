@@ -30,6 +30,10 @@ from app.wazuh.indexer import WazuhIndexerClient, WazuhIndexerError
 
 logger = structlog.get_logger(__name__)
 
+# Tope de filas por pagina. Existe para que un `limit` disparatado no vuelva a
+# serializar el parque entero, que es justamente lo que el paginado evita.
+MAX_PAGE_SIZE = 500
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -542,6 +546,8 @@ async def vuln_cves(
     agent: Optional[str] = None,
     q: Optional[str] = None,
     ransomware: Optional[int] = None,
+    limit: int = 50,
+    offset: int = 0,
 ):
     store = _store(request)
     state, _ = await _load_state(store)
@@ -562,7 +568,18 @@ async def vuln_cves(
         q=q,
         ransomware=ransomware,
     )
-    return {"cves": _sort_by_priority(rows), "total": len(rows)}
+    # Paginado en el servidor: cada fila trae el detalle por agente y por paquete,
+    # asi que devolver el parque entero para pintar una pagina eran megabytes por
+    # cada cambio de filtro.
+    limit = max(1, min(int(limit), MAX_PAGE_SIZE))
+    offset = max(0, int(offset))
+    ordered = _sort_by_priority(rows)
+    return {
+        "cves": ordered[offset : offset + limit],
+        "total": len(ordered),
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @app.get("/vulnerabilities/history")

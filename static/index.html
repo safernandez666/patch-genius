@@ -233,6 +233,21 @@
 .strip-cell .hint{font-size:11px;color:var(--pg-text-muted);margin-top:3px;line-height:1.4}
 @media (max-width:640px){.strip-cell{border-left:0;border-top:1px solid var(--pg-border)}
   .strip-cell:first-child{border-top:0}}
+/* Paginacion del lado del servidor: cada fila trae su detalle por agente y por
+   paquete, asi que traer el parque entero para pintar una pagina eran 2,6 MB. */
+.pager{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--pg-border)}
+.pager-size{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--pg-text-muted)}
+.pager-size .select{width:auto;padding-right:30px}
+.pager-range{font-size:12.5px;color:var(--pg-text-muted)}
+.pager-nav{display:flex;align-items:center;gap:6px}
+.pg-num{min-width:32px;height:32px;padding:0 8px;border-radius:8px;font-size:12.5px;cursor:pointer;
+  border:1px solid var(--pg-border);background:transparent;color:var(--pg-text-muted)}
+.pg-num:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
+.pg-num.on{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
+.pg-gap{color:var(--pg-text-muted);padding:0 2px;font-size:12.5px}
+.pager button[disabled]{opacity:.4;cursor:default}
+@media (max-width:640px){.pager{justify-content:center}}
 </style>
 </head>
 <body>
@@ -404,8 +419,22 @@
     <div id="cves-body">
       <div class="loading">Cargando CVEs…</div>
     </div>
-    <div class="more-wrap" id="moreWrap" hidden style="display:flex;justify-content:center;margin-top:14px">
-      <button type="button" class="btn-ghost btn-sm" id="moreBtn" onclick="loadMore()">Cargar más</button>
+    <div class="pager" id="pager" hidden>
+      <div class="pager-size">
+        <label for="page-size">Filas por página</label>
+        <select class="select" id="page-size" onchange="changePageSize()">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+      </div>
+      <div class="pager-range" id="pagerRange"></div>
+      <div class="pager-nav">
+        <button type="button" class="btn-ghost btn-sm" id="pgPrev" onclick="goPage(page-1)">Anterior</button>
+        <span id="pagerPages"></span>
+        <button type="button" class="btn-ghost btn-sm" id="pgNext" onclick="goPage(page+1)">Siguiente</button>
+      </div>
     </div>
   </section>
 
@@ -458,8 +487,9 @@ function escapeHtml(text) {
 const fmtNum = new Intl.NumberFormat('es-AR');
 
 // --- Estado ---
-const ROWS_PER_CHUNK = 50;
-let visibleRows = ROWS_PER_CHUNK;
+let pageSize = 50;
+let page = 1;
+let totalCves = 0;
 let allCves = [];
 let ownersKnown = [];
 let evolChart = null;
@@ -962,14 +992,21 @@ function fmtAgo(iso) {
 async function loadCves() {
   const body = document.getElementById('cves-body');
   try {
-    const res = await fetch(`/vulnerabilities/cves?${filters()}`);
+    const qs = filters();
+    qs.set('limit', pageSize);
+    qs.set('offset', (page - 1) * pageSize);
+    const res = await fetch(`/vulnerabilities/cves?${qs}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const d = await res.json();
     allCves = d.cves || [];
-    visibleRows = ROWS_PER_CHUNK;
+    totalCves = d.total || 0;
+    // Un filtro puede dejar menos paginas que la actual; volver atras en vez de
+    // mostrar una pagina vacia sin explicacion.
+    const maxPage = Math.max(1, Math.ceil(totalCves / pageSize));
+    if (page > maxPage) { page = maxPage; return reloadCves(true); }
     renderTable();
   } catch (e) {
     body.innerHTML = `<div class="alert alert-err">No se pudieron cargar los CVEs: ${escapeHtml(e.message)}</div>`;
@@ -979,14 +1016,13 @@ async function loadCves() {
 function renderTable() {
   const body = document.getElementById('cves-body');
   const counter = document.getElementById('events-count');
-  const shown = allCves.slice(0, visibleRows);
-  counter.textContent = allCves.length
-    ? `mostrando ${shown.length} de ${allCves.length} CVE(s)` : '';
+  const shown = allCves;
+  counter.textContent = totalCves ? `${fmtNum.format(totalCves)} CVE(s)` : '';
 
   if (!allCves.length) {
     body.innerHTML = `<div class="empty"><h3>Sin CVEs con esos filtros</h3>
       <p>Probá ampliar la búsqueda o sacar filtros.</p></div>`;
-    document.getElementById('moreWrap').hidden = true;
+    document.getElementById('pager').hidden = true;
     return;
   }
 
@@ -1041,16 +1077,61 @@ function renderTable() {
     <thead><tr><th>CVE</th><th>Severidad</th><th>CVSS</th><th>EPSS</th><th>Prioridad</th><th>Paquetes / Servidores</th><th>Detectado hace</th><th>Responsable</th><th>Estado</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
-  document.getElementById('moreWrap').hidden = visibleRows >= allCves.length;
+  renderPager();
 }
 
-function loadMore() {
-  visibleRows += ROWS_PER_CHUNK;
-  renderTable();
+function renderPager() {
+  const pager = document.getElementById('pager');
+  const pages = Math.max(1, Math.ceil(totalCves / pageSize));
+  pager.hidden = totalCves === 0;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, totalCves);
+  document.getElementById('pagerRange').textContent =
+    `Mostrando ${fmtNum.format(from)}–${fmtNum.format(to)} de ${fmtNum.format(totalCves)}`;
+  document.getElementById('pgPrev').disabled = page <= 1;
+  document.getElementById('pgNext').disabled = page >= pages;
+
+  // Ventana de numeros alrededor de la actual: con 2848 CVEs a 25 por pagina son
+  // 114 paginas, y pintarlas todas no ayuda a nadie.
+  const win = [];
+  const push = n => { if (!win.includes(n) && n >= 1 && n <= pages) win.push(n); };
+  push(1); push(2);
+  for (let i = page - 1; i <= page + 1; i++) push(i);
+  push(pages - 1); push(pages);
+  win.sort((a, b) => a - b);
+
+  let html = '', prev = 0;
+  win.forEach(function (n) {
+    if (prev && n - prev > 1) html += '<span class="pg-gap">…</span>';
+    html += `<button type="button" class="pg-num${n === page ? ' on' : ''}" onclick="goPage(${n})">${n}</button>`;
+    prev = n;
+  });
+  document.getElementById('pagerPages').innerHTML = html;
+}
+
+function goPage(n) {
+  const pages = Math.max(1, Math.ceil(totalCves / pageSize));
+  n = Math.min(Math.max(1, n), pages);
+  if (n === page) return;
+  page = n;
+  reloadCves(true);
+  document.getElementById('cves-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('page-size').value, 10) || 50;
+  page = 1;
+  reloadCves();
 }
 
 let SLA_DIAS = 15;
-function reloadCves() { loadCves(); loadSummary(); }
+function reloadCves(keepPage) {
+  // Cambiar un filtro cambia el conjunto: seguir en la pagina 7 del anterior no
+  // significa nada. Solo la navegacion explicita conserva la pagina.
+  if (!keepPage) page = 1;
+  loadCves();
+  loadSummary();
+}
 function debouncedReload() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(reloadCves, 350);
