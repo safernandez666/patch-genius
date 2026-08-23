@@ -35,10 +35,12 @@ CREATE TABLE IF NOT EXISTS vuln_cve_agent_state (
     agent_id TEXT NOT NULL,
     agent_name TEXT NOT NULL DEFAULT '',
     plataforma TEXT NOT NULL DEFAULT '',
+    severidad TEXT NOT NULL DEFAULT 'Untriaged',
     first_seen DATE NOT NULL,
     last_seen DATE NOT NULL,
     status TEXT NOT NULL,
     resolved_at DATE,
+    reopened_at DATE,
     PRIMARY KEY (cve, agent_id)
 );
 CREATE INDEX IF NOT EXISTS vuln_cve_agent_state_cve_idx ON vuln_cve_agent_state (cve);
@@ -48,6 +50,9 @@ CREATE INDEX IF NOT EXISTS vuln_cve_agent_state_cve_idx ON vuln_cve_agent_state 
 # keep old rows as fleet-wide assignments under the empty agent id.
 ASSIGNMENT_MIGRATION_SQL = """
 ALTER TABLE vuln_assignments ADD COLUMN IF NOT EXISTS agent_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE vuln_cve_agent_state
+  ADD COLUMN IF NOT EXISTS severidad TEXT NOT NULL DEFAULT 'Untriaged';
+ALTER TABLE vuln_cve_agent_state ADD COLUMN IF NOT EXISTS reopened_at DATE;
 """
 
 
@@ -110,28 +115,33 @@ def _entry_priority(row: Dict[str, Any], settings: Any) -> Optional[float]:
 
 
 async def _sync_agent_lifecycle(
-    pool: asyncpg.Pool, seen: List[Tuple[str, str, str, str]], today: date
+    pool: asyncpg.Pool, seen: List[Tuple[str, str, str, str, str]], today: date
 ) -> Dict[str, int]:
     """Record which (CVE, agent) pairs are currently open and close the rest."""
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
                 "CREATE TEMP TABLE seen_pairs (cve TEXT, agent_id TEXT, agent_name TEXT,"
-                " plataforma TEXT) ON COMMIT DROP"
+                " plataforma TEXT, severidad TEXT) ON COMMIT DROP"
             )
             await conn.copy_records_to_table("seen_pairs", records=seen)
             # Present now: new on first sight, reopened if we had closed it.
             await conn.execute(
                 """
                 INSERT INTO vuln_cve_agent_state
-                    (cve, agent_id, agent_name, plataforma, first_seen, last_seen, status)
-                SELECT cve, agent_id, agent_name, plataforma, $1, $1, 'open' FROM seen_pairs
+                    (cve, agent_id, agent_name, plataforma, severidad,
+                     first_seen, last_seen, status)
+                SELECT cve, agent_id, agent_name, plataforma, severidad, $1, $1, 'open'
+                FROM seen_pairs
                 ON CONFLICT (cve, agent_id) DO UPDATE SET
                     last_seen = $1,
                     agent_name = EXCLUDED.agent_name,
                     plataforma = EXCLUDED.plataforma,
+                    severidad = EXCLUDED.severidad,
                     status = CASE WHEN vuln_cve_agent_state.status = 'resolved'
                                   THEN 'reopened' ELSE vuln_cve_agent_state.status END,
+                    reopened_at = CASE WHEN vuln_cve_agent_state.status = 'resolved'
+                                       THEN $1 ELSE vuln_cve_agent_state.reopened_at END,
                     resolved_at = NULL
                 """,
                 today,
@@ -177,7 +187,7 @@ async def run_ingest(pool: asyncpg.Pool, config: Dict[str, Any], settings: Any) 
 
     today = date.today()
     pairs = [
-        (r["cve"], a["agent_id"], a["agente"], a["plataforma"])
+        (r["cve"], a["agent_id"], a["agente"], a["plataforma"], r["severidad"])
         for r in rows
         for a in r["detalle_agentes"]
     ]

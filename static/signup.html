@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Configuración inicial — Patch Genius</title>
+<title>Setup — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
@@ -17,23 +17,23 @@
         <img src="/static/assets/genie.svg" alt="">
         <span>Patch <b>Genius</b></span>
       </div>
-      <h1 data-i18n="signup.title">Creá tu cuenta</h1>
-      <p class="sub" data-i18n="signup.sub">Esta instalación todavía no tiene ninguna cuenta.
-        La primera que crees es la de administrador.</p>
+      <h1 data-i18n="signup.title">Create your account</h1>
+      <p class="sub" data-i18n="signup.sub">This installation has no account yet.
+        The first one you create is the administrator.</p>
       <form id="f" novalidate>
-        <label for="u" data-i18n="signup.user">Usuario <span class="req">*</span></label>
+        <label for="u" data-i18n="signup.user">Username <span class="req">*</span></label>
         <input id="u" type="text" autocomplete="username" required autofocus>
-        <label for="p" data-i18n="signup.pass">Contraseña <span class="req">*</span></label>
+        <label for="p" data-i18n="signup.pass">Password <span class="req">*</span></label>
         <input id="p" type="password" autocomplete="new-password" minlength="12" required
-               placeholder="mínimo 12 caracteres">
-        <label for="p2" data-i18n="signup.pass2">Repetir contraseña <span class="req">*</span></label>
+               placeholder="at least 12 characters">
+        <label for="p2" data-i18n="signup.pass2">Repeat password <span class="req">*</span></label>
         <input id="p2" type="password" autocomplete="new-password" minlength="12" required>
-        <button id="b" type="submit" data-i18n="signup.submit">Crear cuenta y entrar</button>
+        <button id="b" type="submit" data-i18n="signup.submit">Create account and sign in</button>
         <div class="msg" id="e" role="alert" aria-live="polite"></div>
       </form>
       <div class="hintbox" data-i18n="signup.note">
-        Esta pantalla se cierra sola apenas exista una cuenta. No es un registro
-        abierto: nadie más va a poder crearse usuario desde acá.
+        This page closes itself as soon as an account exists. It is not open registration —
+        nobody else will be able to sign up here.
       </div>
     </div>
   </div>
@@ -42,8 +42,8 @@
     <div class="auth-brand-inner">
       <img src="/static/assets/genie.svg" alt="">
       <h2>Patch <b>Genius</b></h2>
-      <p data-i18n="brand.tagline">Seguimiento de vulnerabilidades y parcheo sobre tu propio Wazuh.
-        Priorizado con CISA KEV y EPSS.</p>
+      <p data-i18n="brand.tagline">Vulnerability and patch tracking on top of your own Wazuh.
+        Prioritised with CISA KEV and EPSS.</p>
     </div>
   </div>
 </div>
@@ -54,8 +54,8 @@ document.getElementById('f').addEventListener('submit', async function (ev) {
   var b = document.getElementById('b'), e = document.getElementById('e');
   var p = document.getElementById('p').value, p2 = document.getElementById('p2').value;
   e.className = 'msg';
-  if (p !== p2) { e.className = 'msg err'; e.textContent = t('signup.mismatch', 'Las contraseñas no coinciden.'); return; }
-  if (p.length < 12) { e.className = 'msg err'; e.textContent = t('signup.short', 'La contraseña necesita al menos 12 caracteres.'); return; }
+  if (p !== p2) { e.className = 'msg err'; e.textContent = t('signup.mismatch', 'The passwords do not match.'); return; }
+  if (p.length < 12) { e.className = 'msg err'; e.textContent = t('signup.short', 'The password needs at least 12 characters.'); return; }
   b.disabled = true; e.textContent = '';
   try {
     var r = await fetch('/api/signup', {
@@ -67,11 +67,11 @@ document.getElementById('f').addEventListener('submit', async function (ev) {
     e.className = 'msg err';
     // 409 = alguien completó el setup mientras esta pestaña estaba abierta.
     e.textContent = r.status === 409
-      ? t('signup.taken', 'Ya existe una cuenta. Andá a Ingresar.')
-      : (d.detail || t('signup.fail', 'No se pudo crear la cuenta.'));
+      ? t('signup.taken', 'An account already exists. Go to Sign in.')
+      : (d.detail || t('signup.fail', 'Could not create the account.'));
   } catch (err) {
     e.className = 'msg err';
-    e.textContent = t('login.down', 'No se pudo contactar al servidor.');
+    e.textContent = t('login.down', 'Could not reach the server.');
   }
   b.disabled = false;
 });

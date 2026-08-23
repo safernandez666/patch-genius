@@ -54,8 +54,14 @@ Everything the dashboard shows about time is therefore derived here, not read fr
   a genuine zero: unscored means unknown, not harmless.
 - **Ownership per CVE and per agent** — the same CVE can be resolved on one host and open
   on another, so owner, status and due date are tracked at that granularity.
+- **A brief that says what to do** — an LLM turns the ranking into a paragraph naming the
+  hosts and packages to patch first. Claude, OpenAI, or a local model: the brief carries
+  hostnames, so anyone who cannot send those out points it at their own endpoint and
+  nothing leaves.
 - **Onboarding in the app** — the Wazuh connection is configured from a tab, tested before
   it is saved, and stored encrypted. Nothing is baked into the image.
+- **English or Spanish** — set once for the installation, since a SOC screen is read by the
+  whole team.
 - **No build step** — clone, `docker compose up`. No Node, no CDN, no external asset
   fetches, which matters on isolated networks.
 
@@ -107,11 +113,23 @@ posts to the channel — because a saved setting that was never tried tells you 
 Credentials are encrypted at rest and never returned to the browser; a webhook URL counts
 as one, since anyone holding it can post into your channel.
 
+### What to prioritise
+
+The ranking answers "which CVE is worst". This answers "what do I do on Monday" — written
+once a day after the ingest, or on demand.
+
+![What to prioritise](docs/img/brief.png)
+
+> [!WARNING]
+> The brief is built from the fleet's real state, hostnames included — that is what makes
+> it specific enough to act on. With a hosted model that inventory leaves your network.
+> Point it at a local OpenAI-compatible endpoint and nothing does. It ships disabled.
+
 ### Configuration
 
-Everything that is about this installation rather than a connection: how often the indexer
-is re-read, which language the interface uses, whether the public feeds are enabled, and
-the password.
+Everything about this installation rather than a connection: how often the indexer is
+re-read, which language the interface uses, whether the public feeds are enabled, and the
+password.
 
 ![Configuration](docs/img/configuracion.png)
 
@@ -153,6 +171,12 @@ Not yet, but the collector is the only Wazuh-specific part. `app/ingest.py:colle
 dispatches on the configured scanner, and everything downstream consumes a normalised
 record shape, so adding another source means writing one collector.
 
+**Does anything of mine reach the model?**
+Only if you enable the brief and choose a hosted provider. It sends the fleet snapshot —
+severity counts, platform split, patching metrics, and the top 25 CVEs with their hosts and
+packages. A local endpoint keeps all of it inside your network. EPSS and CISA KEV are
+separate and only ever see CVE identifiers.
+
 **Where do I change the scoring weights?**
 Environment variables — `VULN_CVSS_WEIGHT`, `VULN_EPSS_WEIGHT`, `VULN_KEV_WEIGHT`,
 `VULN_SLA_CRITICAL_DAYS` and friends. See `app/settings.py`.
@@ -160,5 +184,5 @@ Environment variables — `VULN_CVSS_WEIGHT`, `VULN_EPSS_WEIGHT`, `VULN_KEV_WEIG
 ---
 
 <div align="center">
-<sub>Built by <a href="https://zebrasecurity.io"><b>Zebra Security</b></a> · interface in Spanish, docs and code in English</sub>
+<sub>Built by <a href="https://zebrasecurity.io"><b>Zebra Security</b></a></sub>
 </div>

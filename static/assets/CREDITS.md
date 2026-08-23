@@ -32,3 +32,8 @@ Slack and Jira brand marks, via [SVG Repo](https://www.svgrepo.com).
 Used solely to identify the corresponding integration in the UI. Slack is a
 trademark of Slack Technologies; Jira is a trademark of Atlassian. This project is
 not affiliated with or endorsed by either company.
+
+## genie-lamp.svg
+
+Genie lamp icon, via [SVG Repo](https://www.svgrepo.com/svg/165358/genie-lamp). Applied as a
+CSS mask so it follows the navigation link colour, including the active state.

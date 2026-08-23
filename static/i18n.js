@@ -1,16 +1,16 @@
-/* Traducción de la interfaz.
+/* Interface translation.
  *
- * El idioma es una configuración global de la instalación, no una preferencia
- * por usuario: en un SOC el panel lo mira el equipo entero y que cada uno lo vea
- * distinto complica más de lo que ayuda.
+ * The language is a global setting for the installation, not a per-user
+ * preference: in a SOC the same screen is read by the whole team, and having it
+ * differ per person costs more than it gives.
  *
- * El HTML se escribe en español y los nodos traducibles llevan data-i18n. Si
- * falta una clave se deja el texto del HTML — una traducción incompleta muestra
- * español, nunca una clave cruda ni un hueco.
+ * The markup is written in English and translatable nodes carry data-i18n. A
+ * missing key falls back to the text already in the HTML, so an incomplete
+ * translation shows English — never a raw key and never a gap.
  */
 (function (global) {
   var DICT = {
-    en: {
+    es: {
       "brand.tagline": "Vulnerability and patch tracking on top of your own Wazuh. Prioritised with CISA KEV and EPSS.",
 
       "login.title": "Sign in",
@@ -33,7 +33,8 @@
       "signup.taken": "An account already exists. Go to Sign in.",
       "signup.fail": "Could not create the account.",
 
-      "nav.vulns": "Vulnerabilities",
+      "nav.vulns": "Vulnerabilidades",
+      "nav.brief": "IA",
       "nav.config": "Configuration",
       "nav.integrations": "Integrations",
       "nav.help": "Help",
@@ -111,10 +112,10 @@
     },
   };
 
-  var lang = "es";
+  var lang = "en";
 
   function t(key, fallback) {
-    if (lang === "es") return fallback !== undefined ? fallback : key;
+    if (lang === "en") return fallback !== undefined ? fallback : key;
     var d = DICT[lang];
     return (d && d[key]) || (fallback !== undefined ? fallback : key);
   }
@@ -123,15 +124,15 @@
     (root || document).querySelectorAll("[data-i18n]").forEach(function (el) {
       var key = el.getAttribute("data-i18n");
       // El texto del HTML es el fallback: una clave que falta deja el español.
-      if (!el.dataset.i18nEs) el.dataset.i18nEs = el.innerHTML;
-      var v = lang === "es" ? el.dataset.i18nEs : (DICT[lang] || {})[key];
+      if (!el.dataset.i18nEn) el.dataset.i18nEn = el.innerHTML;
+      var v = lang === "en" ? el.dataset.i18nEn : (DICT[lang] || {})[key];
       if (v) el.innerHTML = v;
     });
     document.documentElement.lang = lang;
   }
 
   function set(next) {
-    lang = DICT[next] || next === "es" ? next : "es";
+    lang = DICT[next] || next === "en" ? next : "en";
     apply();
     global.dispatchEvent(new CustomEvent("i18n:changed", { detail: { lang: lang } }));
   }
@@ -141,8 +142,8 @@
   async function init() {
     try {
       var r = await fetch("/api/lang");
-      if (r.ok) { var d = await r.json(); set(d.lang || "es"); return; }
-    } catch (e) { /* sin conexión: queda español */ }
+      if (r.ok) { var d = await r.json(); set(d.lang || "en"); return; }
+    } catch (e) { /* offline: stays English */ }
     apply();
   }
 

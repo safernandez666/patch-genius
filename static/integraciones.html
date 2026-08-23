@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Integraciones — Patch Genius</title>
+<title>Integrations — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
@@ -61,21 +61,23 @@
   .facts dd{margin:0;font-size:.85rem;color:var(--pg-text);font-weight:600;
     overflow-wrap:anywhere}
   a.act{text-decoration:none;display:inline-block;line-height:1.35}
+  .warnbox{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
+    border-radius:9px;padding:11px 13px;font-size:.79rem;line-height:1.55;margin:0 0 14px}
   .hint{font-size:.76rem;color:var(--pg-text-muted);margin:4px 0 0;line-height:1.5}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">&larr; <span data-i18n="nav.back">Volver al panel</span></a>
-  <h1 data-i18n="integr.title">Integraciones</h1>
-  <p class="sub" data-i18n="integr.sub">Avisos y tickets a partir de lo que encuentra Patch Genius.
-    Todas están desactivadas por defecto y sus credenciales se guardan cifradas.</p>
+  <a class="back" href="/">&larr; <span data-i18n="nav.back">Back to dashboard</span></a>
+  <h1 data-i18n="integr.title">Integrations</h1>
+  <p class="sub" data-i18n="integr.sub">Alerts and tickets from what Patch Genius finds. All are disabled by default and their
+    credentials are stored encrypted.</p>
   <div class="card" id="wazuhCard">
     <div class="head">
       <span class="logo"><img src="/static/assets/wazuh.webp" alt=""></span>
       <div>
         <h2>Wazuh</h2>
-        <p data-i18n="integr.wazuh.desc">Origen de los datos — índice de vulnerabilidades del Indexer</p>
+        <p data-i18n="integr.wazuh.desc">Data source — the Indexer's vulnerability index</p>
       </div>
       <span class="grow"></span>
       <span class="state off" id="wzState">…</span>
@@ -84,27 +86,27 @@
       <dl class="facts" id="wzFacts"></dl>
       <p class="hint" id="wzHint" style="display:none;margin-bottom:14px"></p>
 
-      <p class="hint">Puerto 9200. En Wazuh 4.8+ las vulnerabilidades viven en el Indexer, no
-        en la API del manager. Si solo escucha en 127.0.0.1 y esta app corre en otro host,
-        mirá <code>docs/ONBOARDING.md</code> antes.</p>
-      <label for="wz-url">URL del Indexer</label>
+      <p class="hint">Port 9200. On Wazuh 4.8+ vulnerabilities live in the Indexer, not the manager API. If it
+        only listens on 127.0.0.1 and this app runs on another host, read
+        <code>docs/ONBOARDING.md</code> first.</p>
+      <label for="wz-url">Indexer URL</label>
       <input type="text" id="wz-url" placeholder="https://wazuh.example.com:9200">
       <div class="row">
         <div>
-          <label for="wz-user">Usuario</label>
+          <label for="wz-user">Username</label>
           <input type="text" id="wz-user" autocomplete="off" placeholder="usuario de solo lectura">
         </div>
         <div>
-          <label for="wz-pass">Contraseña</label>
+          <label for="wz-pass">Password</label>
           <input type="password" id="wz-pass" autocomplete="new-password">
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="wz-tls"> Verificar certificado TLS
-        <span style="color:var(--pg-text-muted)">— desactivalo con el autofirmado de Wazuh</span></label>
+      <label class="check"><input type="checkbox" id="wz-tls"> Verify TLS certificate
+        <span style="color:var(--pg-text-muted)">— turn off for Wazuh's self-signed cert</span></label>
       <div class="actions">
-        <button type="button" class="act ghost" onclick="wzTest()">Probar conexión</button>
-        <button type="button" class="act primary" onclick="wzSave()">Guardar</button>
-        <button type="button" class="act ghost" onclick="wzIngest()">Actualizar ahora</button>
+        <button type="button" class="act ghost" onclick="wzTest()">Test connection</button>
+        <button type="button" class="act primary" onclick="wzSave()">Save</button>
+        <button type="button" class="act ghost" onclick="wzIngest()">Refresh now</button>
       </div>
       <div class="msg" id="wz-msg"></div>
     </div>
@@ -116,6 +118,7 @@
 <script src="/static/i18n.js"></script>
 <script>
 const LOGO = {
+  ai: '<svg viewBox="0 0 24 24" fill="none" stroke="#76abae" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>',
   wazuh: '<img src="/static/assets/wazuh.webp" alt="">',
   jira:  '<img src="/static/assets/jira.svg" alt="">',
   slack: '<img src="/static/assets/slack.svg" alt="">',
@@ -124,42 +127,54 @@ const LOGO = {
 };
 
 const DEFS = [
-  { name: 'smtp', title: 'SMTP', desc: 'Recordatorios por correo al responsable de cada CVE',
+  { name: 'ai', title: 'AI brief', desc: 'A daily prioritisation brief written by a model',
     fields: [
-      { k: 'host', l: 'Servidor', ph: 'smtp.tudominio.com' },
-      { k: 'port', l: 'Puerto', type: 'number', ph: '587', half: true },
-      { k: 'username', l: 'Usuario', ph: 'opcional', half: true },
-      { k: 'from_addr', l: 'Remitente', ph: 'patch-genius@tudominio.com' },
+      { k: 'provider', l: 'Provider', select: [['anthropic','Claude (Anthropic)'],['openai','OpenAI'],['local','Local / OpenAI-compatible']], half: true },
+      { k: 'model', l: 'Model', ph: 'claude-opus-5', half: true },
+      { k: 'base_url', l: 'Base URL (local or proxy only)', ph: 'http://localhost:11434/v1' },
     ],
-    checks: [ { k: 'use_tls', l: 'STARTTLS', def: true }, { k: 'use_ssl', l: 'SSL directo (puerto 465)' } ],
-    secret: 'Contraseña', testField: { k: 'to', l: 'Enviar prueba a', ph: 'vos@tudominio.com' },
-    hint: 'La prueba manda un correo de verdad.' },
-  { name: 'jira', title: 'Jira', desc: 'Abrir un ticket desde un CVE y guardar la clave del issue',
+    secret: 'API key', optionalSecret: true,
+    warn: 'The brief is built from your fleet\'s real state — <b>including your server names</b> and which CVEs each one carries. With Claude or OpenAI that leaves your network. With a local model nothing does.',
+    hint: 'Generated once a day after the ingest, and on demand from the dashboard.' },
+  { name: 'smtp', title: 'SMTP', desc: 'E-mail reminders to the owner of each CVE',
     fields: [
-      { k: 'url', l: 'URL de Jira', ph: 'https://tuempresa.atlassian.net' },
-      { k: 'email', l: 'E-mail de la cuenta', ph: 'vos@tuempresa.com', half: true },
-      { k: 'project', l: 'Clave del proyecto', ph: 'SEC', half: true },
-      { k: 'issue_type', l: 'Tipo de issue', ph: 'Task', half: true },
+      { k: 'host', l: 'Server', ph: 'smtp.yourdomain.com' },
+      { k: 'port', l: 'Port', type: 'number', ph: '587', half: true },
+      { k: 'username', l: 'Username', ph: 'optional', half: true },
+      { k: 'from_addr', l: 'From address', ph: 'patch-genius@yourdomain.com' },
+    ],
+    checks: [ { k: 'use_tls', l: 'STARTTLS', def: true }, { k: 'use_ssl', l: 'Implicit SSL (port 465)' } ],
+    secret: 'Password', testField: { k: 'to', l: 'Send test to', ph: 'you@yourdomain.com' },
+    hint: 'The test sends a real e-mail.' },
+  { name: 'jira', title: 'Jira', desc: 'Open a ticket from a CVE and store the issue key',
+    fields: [
+      { k: 'url', l: 'Jira URL', ph: 'https://yourcompany.atlassian.net' },
+      { k: 'email', l: 'Account e-mail', ph: 'you@yourcompany.com', half: true },
+      { k: 'project', l: 'Project key', ph: 'SEC', half: true },
+      { k: 'issue_type', l: 'Issue type', ph: 'Task', half: true },
     ],
     secret: 'API token',
-    hint: 'El token se genera en id.atlassian.com. La prueba solo valida credenciales, no crea nada.' },
-  { name: 'slack', title: 'Slack', desc: 'Avisar cuando aparece un CVE en KEV o vence un SLA',
-    fields: [ { k: 'channel', l: 'Canal (informativo)', ph: '#seguridad' } ],
-    secret: 'URL del webhook entrante',
-    hint: 'La URL del webhook es un secreto: quien la tenga puede publicar en el canal. Va cifrada.' },
-  { name: 'teams', title: 'Microsoft Teams', desc: 'Mismos avisos que Slack, por webhook entrante',
-    fields: [ { k: 'channel', l: 'Canal (informativo)', ph: 'SOC' } ],
-    secret: 'URL del webhook entrante',
-    hint: 'Se configura en el canal: Conectores → Incoming Webhook.' },
+    hint: 'Generate the token at id.atlassian.com. The test only validates credentials — it creates nothing.' },
+  { name: 'slack', title: 'Slack', desc: 'Alert when a CVE lands in KEV or an SLA breaches',
+    fields: [ { k: 'channel', l: 'Channel (informational)', ph: '#security' } ],
+    secret: 'Incoming webhook URL',
+    hint: 'The webhook URL is a credential: anyone holding it can post to the channel. It is stored encrypted.' },
+  { name: 'teams', title: 'Microsoft Teams', desc: 'Same alerts as Slack, via incoming webhook',
+    fields: [ { k: 'channel', l: 'Channel (informational)', ph: 'SOC' } ],
+    secret: 'Incoming webhook URL',
+    hint: 'Set it up on the channel: Connectors → Incoming Webhook.' },
 ];
 
 let STATE = {};
 
 function field(n, f, v) {
+  const inner = f.select
+    ? `<select id="${n}-${f.k}">` + f.select.map(o =>
+        `<option value="${o[0]}"${v === o[0] ? ' selected' : ''}>${o[1]}</option>`).join('') + '</select>'
+    : `<input id="${n}-${f.k}" type="${f.type || 'text'}" placeholder="${f.ph || ''}"
+         value="${v == null ? '' : String(v).replace(/"/g, '&quot;')}">`;
   return `<div${f.half ? '' : ' style="min-width:100%"'}>
-    <label for="${n}-${f.k}">${f.l}</label>
-    <input id="${n}-${f.k}" type="${f.type || 'text'}" placeholder="${f.ph || ''}"
-           value="${v == null ? '' : String(v).replace(/"/g, '&quot;')}"></div>`;
+    <label for="${n}-${f.k}">${f.l}</label>${inner}</div>`;
 }
 
 function render() {
@@ -171,23 +186,24 @@ function render() {
         <span class="logo">${logo}</span>
         <div><h2>${d.title}</h2><p>${d.desc}</p></div>
         <span class="grow"></span>
-        <span class="state ${st.enabled ? 'on' : 'off'}">${st.enabled ? 'Activa' : 'Inactiva'}</span>
+        <span class="state ${st.enabled ? 'on' : 'off'}">${st.enabled ? 'Active' : 'Inactive'}</span>
         <label class="toggle"><input type="checkbox" id="${d.name}-en" ${st.enabled ? 'checked' : ''}
                onchange="toggleBody('${d.name}')"><span class="slider"></span></label>
       </div>
       <div class="body ${st.enabled ? 'open' : ''}" id="${d.name}-body">
+        ${d.warn ? `<p class="warnbox">${d.warn}</p>` : ''}
         <div class="row">${d.fields.map(f => field(d.name, f, st.settings[f.k])).join('')}</div>
         ${(d.checks || []).map(c => `<label class="check"><input type="checkbox" id="${d.name}-${c.k}"
              ${st.settings[c.k] ?? c.def ? 'checked' : ''}> ${c.l}</label>`).join('')}
         <label for="${d.name}-secret">${d.secret}</label>
         <input id="${d.name}-secret" type="password" autocomplete="new-password"
-               placeholder="${st.has_secret ? '(guardado — dejar vacío para no cambiarlo)' : 'sin configurar'}">
+               placeholder="${st.has_secret ? '(saved — leave empty to keep it)' : 'not configured'}">
         ${d.testField ? `<label for="${d.name}-${d.testField.k}">${d.testField.l}</label>
           <input id="${d.name}-${d.testField.k}" type="text" placeholder="${d.testField.ph}">` : ''}
         <p class="hint">${d.hint}</p>
         <div class="actions">
-          <button type="button" class="act ghost" onclick="testOne('${d.name}')">Probar</button>
-          <button type="button" class="act primary" onclick="saveOne('${d.name}')">Guardar</button>
+          <button type="button" class="act ghost" onclick="testOne('${d.name}')">Test</button>
+          <button type="button" class="act primary" onclick="saveOne('${d.name}')">Save</button>
         </div>
         <div class="msg" id="${d.name}-msg"></div>
       </div>
@@ -226,16 +242,16 @@ function say(n, kind, text) {
 async function saveOne(n) {
   const r = await fetch('/api/integrations/' + n, {
     method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(collect(n))});
-  if (r.ok) { document.getElementById(n + '-secret').value = ''; await load(); say(n, 'ok', 'Guardado.'); }
+  if (r.ok) { document.getElementById(n + '-secret').value = ''; await load(); say(n, 'ok', 'Saved.'); }
   else { const d = await r.json().catch(() => ({})); say(n, 'bad', d.detail || ('Error ' + r.status)); }
 }
 
 async function testOne(n) {
-  say(n, '', 'Probando…');
+  say(n, '', 'Testing…');
   const r = await fetch('/api/integrations/' + n + '/test', {
     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(collect(n))});
   const d = await r.json().catch(() => ({}));
-  if (r.ok && d.ok) say(n, 'ok', d.detail || ('Conectado' + (d.account ? ' como ' + d.account : '') + '.'));
+  if (r.ok && d.ok) say(n, 'ok', d.detail || ('Connected' + (d.account ? ' as ' + d.account : '') + '.'));
   else say(n, 'bad', d.error || d.detail || ('Error ' + r.status));
 }
 
@@ -256,29 +272,29 @@ function wzSay(kind, text) {
 }
 
 async function wzTest() {
-  wzSay('', 'Probando…');
+  wzSay('', 'Testing…');
   const r = await fetch('/api/config/test', {method: 'POST',
     headers: {'Content-Type': 'application/json'}, body: JSON.stringify(wzBody())});
   const d = await r.json();
-  if (d.ok) wzSay('ok', `Conectado a "${d.cluster_name}" — ${d.status}, `
-    + `${Number(d.vulnerability_docs).toLocaleString('es-AR')} documentos.`);
-  else wzSay('bad', 'No conectó: ' + d.error);
+  if (d.ok) wzSay('ok', `Connected to "${d.cluster_name}" — ${d.status}, `
+    + `${Number(d.vulnerability_docs).toLocaleString('en')} documents.`);
+  else wzSay('bad', 'Not connected: ' + d.error);
 }
 
 async function wzSave() {
   const r = await fetch('/api/config', {method: 'PUT',
     headers: {'Content-Type': 'application/json'}, body: JSON.stringify(wzBody())});
-  if (r.ok) { document.getElementById('wz-pass').value = ''; await loadWazuh(); wzSay('ok', 'Guardado.'); }
+  if (r.ok) { document.getElementById('wz-pass').value = ''; await loadWazuh(); wzSay('ok', 'Saved.'); }
   else { const d = await r.json().catch(() => ({})); wzSay('bad', d.detail || ('Error ' + r.status)); }
 }
 
 async function wzIngest() {
-  wzSay('', 'Ingestando desde Wazuh…');
+  wzSay('', 'Ingesting from Wazuh…');
   const r = await fetch('/api/ingest', {method: 'POST'});
   const d = await r.json();
-  if (r.ok) { wzSay('ok', `${d.cves} CVEs desde ${d.documentos} registros · ${d.nuevos} nuevos · `
-    + `${d.resueltos} resueltos · ${d.kev_coincidencias} en CISA KEV.`); loadWazuh(); }
-  else wzSay('bad', 'Falló la ingesta: ' + (d.detail || r.status));
+  if (r.ok) { wzSay('ok', `${d.cves} CVEs from ${d.documentos} records · ${d.nuevos} new · `
+    + `${d.resueltos} resolved · ${d.kev_coincidencias} in CISA KEV.`); loadWazuh(); }
+  else wzSay('bad', 'Ingest failed: ' + (d.detail || r.status));
 }
 
 async function loadWazuh() {
@@ -298,10 +314,10 @@ async function loadWazuh() {
     document.getElementById('wz-user').value = c.indexer_user || '';
     document.getElementById('wz-tls').checked = !!c.verify_tls;
     document.getElementById('wz-pass').placeholder =
-      c.has_password ? '(guardada — dejar vacío para no cambiarla)' : 'sin configurar';
+      c.has_password ? '(saved — leave empty to keep it)' : 'not configured';
     if (!c.indexer_url) {
-      st.className = 'state off'; st.textContent = 'Sin configurar';
-      show([]); warn('Todavía no hay ningún Wazuh conectado, así que el panel no tiene datos.');
+      st.className = 'state off'; st.textContent = 'Not configured';
+      show([]); warn('No Wazuh is connected yet, so the dashboard has no data.');
       return;
     }
     // "Hay una URL guardada" no es lo mismo que "responde": se prueba de verdad.
@@ -309,18 +325,18 @@ async function loadWazuh() {
       headers: {'Content-Type': 'application/json'}, body: '{}'});
     const d = await t.json();
     if (d.ok) {
-      st.className = 'state on'; st.textContent = 'Conectada';
+      st.className = 'state on'; st.textContent = 'Connected';
       warn('');
       show([['Cluster', `${d.cluster_name} · ${d.status}`],
-            ['Documentos', Number(d.vulnerability_docs).toLocaleString('es-AR')],
-            ['Actualiza cada', `${c.refresh_minutes} min`]]);
+            ['Documents', Number(d.vulnerability_docs).toLocaleString('en')],
+            ['Refreshes every', `${c.refresh_minutes} min`]]);
     } else {
-      st.className = 'state off'; st.textContent = 'Con error';
-      show([]); warn('No responde: ' + d.error);
+      st.className = 'state off'; st.textContent = 'Error';
+      show([]); warn('Not responding: ' + d.error);
     }
   } catch (e) {
-    st.className = 'state off'; st.textContent = 'Con error';
-    show([]); warn('No se pudo consultar el estado de la conexión.');
+    st.className = 'state off'; st.textContent = 'Error';
+    show([]); warn('Could not check the connection status.');
   }
 }
 

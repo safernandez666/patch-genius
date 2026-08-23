@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/static/assets/soar-shield.svg">
 <meta name="theme-color" content="#465fff">
-<title>Patch Genius — Vulnerabilidades</title>
+<title>Patch Genius — Vulnerabilities</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="preload" href="/static/tailwind.css" as="style">
 <link rel="stylesheet" href="/static/theme.css">
@@ -191,6 +191,11 @@
 [data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand)}
 [data-theme="dark"] a{color:var(--pg-brand)}
 [data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid var(--pg-brand)}
+/* Silueta usada como mascara: asi hereda el color del enlace y su estado
+   activo, cosa que un <img> externo no puede hacer. */
+.ai-ico{width:20px;height:20px;flex:none;background-color:currentColor;
+  -webkit-mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain;
+  mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain}
 .brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
 .qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
     border:1px solid var(--color-gray-800);background:transparent;color:var(--color-gray-400)}
@@ -252,7 +257,7 @@
 /* Severidad como control segmentado en vez de desplegable (patron de tabs de
    TailAdmin). Son seis opciones fijas: verlas todas y elegir en un clic es mejor
    que abrir una lista, y ademas deja lugar para el conteo de cada una. */
-.sevtabs{display:flex;overflow-x:auto;gap:2px;padding:4px;border-radius:11px;
+.sevtabs{display:flex;justify-content:safe center;overflow-x:auto;gap:2px;padding:4px;border-radius:11px;
   background:var(--pg-surface-alt);margin-bottom:12px}
 .sevtabs::-webkit-scrollbar{height:5px}
 .sevtabs::-webkit-scrollbar-thumb{background:var(--pg-border);border-radius:999px}
@@ -282,173 +287,177 @@
 <div class="app-shell">
 <aside class="sidebar">
   <span class="brand-platform"><img class="shield" src="/static/assets/genie.svg" alt=""><span>Patch <b>Genius</b></span></span>
-  <nav class="side-nav" aria-label="Navegación principal">
+  <nav class="side-nav" aria-label="Main navigation">
     <a href="/" class="active" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span data-i18n="nav.vulns">Vulnerabilidades</span>
+      <span data-i18n="nav.vulns">Vulnerabilities</span>
+    </a>
+    <a href="/brief">
+      <span class="ai-ico" aria-hidden="true"></span>
+      <span data-i18n="nav.brief">AI</span>
     </a>
     <a href="/config">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span data-i18n="nav.config">Configuración</span>
+      <span data-i18n="nav.config">Configuration</span>
     </a>
     <a href="/integraciones">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
-      <span data-i18n="nav.integrations">Integraciones</span>
+      <span data-i18n="nav.integrations">Integrations</span>
     </a>
     <a href="/ayuda">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span data-i18n="nav.help">Ayuda</span>
+      <span data-i18n="nav.help">Help</span>
     </a>
   </nav>
   <div class="sidebar-spacer"></div>
   <div class="side-status">
-    <span class="side-status-h">Origen</span>
+    <span class="side-status-h">Source</span>
     <span class="build-version" id="sideSource">Wazuh</span>
   </div>
   <div class="sidebar-foot">
-    <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
+    <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme" title="Toggle theme">
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l-1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
     </button>
     <button type="button" class="theme-toggle" id="logoutBtn" onclick="doLogout()"
-            aria-label="Cerrar sesión" title="Cerrar sesión">
+            aria-label="Sign out" title="Sign out">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
     <a class="nav-exit" href="https://github.com/" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center;flex:1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      Código
+      Code
     </a>
   </div>
 </aside>
 <div class="app-main">
 <main class="container">
   <div class="page-header">
-    <h1 class="page-title">Vulnerabilidades — Seguimiento y patching</h1>
-    <p class="page-desc">Estado del parque leído de tu Wazuh, priorizado por <strong>CISA KEV</strong> y <strong>EPSS</strong>. <a href="/ayuda">Cómo funciona la priorización, el aging y el SLA &rarr;</a></p>
+    <h1 class="page-title">Vulnerabilities — patch tracking</h1>
+    <p class="page-desc">Fleet state read from your Wazuh, prioritised by <strong>CISA KEV</strong> and <strong>EPSS</strong>. <a href="/ayuda">How prioritisation, aging and the SLA work &rarr;</a></p>
   </div>
 
   <div id="setupHint" style="display:none;background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
        border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
-    <b>Todavía no hay datos.</b> Conectá tu Wazuh en
-    <a href="/config" style="color:var(--pg-warn-fg);text-decoration:underline">Configuración</a>
-    y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
-    corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
+    <b>No data yet.</b> Connect your Wazuh in
+    <a href="/config" style="color:var(--pg-warn-fg);text-decoration:underline">Configuration</a>
+    and run the first refresh. If the indexer only listens on 127.0.0.1 and this app
+    runs on another host, read <code>docs/ONBOARDING.md</code> first.
   </div>
-  <nav class="sevtabs" id="sevTabs" role="tablist" aria-label="Filtrar por severidad"></nav>
+  <nav class="sevtabs" id="sevTabs" role="tablist" aria-label="Filter by severity"></nav>
   <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
-    <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Vistas rápidas:</span>
-    <button type="button" class="qf" data-qf="kev">Explotación activa (KEV)</button>
-    <button type="button" class="qf" data-qf="ransom">Ransomware conocido</button>
-    <button type="button" class="qf" data-qf="score">Prioridad ≥ 80</button>
-    <button type="button" class="qf" data-qf="sla">Críticas fuera de SLA</button>
-    <button type="button" class="qf" data-qf="os">Parches de sistema operativo</button>
-    <button type="button" class="qf" data-qf="untriaged">Sin triar</button>
+    <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Quick views:</span>
+    <button type="button" class="qf" data-qf="kev">Active exploitation (KEV)</button>
+    <button type="button" class="qf" data-qf="ransom">Known ransomware</button>
+    <button type="button" class="qf" data-qf="score">Priority ≥ 80</button>
+    <button type="button" class="qf" data-qf="sla">Criticals past SLA</button>
+    <button type="button" class="qf" data-qf="os">Operating-system patches</button>
+    <button type="button" class="qf" data-qf="untriaged">Untriaged</button>
   </div>
   <div id="activeChips" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
   <div class="toolbar">
-    <label class="visually-hidden" for="filter-plat">Filtrar por plataforma</label>
-    <select class="select" id="filter-plat" aria-label="Filtrar por plataforma" onchange="reloadCves()">
-      <option value="">Todas las plataformas</option>
+    <label class="visually-hidden" for="filter-plat">Filter by platform</label>
+    <select class="select" id="filter-plat" aria-label="Filter by platform" onchange="reloadCves()">
+      <option value="">All platforms</option>
     </select>
-    <label class="visually-hidden" for="filter-owner">Filtrar por responsable</label>
-    <select class="select" id="filter-owner" aria-label="Filtrar por responsable" onchange="reloadCves()">
-      <option value="">Todos los responsables</option>
+    <label class="visually-hidden" for="filter-owner">Filter by owner</label>
+    <select class="select" id="filter-owner" aria-label="Filter by owner" onchange="reloadCves()">
+      <option value="">All owners</option>
     </select>
-    <label class="visually-hidden" for="filter-estado">Filtrar por estado de remediación</label>
-    <select class="select" id="filter-estado" aria-label="Filtrar por estado de remediación" onchange="reloadCves()">
-      <option value="">Todos los estados</option>
-      <option value="pendiente">Pendiente</option>
-      <option value="en_curso">En curso</option>
-      <option value="parcial">Parcial</option>
-      <option value="resuelto">Resuelto</option>
-      <option value="aceptado_riesgo">Riesgo aceptado</option>
+    <label class="visually-hidden" for="filter-estado">Filter by remediation status</label>
+    <select class="select" id="filter-estado" aria-label="Filter by remediation status" onchange="reloadCves()">
+      <option value="">All statuses</option>
+      <option value="pendiente">Pending</option>
+      <option value="en_curso">In progress</option>
+      <option value="parcial">Partial</option>
+      <option value="resuelto">Resolved</option>
+      <option value="aceptado_riesgo">Risk accepted</option>
     </select>
     <label class="visually-hidden" for="filter-agent">Filtrar por servidor</label>
     <select class="select" id="filter-agent" aria-label="Filtrar por servidor" onchange="reloadCves()">
-      <option value="">Todos los servidores</option>
+      <option value="">All servers</option>
     </select>
-    <label class="visually-hidden" for="filter-q">Buscar CVE, descripción o paquete</label>
-    <input class="input" id="filter-q" type="search" placeholder="Buscar CVE / paquete…" oninput="debouncedReload()">
+    <label class="visually-hidden" for="filter-q">Search CVE, description or package</label>
+    <input class="input" id="filter-q" type="search" placeholder="Search CVE / package…" oninput="debouncedReload()">
     <span id="events-count" class="events-count" aria-live="polite"></span>
   </div>
   <p class="cache-age" id="cache-age" style="margin:-14px 0 20px"></p>
 
-  <section class="stat-grid stat-grid-hero" aria-label="Indicadores prioritarios">
-    <div class="stat-card stat-hero" id="card-kev"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="label">En CISA KEV</div><div class="value is-muted" id="stat-kev">…</div><div class="hint">explotación activa confirmada</div></div>
-    <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.6 6.6L22 9.3l-5 4.6 1.3 7L12 17.8 5.7 20.9 7 13.9l-5-4.6 7.4-.7L12 2z"/></svg></span><div class="label">Prioridad crítica</div><div class="value is-muted" id="stat-prio">…</div><div class="hint" id="hint-prio">score ≥ 80</div></div>
-    <div class="stat-card stat-hero" id="card-sla"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="label">Críticas fuera de SLA</div><div class="value is-muted" id="stat-sla">…</div><div class="hint" id="hint-sla">más de 15 días sin remediar</div></div>
-    <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><div class="label">Críticas + altas</div><div class="value is-muted" id="stat-ca">…</div><div class="hint">de los CVEs únicos del parque</div></div>
+  <section class="stat-grid stat-grid-hero" aria-label="Priority indicators">
+    <div class="stat-card stat-hero" id="card-kev"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="label">In CISA KEV</div><div class="value is-muted" id="stat-kev">…</div><div class="hint">confirmed active exploitation</div></div>
+    <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.6 6.6L22 9.3l-5 4.6 1.3 7L12 17.8 5.7 20.9 7 13.9l-5-4.6 7.4-.7L12 2z"/></svg></span><div class="label">Critical priority</div><div class="value is-muted" id="stat-prio">…</div><div class="hint" id="hint-prio">score ≥ 80</div></div>
+    <div class="stat-card stat-hero" id="card-sla"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="label">Criticals past SLA</div><div class="value is-muted" id="stat-sla">…</div><div class="hint" id="hint-sla">open more than 15 days</div></div>
+    <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><div class="label">Critical + high</div><div class="value is-muted" id="stat-ca">…</div><div class="hint">of the fleet's unique CVEs</div></div>
   </section>
 
-  <section class="stat-strip" aria-label="Contexto del parque">
-      <div class="strip-cell"><div class="label">Vulnerabilidades activas</div><div class="value is-muted" id="stat-total">…</div></div>
-      <div class="strip-cell"><div class="label">CVEs únicos</div><div class="value is-muted" id="stat-cves">…</div></div>
-      <div class="strip-cell"><div class="label">Servidores</div><div class="value is-muted" id="stat-srv">…</div></div>
-      <div class="strip-cell"><div class="label">Ransomware conocido</div><div class="value is-muted" id="stat-ransom">…</div></div>
-      <div class="strip-cell"><div class="label">EPSS alto</div><div class="value is-muted" id="stat-epss">…</div><div class="hint"><span id="hint-epss">probabilidad ≥ 50%</span></div></div>
+  <section class="stat-strip" aria-label="Fleet context">
+      <div class="strip-cell"><div class="label">Active vulnerabilities</div><div class="value is-muted" id="stat-total">…</div></div>
+      <div class="strip-cell"><div class="label">Unique CVEs</div><div class="value is-muted" id="stat-cves">…</div></div>
+      <div class="strip-cell"><div class="label">Servers</div><div class="value is-muted" id="stat-srv">…</div></div>
+      <div class="strip-cell"><div class="label">Known ransomware</div><div class="value is-muted" id="stat-ransom">…</div></div>
+      <div class="strip-cell"><div class="label">High EPSS</div><div class="value is-muted" id="stat-epss">…</div><div class="hint"><span id="hint-epss">probability ≥ 50%</span></div></div>
   </section>
 
-  <section class="stat-strip" aria-label="Movimiento de los últimos 7 días">
-      <div class="strip-cell"><div class="label">Nuevas (7 días)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
-      <div class="strip-cell"><div class="label">Resueltas (7 días)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
-      <div class="strip-cell"><div class="label">Reabiertas (7 días)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
-      <div class="strip-cell"><div class="label">Aging promedio</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">días desde detección</div></div>
-      <div class="strip-cell"><div class="label">SLA críticas resueltas</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% dentro del plazo</div></div>
+  <section class="stat-strip" aria-label="Last 7 days">
+      <div class="strip-cell"><div class="label">New (7 days)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
+      <div class="strip-cell"><div class="label">Resolved (7 days)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
+      <div class="strip-cell"><div class="label">Reopened (7 days)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
+      <div class="strip-cell"><div class="label">Average aging</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">days since detection</div></div>
+      <div class="strip-cell"><div class="label">Criticals resolved in SLA</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% within the window</div></div>
   </section>
 
   <div id="sin-datos" hidden>
-    <div class="alert alert-err">Todavía no hay datos. Conectá tu Wazuh en <a href="/config">Configuración</a>.</div>
+    <div class="alert alert-err">No data yet. Connect your Wazuh in <a href="/integraciones">Integrations</a>.</div>
   </div>
 
-  <section class="section" aria-label="Evolución" style="margin-bottom:18px;">
-    <h3 class="card-h">Evolución</h3>
-    <p class="card-sub">Un snapshot por día desde la primera ingesta. Wazuh no guarda historia, así que la serie se construye hacia adelante.</p>
+  <section class="section" aria-label="Trend" style="margin-bottom:18px;">
+    <h3 class="card-h">Trend</h3>
+    <p class="card-sub">One snapshot per day since the first ingest. Wazuh keeps no history, so the series is built forward.</p>
     <div class="donut-box is-loading" id="chartEvol" style="min-height:240px"></div>
   </section>
 
   <div class="dist-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:18px">
-    <section class="section" aria-label="Distribución por severidad" style="margin-bottom:0">
-      <h3 class="card-h">Distribución por severidad</h3>
+    <section class="section" aria-label="By severity" style="margin-bottom:0">
+      <h3 class="card-h">By severity</h3>
       <div class="donut-box is-loading" id="donutSev" style="min-height:190px"></div>
       <div class="donut-legend" id="legSev"></div>
     </section>
 
-    <section class="section" aria-label="Distribución por plataforma" style="margin-bottom:0">
-      <h3 class="card-h">Distribución por plataforma</h3>
-      <p class="card-sub">Un CVE presente en Linux y en Windows cuenta en los dos, así que el total puede superar la cantidad de CVEs únicos.</p>
+    <section class="section" aria-label="By platform" style="margin-bottom:0">
+      <h3 class="card-h">By platform</h3>
+      <p class="card-sub">A CVE present on both Linux and Windows counts in each, so the total can exceed the unique CVE count.</p>
       <div class="donut-box is-loading" id="donutPlat" style="min-height:190px"></div>
       <div class="donut-legend" id="legPlat"></div>
     </section>
   </div>
 
-  <section class="section" aria-label="Top paquetes vulnerables" style="margin-bottom:18px;">
-    <h3 class="card-h">Top paquetes vulnerables</h3>
-    <p class="card-sub">Por cantidad de CVEs únicos · color = severidad más alta que trae ese paquete · se ajusta a los filtros activos (vista global del parque si no filtraste nada)</p>
+  <section class="section" aria-label="Top vulnerable packages" style="margin-bottom:18px;">
+    <h3 class="card-h">Top vulnerable packages</h3>
+    <p class="card-sub">By unique CVE count · colour = the highest severity that package carries · follows the active filters</p>
     <div class="donut-legend" id="legPkgSev" style="flex-direction:row;flex-wrap:wrap;gap:14px;margin-bottom:8px"></div>
     <div id="chartPkgs" class="is-loading" style="min-height:280px"></div>
     <div id="osSummary" style="display:none;margin-top:14px">
-      <h4 style="font-size:13px;margin:0 0 4px;font-weight:600">Vulnerabilidades a nivel sistema operativo</h4>
+      <h4 style="font-size:13px;margin:0 0 4px;font-weight:600">Operating-system level vulnerabilities</h4>
       <p style="font-size:11.5px;color:var(--color-gray-500);margin:0 0 6px;line-height:1.5">
-        Se remedian con una actualizaci&oacute;n acumulativa o KB, no actualizando un paquete.
-        Van aparte porque un solo SO acumula miles de CVEs y tapar&iacute;a el ranking.</p>
+        These close with a cumulative update or KB, not by upgrading a package. They are listed
+        separately because a single OS carries thousands of CVEs and would bury the ranking.</p>
     </div>
   </section>
 
   <section class="section" aria-label="Vulnerabilidades por servidor" style="margin-bottom:18px;">
-    <h3 class="card-h">Por servidor</h3>
+    <h3 class="card-h">By server</h3>
     <p class="card-sub">Top 12 servidores con más críticas/altas · se ajusta a los filtros activos · clic en una barra filtra por ese servidor (elegí "Todos los servidores" arriba para volver a la vista global)</p>
     <div id="chartSrv" class="is-loading" style="min-height:320px"></div>
   </section>
 
-  <section class="section" aria-label="CVEs del parque">
-    <h3 class="card-h">CVEs del parque</h3>
-    <p class="card-sub">Ordenados por score de prioridad</p>
+  <section class="section" aria-label="Fleet CVEs">
+    <h3 class="card-h">Fleet CVEs</h3>
+    <p class="card-sub">Ordered by priority score</p>
     <div id="cves-body">
-      <div class="loading">Cargando CVEs…</div>
+      <div class="loading">Loading CVEs…</div>
     </div>
     <div class="pager" id="pager" hidden>
       <div class="pager-size">
-        <label for="page-size">Filas por página</label>
+        <label for="page-size">Rows per page</label>
         <select class="select" id="page-size" onchange="changePageSize()">
           <option value="10" selected>10</option>
           <option value="25">25</option>
@@ -459,16 +468,16 @@
       </div>
       <div class="pager-range" id="pagerRange"></div>
       <div class="pager-nav">
-        <button type="button" class="btn-ghost btn-sm" id="pgPrev" onclick="goPage(page-1)">Anterior</button>
+        <button type="button" class="btn-ghost btn-sm" id="pgPrev" onclick="goPage(page-1)">Previous</button>
         <span class="pager-mobile" id="pagerMobile"></span>
         <span id="pagerPages"></span>
-        <button type="button" class="btn-ghost btn-sm" id="pgNext" onclick="goPage(page+1)">Siguiente</button>
+        <button type="button" class="btn-ghost btn-sm" id="pgNext" onclick="goPage(page+1)">Next</button>
       </div>
     </div>
   </section>
 
   <footer class="footer">
-    Patch Genius <span class="sep">|</span> datos de tu Wazuh, priorizados con CVSS, EPSS y CISA KEV <span class="sep">|</span> <a href="https://zebrasecurity.io" target="_blank" rel="noopener">Zebra Security</a>
+    Patch Genius <span class="sep">|</span> your Wazuh data, prioritised with CVSS, EPSS and CISA KEV <span class="sep">|</span> <a href="https://zebrasecurity.io" target="_blank" rel="noopener">Zebra Security</a>
   </footer>
 </main>
 </div><!-- /app-main -->
@@ -477,31 +486,31 @@
 <!-- Modal de asignación -->
 <div class="modal-backdrop" id="modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <h3 id="modal-title">Seguimiento</h3>
+    <h3 id="modal-title">Track</h3>
     <p class="modal-sub" id="modal-cve"></p>
-    <label for="m-owner">Responsable</label>
-    <input class="input" id="m-owner" list="owners-list" placeholder="Nombre">
+    <label for="m-owner">Owner</label>
+    <input class="input" id="m-owner" list="owners-list" placeholder="Name">
     <datalist id="owners-list"></datalist>
-    <label for="m-owner-email">Correo del responsable</label>
+    <label for="m-owner-email">Owner e-mail</label>
     <input class="input" id="m-owner-email" type="email" placeholder="nombre@empresa.com">
-    <p class="field-hint">En esta demo el correo no se usa para nada (no hay envío de mail) — es solo para mostrar el campo.</p>
-    <label for="m-status">Estado</label>
+    <p class="field-hint">Used by the SMTP integration to remind the owner. Nothing is sent while that integration is off.</p>
+    <label for="m-status">Status</label>
     <select class="select" id="m-status" style="width:100%">
-      <option value="pendiente">Pendiente</option>
-      <option value="en_curso">En curso</option>
-      <option value="parcial">Parcial</option>
-      <option value="resuelto">Resuelto</option>
-      <option value="aceptado_riesgo">Riesgo aceptado</option>
+      <option value="pendiente">Pending</option>
+      <option value="en_curso">In progress</option>
+      <option value="parcial">Partial</option>
+      <option value="resuelto">Resolved</option>
+      <option value="aceptado_riesgo">Risk accepted</option>
     </select>
-    <label for="m-due">Fecha objetivo</label>
+    <label for="m-due">Due date</label>
     <input class="input" id="m-due" type="date">
-    <label for="m-notes">Notas</label>
-    <textarea id="m-notes" placeholder="Ventana de mantenimiento, ticket, motivo del riesgo aceptado…"></textarea>
+    <label for="m-notes">Notes</label>
+    <textarea id="m-notes" placeholder="Maintenance window, ticket, reason the risk was accepted…"></textarea>
     <div class="modal-actions">
-      <button type="button" class="btn-ghost btn-sm" id="m-delete" onclick="deleteAssignment()">Quitar seguimiento</button>
+      <button type="button" class="btn-ghost btn-sm" id="m-delete" onclick="deleteAssignment()">Remove tracking</button>
       <span style="flex:1"></span>
-      <button type="button" class="btn-ghost btn-sm" onclick="closeModal()">Cancelar</button>
-      <button type="button" class="btn-ghost btn-sm" style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)" onclick="saveAssignment()">Guardar</button>
+      <button type="button" class="btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
+      <button type="button" class="btn-ghost btn-sm" style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)" onclick="saveAssignment()">Save</button>
     </div>
   </div>
 </div>
@@ -513,7 +522,11 @@ function escapeHtml(text) {
   div.textContent = String(text);
   return div.innerHTML;
 }
-const fmtNum = new Intl.NumberFormat('es-AR');
+// El separador de miles sigue al idioma: 2,515 en ingles y 2.515 en espanol.
+let fmtNum = new Intl.NumberFormat('en');
+window.addEventListener('i18n:changed', function (e) {
+  fmtNum = new Intl.NumberFormat(e.detail.lang === 'es' ? 'es-AR' : 'en');
+});
 
 // --- Estado ---
 let sevFilter = '';
@@ -533,7 +546,7 @@ let srvChart = null;
 let debounceTimer = null;
 
 const SEV_CLASS = { Critical: 'p-critical', High: 'p-high', Medium: 'p-medium', Low: 'p-low', Untriaged: 'p-unknown' };
-const SEV_LABEL = { Critical: 'Crítica', High: 'Alta', Medium: 'Media', Low: 'Baja', Untriaged: 'Sin triar' };
+const SEV_LABEL = { Critical: 'Critical', High: 'High', Medium: 'Medium', Low: 'Low', Untriaged: 'Untriaged' };
 // Los colores de los graficos salen de los mismos tokens que el CSS (theme.css),
 // no de literales duplicados: cambiar la paleta en un solo lugar alcanza.
 const cssVar = (name, fallback) =>
@@ -564,7 +577,7 @@ async function loadSummary() {
   const d = await res.json();
   document.getElementById('sin-datos').hidden = !d.sin_datos;
   document.getElementById('cache-age').textContent = d.actualizado
-    ? `Actualizado ${fmtAgo(d.actualizado)}` : '';
+    ? `Updated ${fmtAgo(d.actualizado)}` : '';
 
   const set = (id, v) => {
     const el = document.getElementById(id);
@@ -584,9 +597,9 @@ async function loadSummary() {
   set('stat-prio', d.prioridad_critica_count);
   if (d.umbrales) {
     SLA_DIAS = d.umbrales.sla_criticas_dias;
-    document.getElementById('hint-epss').textContent = `probabilidad ≥ ${Math.round(d.umbrales.epss_alto * 100)}%`;
+    document.getElementById('hint-epss').textContent = `probability ≥ ${Math.round(d.umbrales.epss_alto * 100)}%`;
     document.getElementById('hint-prio').textContent = `score ≥ ${d.umbrales.prioridad_critica}`;
-    document.getElementById('hint-sla').textContent = `más de ${d.umbrales.sla_criticas_dias} días sin remediar`;
+    document.getElementById('hint-sla').textContent = `open more than ${d.umbrales.sla_criticas_dias} days`;
   }
 
   const p = d.patching || {};
@@ -608,14 +621,14 @@ async function loadSummary() {
     ownersKnown.map(o => `<option value="${escapeHtml(o)}">`).join('');
   const selOwner = document.getElementById('filter-owner');
   const cur = selOwner.value;
-  selOwner.innerHTML = '<option value="">Todos los responsables</option>' +
+  selOwner.innerHTML = '<option value="">All owners</option>' +
     ownersKnown.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
   selOwner.value = ownersKnown.includes(cur) ? cur : '';
 
   const selAgent = document.getElementById('filter-agent');
   if (!selAgent.dataset.loaded) {
     const agents = (d.servidores || []).map(s => s.agente);
-    selAgent.innerHTML = '<option value="">Todos los servidores</option>' +
+    selAgent.innerHTML = '<option value="">All servers</option>' +
       agents.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
     selAgent.dataset.loaded = '1';
   }
@@ -655,7 +668,7 @@ function renderSevDonut(porSev) {
   el.classList.remove('is-loading');
   const entries = porSev.filter(s => s.n > 0);
   if (!entries.length) {
-    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    el.innerHTML = '<div class="dash-empty">No data</div>';
     document.getElementById('legSev').innerHTML = '';
     return;
   }
@@ -674,7 +687,7 @@ function renderSevDonut(porSev) {
       value: { fontSize: '21px', fontWeight: 700, color: chartFore() },
       total: { show: true, label: 'Total', fontSize: '12px', color: chartFore() } } } } },
     tooltip: { theme: isDark() ? 'dark' : 'light' },
-    noData: { text: 'Sin datos' },
+    noData: { text: 'No data' },
   };
   if (donutChart) {
     donutChart.updateOptions({ labels, colors: cols, chart: { foreColor: chartFore() } }, false, false);
@@ -712,7 +725,7 @@ function renderPlatDonut(porPlat) {
   el.classList.remove('is-loading');
   const entries = (porPlat || []).filter(p => p.total > 0);
   if (!entries.length) {
-    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    el.innerHTML = '<div class="dash-empty">No data</div>';
     document.getElementById('legPlat').innerHTML = '';
     return;
   }
@@ -729,9 +742,9 @@ function renderPlatDonut(porPlat) {
     plotOptions: { pie: { donut: { size: '70%', labels: {
       show: true,
       value: { fontSize: '21px', fontWeight: 700, color: chartFore() },
-      total: { show: true, label: 'Detecciones', fontSize: '12px', color: chartFore() } } } } },
+      total: { show: true, label: 'Detections', fontSize: '12px', color: chartFore() } } } } },
     tooltip: { theme: isDark() ? 'dark' : 'light' },
-    noData: { text: 'Sin datos' },
+    noData: { text: 'No data' },
   };
   if (platChart) {
     platChart.updateOptions({ labels, colors: cols, chart: { foreColor: chartFore() } }, false, false);
@@ -747,7 +760,7 @@ function renderPlatDonut(porPlat) {
     const crit = (p.critical || 0) + (p.high || 0);
     return `<div class="dleg-item" style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
       <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;display:inline-block;background:${cols[i]}"></span>${escapeHtml(labels[i])}
-        <span style="color:var(--color-gray-500);font-size:11.5px">${fmtNum.format(crit)} crít.+altas</span></span>
+        <span style="color:var(--color-gray-500);font-size:11.5px">${fmtNum.format(crit)} crit.+high</span></span>
       <span style="font-weight:600">${fmtNum.format(series[i])} · ${pct}%</span></div>`;
   }).join('');
 }
@@ -789,7 +802,7 @@ function renderPkgsChart(paquetes) {
   const top = all.filter(p => p.tipo !== 'os').slice(0, 10);
   renderOsSummary(os);
   if (!top.length) {
-    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    el.innerHTML = '<div class="dash-empty">No data</div>';
     document.getElementById('legPkgSev').innerHTML = '';
     return;
   }
@@ -817,7 +830,7 @@ function renderPkgsChart(paquetes) {
           ${fmtNum.format(p.instalaciones)} instalación(es)</div>`;
       },
     },
-    noData: { text: 'Sin datos' },
+    noData: { text: 'No data' },
   };
   if (pkgsChart) {
     pkgsChart.updateOptions(opts, false, false);
@@ -835,12 +848,12 @@ function renderSrvChart(servidores) {
   el.classList.remove('is-loading');
   const top = (servidores || []).slice(0, 12);
   if (!top.length) {
-    el.innerHTML = '<div class="dash-empty">Sin datos</div>';
+    el.innerHTML = '<div class="dash-empty">No data</div>';
     return;
   }
   const cats = top.map(s => s.agente);
   const series = [
-    { name: 'Crítica', data: top.map(s => s.critical) },
+    { name: 'Critical', data: top.map(s => s.critical) },
     { name: 'Alta', data: top.map(s => s.high) },
     { name: 'Media', data: top.map(s => s.medium) },
     { name: 'Baja', data: top.map(s => s.low) },
@@ -866,7 +879,7 @@ function renderSrvChart(servidores) {
     grid: { borderColor: isDark() ? '#ffffff14' : '#e4e7ec', strokeDashArray: 4 },
     tooltip: { theme: isDark() ? 'dark' : 'light' },
     fill: { opacity: 1 },
-    noData: { text: 'Sin datos' },
+    noData: { text: 'No data' },
   };
   if (srvChart) {
     srvChart.updateOptions(opts, false, false);
@@ -878,7 +891,7 @@ function renderSrvChart(servidores) {
   }
 }
 
-// --- Evolución ---
+// --- Trend ---
 async function loadHistory() {
   const res = await fetch('/vulnerabilities/history?days=120');
   if (!res.ok) {
@@ -890,7 +903,7 @@ async function loadHistory() {
   const el = document.getElementById('chartEvol');
   el.classList.remove('is-loading');
   if (snaps.length < 2) {
-    el.innerHTML = '<div class="dash-empty">Todavía no hay serie histórica suficiente.</div>';
+    el.innerHTML = '<div class="dash-empty">Not enough history yet.</div>';
     return;
   }
   const cats = snaps.map(s => s.fecha);
@@ -899,7 +912,7 @@ async function loadHistory() {
     chart: { type: 'area', height: 240, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore(),
       toolbar: { show: false } },
     series: [
-      { name: 'Críticas', data: bySev('Critical') },
+      { name: 'Critical', data: bySev('Critical') },
       { name: 'Altas', data: bySev('High') },
       { name: 'Medias', data: bySev('Medium') },
       { name: 'Bajas', data: bySev('Low') },
@@ -911,7 +924,7 @@ async function loadHistory() {
     dataLabels: { enabled: false },
     tooltip: { theme: isDark() ? 'dark' : 'light' },
     legend: { position: 'top' },
-    noData: { text: 'Sin datos' },
+    noData: { text: 'No data' },
   };
   if (evolChart) {
     evolChart.updateOptions(opts, false, false);
@@ -946,12 +959,12 @@ function filters() {
 }
 
 const QUICK = {
-  kev:       { label: 'Explotación activa (KEV)', params: { kev: '1' } },
-  ransom:    { label: 'Ransomware conocido', params: { ransomware: '1' } },
-  score:     { label: 'Prioridad ≥ 80', params: { score_min: '80' } },
-  sla:       { label: 'Críticas fuera de SLA', params: { sla: 'vencidos' } },
-  os:        { label: 'Parches de sistema operativo', params: { tipo: 'os_update' } },
-  untriaged: { label: 'Sin triar', params: { severity: 'untriaged' } },
+  kev:       { label: 'Active exploitation (KEV)', params: { kev: '1' } },
+  ransom:    { label: 'Known ransomware', params: { ransomware: '1' } },
+  score:     { label: 'Priority ≥ 80', params: { score_min: '80' } },
+  sla:       { label: 'Criticals past SLA', params: { sla: 'vencidos' } },
+  os:        { label: 'Operating-system patches', params: { tipo: 'os_update' } },
+  untriaged: { label: 'Untriaged', params: { severity: 'untriaged' } },
 };
 const quickOn = {};
 
@@ -959,7 +972,7 @@ function renderSevTabs(porSev) {
   const counts = {};
   (porSev || []).forEach(x => { counts[x.severidad] = x.n; });
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const tabs = [{ v: '', lab: 'Todas', n: total, hex: null }].concat(
+  const tabs = [{ v: '', lab: 'All', n: total, hex: null }].concat(
     ['critical', 'high', 'medium', 'low', 'untriaged'].map(v => ({
       v: v, lab: SEV_LABEL[SEV_KEY[v]], n: counts[SEV_KEY[v]] || 0, hex: SEV_HEX[SEV_KEY[v]],
     })));
@@ -982,22 +995,22 @@ function renderChips() {
   Object.keys(QUICK).forEach(function (k) {
     if (quickOn[k]) chips.push({ key: 'qf:' + k, label: QUICK[k].label });
   });
-  [['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
-   ['filter-estado', 'Estado'], ['filter-agent', 'Servidor']].forEach(function (pair) {
+  [['filter-plat', 'Platform'], ['filter-owner', 'Owner'],
+   ['filter-estado', 'Status'], ['filter-agent', 'Server']].forEach(function (pair) {
     const el = document.getElementById(pair[0]);
     if (el && el.value) chips.push({ key: pair[0], label: pair[1], value: el.selectedOptions[0].textContent });
   });
-  if (sevFilter) chips.push({ key: 'sev', label: 'Severidad',
+  if (sevFilter) chips.push({ key: 'sev', label: 'Severity',
     value: SEV_LABEL[SEV_KEY[sevFilter]] || sevFilter });
   const q = document.getElementById('filter-q').value.trim();
-  if (q) chips.push({ key: 'filter-q', label: 'Busca', value: q });
+  if (q) chips.push({ key: 'filter-q', label: 'Search', value: q });
 
   if (!chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'flex';
   box.innerHTML = chips.map(function (c) {
     const txt = c.value ? `${escapeHtml(c.label)}: <b>${escapeHtml(c.value)}</b>` : `<b>${escapeHtml(c.label)}</b>`;
-    return `<span class="chip">${txt}<button type="button" data-clear="${c.key}" aria-label="Quitar filtro">&times;</button></span>`;
-  }).join('') + '<button type="button" class="chip-clear" id="clearAll">Limpiar todo</button>';
+    return `<span class="chip">${txt}<button type="button" data-clear="${c.key}" aria-label="Remove filter">&times;</button></span>`;
+  }).join('') + '<button type="button" class="chip-clear" id="clearAll">Clear all</button>';
 }
 
 function clearFilter(key) {
@@ -1038,9 +1051,9 @@ document.addEventListener('click', function (ev) {
 function fmtAgo(iso) {
   if (!iso) return '';
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (min < 1) return 'hace instantes';
-  if (min < 60) return `hace ${min} min`;
-  return `hace ${Math.round(min / 60)} h`;
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  return `${Math.round(min / 60)} h ago`;
 }
 
 async function loadCves() {
@@ -1063,7 +1076,7 @@ async function loadCves() {
     if (page > maxPage) { page = maxPage; return reloadCves(true); }
     renderTable();
   } catch (e) {
-    body.innerHTML = `<div class="alert alert-err">No se pudieron cargar los CVEs: ${escapeHtml(e.message)}</div>`;
+    body.innerHTML = `<div class="alert alert-err">Could not load CVEs: ${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -1074,8 +1087,8 @@ function renderTable() {
   counter.textContent = totalCves ? `${fmtNum.format(totalCves)} CVE(s)` : '';
 
   if (!allCves.length) {
-    body.innerHTML = `<div class="empty"><h3>Sin CVEs con esos filtros</h3>
-      <p>Probá ampliar la búsqueda o sacar filtros.</p></div>`;
+    body.innerHTML = `<div class="empty"><h3>No CVEs match those filters</h3>
+      <p>Try widening the search or removing filters.</p></div>`;
     document.getElementById('pager').hidden = true;
     return;
   }
@@ -1093,7 +1106,7 @@ function renderTable() {
           KEV</span>`
       : '';
     const ransom = c.kev_ransomware
-      ? `<span class="ransom-badge" title="Campaña de ransomware conocida asociada a este CVE (CISA KEV)">Ransomware</span>`
+      ? `<span class="ransom-badge" title="Known ransomware campaign associated with this CVE (CISA KEV)">Ransomware</span>`
       : '';
     const epss = c.epss != null ? `${Math.round(c.epss * 100)}%` : '—';
     const sla = (c.severidad === 'Critical' && (c.dias_detectado ?? 0) > SLA_DIAS)
@@ -1123,7 +1136,7 @@ function renderTable() {
       <td>${dias}</td>
       <td>${owner}</td>
       <td>${estado}${c.due_date ? `<br><span style="font-size:11px;color:var(--color-gray-400)">objetivo: ${escapeHtml(c.due_date)}</span>` : ''}</td>
-      <td><button type="button" class="btn-ghost btn-sm" onclick="openModal('${escapeHtml(c.cve)}')">Seguimiento</button></td>
+      <td><button type="button" class="btn-ghost btn-sm" onclick="openModal('${escapeHtml(c.cve)}')">Track</button></td>
     </tr>`;
   }).join('');
 
@@ -1141,8 +1154,8 @@ function renderPager() {
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, totalCves);
   document.getElementById('pagerRange').textContent =
-    `Mostrando ${fmtNum.format(from)}–${fmtNum.format(to)} de ${fmtNum.format(totalCves)}`;
-  document.getElementById('pagerMobile').textContent = `Página ${page} de ${pages}`;
+    `Showing ${fmtNum.format(from)}–${fmtNum.format(to)} of ${fmtNum.format(totalCves)}`;
+  document.getElementById('pagerMobile').textContent = `Page ${page} of ${pages}`;
   document.getElementById('pgPrev').disabled = page <= 1;
   document.getElementById('pgNext').disabled = page >= pages;
 
