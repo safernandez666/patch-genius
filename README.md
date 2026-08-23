@@ -55,9 +55,10 @@ Everything the dashboard shows about time is therefore derived here, not read fr
 - **Ownership per CVE and per agent** — the same CVE can be resolved on one host and open
   on another, so owner, status and due date are tracked at that granularity.
 - **A brief that says what to do** — an LLM turns the ranking into a paragraph naming the
-  hosts and packages to patch first. Claude, OpenAI, or a local model: the brief carries
-  hostnames, so anyone who cannot send those out points it at their own endpoint and
-  nothing leaves.
+  packages to patch first, written on demand. Claude, OpenAI, or a local model: hostnames
+  are included by default because that is what makes it actionable, and a single switch
+  strips them. Anyone who cannot send that inventory out points it at their own endpoint
+  and nothing leaves.
 - **Onboarding in the app** — the Wazuh connection is configured from a tab, tested before
   it is saved, and stored encrypted. Nothing is baked into the image.
 - **English or Spanish** — set once for the installation, since a SOC screen is read by the
@@ -74,8 +75,10 @@ interactive version — guided views, relationship tracing, light/dark and expor
 
 > [!NOTE]
 > The public feeds are queried **by CVE identifier only** — nothing about your
-> infrastructure leaves the network. On an air-gapped host, turn them off and scoring
-> degrades to CVSS alone.
+> infrastructure leaves the network. The KEV catalog is cached in Postgres for six hours,
+> so a normal ingest does not call CISA at all, and a fetch that fails falls back to the
+> last catalog it held. On an air-gapped host, turn the feeds off and scoring degrades to
+> CVSS alone.
 
 A single ingest:
 
@@ -116,14 +119,16 @@ as one, since anyone holding it can post into your channel.
 ### What to prioritise
 
 The ranking answers "which CVE is worst". This answers "what do I do on Monday" — written
-once a day after the ingest, or on demand.
+on demand, from the dashboard or from this page.
 
 ![What to prioritise](docs/img/brief.png)
 
 > [!WARNING]
 > The brief is built from the fleet's real state, hostnames included — that is what makes
 > it specific enough to act on. With a hosted model that inventory leaves your network.
-> Point it at a local OpenAI-compatible endpoint and nothing does. It ships disabled.
+> Turn off **Include server hostnames** and the model sees host counts instead of names, or
+> point it at a local OpenAI-compatible endpoint and nothing leaves at all. It ships
+> disabled.
 
 ### Configuration
 
@@ -154,6 +159,11 @@ configuration holds Wazuh credentials. Both are treated accordingly.
   reaches the database or the repository. They are never returned to the browser.
 - **Use a read-only Indexer account**, not `admin`. ONBOARDING walks through creating one
   scoped to `wazuh-states-*` with `cluster_composite_ops_ro`.
+- **Configuration is admin-only.** Integrations, the password, the app settings and the
+  manual ingest all require the `admin` role, not merely a session.
+- **Sign-in is rate limited** — 10 attempts a minute per IP, 5 for the first-run sign-up.
+- **The container runs as an unprivileged user** and declares a healthcheck; runtime
+  dependencies are pinned in `requirements-lock.txt`, which is what the image installs.
 - **Change the bootstrap password** from the configuration tab after signing in.
 
 ## FAQ
@@ -174,8 +184,9 @@ record shape, so adding another source means writing one collector.
 **Does anything of mine reach the model?**
 Only if you enable the brief and choose a hosted provider. It sends the fleet snapshot —
 severity counts, platform split, patching metrics, and the top 25 CVEs with their hosts and
-packages. A local endpoint keeps all of it inside your network. EPSS and CISA KEV are
-separate and only ever see CVE identifiers.
+packages. Turning off **Include server hostnames** replaces the names with a count; a local
+endpoint keeps all of it inside your network. EPSS and CISA KEV are separate and only ever
+see CVE identifiers.
 
 **Where do I change the scoring weights?**
 Environment variables — `VULN_CVSS_WEIGHT`, `VULN_EPSS_WEIGHT`, `VULN_KEV_WEIGHT`,
