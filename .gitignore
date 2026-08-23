@@ -8,3 +8,6 @@ CLAUDE.local.md
 # Skills de terceros instalados con `npx skills add` (no son parte de la app)
 .agents/
 .claude/skills/tailwind-design-system
+
+# Copy de marketing: se queda local, no va al repo publico
+docs/marketing/
