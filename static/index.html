@@ -26,6 +26,7 @@
     }
   })();
 </script>
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <!-- ApexCharts vendorizado localmente (funciona sin internet / airgap). -->
 <script src="/static/vendor/apexcharts.min.js"></script>
@@ -248,6 +249,33 @@
 .pg-gap{color:var(--pg-text-muted);padding:0 2px;font-size:12.5px}
 .pager button[disabled]{opacity:.4;cursor:default}
 @media (max-width:640px){.pager{justify-content:center}}
+/* Severidad como control segmentado en vez de desplegable (patron de tabs de
+   TailAdmin). Son seis opciones fijas: verlas todas y elegir en un clic es mejor
+   que abrir una lista, y ademas deja lugar para el conteo de cada una. */
+.sevtabs{display:flex;overflow-x:auto;gap:2px;padding:4px;border-radius:11px;
+  background:var(--pg-surface-alt);margin-bottom:12px}
+.sevtabs::-webkit-scrollbar{height:5px}
+.sevtabs::-webkit-scrollbar-thumb{background:var(--pg-border);border-radius:999px}
+.sevtab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer;
+  border:0;background:transparent;color:var(--pg-text-muted);font-size:.83rem;font-weight:500;
+  padding:8px 13px;border-radius:8px;transition:background .15s,color .15s;font-family:inherit}
+.sevtab:hover{color:var(--pg-text)}
+.sevtab.on{background:var(--pg-surface);color:var(--pg-text);font-weight:600;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sevtab .dot{width:8px;height:8px;border-radius:3px;flex:none}
+.sevtab .n{font-size:.76rem;color:var(--pg-text-muted);font-variant-numeric:tabular-nums}
+.sevtab.on .n{color:var(--pg-text)}
+
+/* Paginacion con texto: numeros de 40x40 y "Pagina X de Y" cuando no entran. */
+.pg-num{min-width:40px;height:40px;padding:0 10px;border-radius:9px;font-size:.84rem;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--pg-text-muted);font-family:inherit}
+.pg-num:hover{background:var(--pg-brand);color:var(--pg-on-brand)}
+.pg-num.on{background:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
+.pager-mobile{display:none;font-size:.83rem;color:var(--pg-text-muted);font-weight:500}
+@media (max-width:700px){
+  #pagerPages{display:none}
+  .pager-mobile{display:block}
+}
 </style>
 </head>
 <body>
@@ -257,15 +285,19 @@
   <nav class="side-nav" aria-label="Navegación principal">
     <a href="/" class="active" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Vulnerabilidades
+      <span data-i18n="nav.vulns">Vulnerabilidades</span>
     </a>
     <a href="/config">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Configuración
+      <span data-i18n="nav.config">Configuración</span>
+    </a>
+    <a href="/integraciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+      <span data-i18n="nav.integrations">Integraciones</span>
     </a>
     <a href="/ayuda">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Ayuda
+      <span data-i18n="nav.help">Ayuda</span>
     </a>
   </nav>
   <div class="sidebar-spacer"></div>
@@ -277,6 +309,10 @@
     <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l-1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+    <button type="button" class="theme-toggle" id="logoutBtn" onclick="doLogout()"
+            aria-label="Cerrar sesión" title="Cerrar sesión">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
     <a class="nav-exit" href="https://github.com/" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center;flex:1">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
@@ -298,9 +334,11 @@
     y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
     corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
   </div>
+  <nav class="sevtabs" id="sevTabs" role="tablist" aria-label="Filtrar por severidad"></nav>
   <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
     <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Vistas rápidas:</span>
     <button type="button" class="qf" data-qf="kev">Explotación activa (KEV)</button>
+    <button type="button" class="qf" data-qf="ransom">Ransomware conocido</button>
     <button type="button" class="qf" data-qf="score">Prioridad ≥ 80</button>
     <button type="button" class="qf" data-qf="sla">Críticas fuera de SLA</button>
     <button type="button" class="qf" data-qf="os">Parches de sistema operativo</button>
@@ -308,21 +346,10 @@
   </div>
   <div id="activeChips" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
   <div class="toolbar">
-    <label class="visually-hidden" for="filter-sev">Filtrar por severidad</label>
-    <select class="select" id="filter-sev" aria-label="Filtrar por severidad" onchange="reloadCves()">
-      <option value="">Todas las severidades</option>
-      <option value="critical">Crítica</option>
-      <option value="high">Alta</option>
-      <option value="medium">Media</option>
-      <option value="low">Baja</option>
-      <option value="untriaged">Sin triar</option>
-    </select>
     <label class="visually-hidden" for="filter-plat">Filtrar por plataforma</label>
     <select class="select" id="filter-plat" aria-label="Filtrar por plataforma" onchange="reloadCves()">
       <option value="">Todas las plataformas</option>
     </select>
-    <label class="check"><input type="checkbox" id="filter-kev" onchange="reloadCves()"> Solo CISA KEV (explotación activa)</label>
-    <label class="check"><input type="checkbox" id="filter-ransom" onchange="reloadCves()"> Con ransomware conocido</label>
     <label class="visually-hidden" for="filter-owner">Filtrar por responsable</label>
     <select class="select" id="filter-owner" aria-label="Filtrar por responsable" onchange="reloadCves()">
       <option value="">Todos los responsables</option>
@@ -423,8 +450,9 @@
       <div class="pager-size">
         <label for="page-size">Filas por página</label>
         <select class="select" id="page-size" onchange="changePageSize()">
+          <option value="10" selected>10</option>
           <option value="25">25</option>
-          <option value="50" selected>50</option>
+          <option value="50">50</option>
           <option value="100">100</option>
           <option value="200">200</option>
         </select>
@@ -432,6 +460,7 @@
       <div class="pager-range" id="pagerRange"></div>
       <div class="pager-nav">
         <button type="button" class="btn-ghost btn-sm" id="pgPrev" onclick="goPage(page-1)">Anterior</button>
+        <span class="pager-mobile" id="pagerMobile"></span>
         <span id="pagerPages"></span>
         <button type="button" class="btn-ghost btn-sm" id="pgNext" onclick="goPage(page+1)">Siguiente</button>
       </div>
@@ -487,7 +516,11 @@ function escapeHtml(text) {
 const fmtNum = new Intl.NumberFormat('es-AR');
 
 // --- Estado ---
-let pageSize = 50;
+let sevFilter = '';
+// El filtro viaja en minusculas; el estado y las etiquetas usan la forma de Wazuh.
+const SEV_KEY = { critical: 'Critical', high: 'High', medium: 'Medium',
+                  low: 'Low', untriaged: 'Untriaged' };
+let pageSize = 10;
 let page = 1;
 let totalCves = 0;
 let allCves = [];
@@ -590,6 +623,7 @@ async function loadSummary() {
   showSetupHint(d);
   renderChips();
   populatePlatformFilter(d.plataformas || []);
+  renderSevTabs(d.por_severidad || []);
   renderSevDonut(d.por_severidad || []);
   renderPlatDonut(d.por_plataforma || []);
   renderPkgsChart(d.top_paquetes || []);
@@ -891,14 +925,12 @@ async function loadHistory() {
 // --- Tabla de CVEs ---
 function filters() {
   const qs = new URLSearchParams();
-  const sev = document.getElementById('filter-sev').value;
+  const sev = sevFilter;
   const owner = document.getElementById('filter-owner').value;
   const estado = document.getElementById('filter-estado').value;
   const agent = document.getElementById('filter-agent').value;
   const q = document.getElementById('filter-q').value.trim();
   if (sev) qs.set('severity', sev);
-  if (document.getElementById('filter-kev').checked) qs.set('kev', '1');
-  if (document.getElementById('filter-ransom').checked) qs.set('ransomware', '1');
   if (owner) qs.set('owner', owner);
   if (estado) qs.set('status', estado);
   if (agent) qs.set('agent', agent);
@@ -915,6 +947,7 @@ function filters() {
 
 const QUICK = {
   kev:       { label: 'Explotación activa (KEV)', params: { kev: '1' } },
+  ransom:    { label: 'Ransomware conocido', params: { ransomware: '1' } },
   score:     { label: 'Prioridad ≥ 80', params: { score_min: '80' } },
   sla:       { label: 'Críticas fuera de SLA', params: { sla: 'vencidos' } },
   os:        { label: 'Parches de sistema operativo', params: { tipo: 'os_update' } },
@@ -922,21 +955,42 @@ const QUICK = {
 };
 const quickOn = {};
 
+function renderSevTabs(porSev) {
+  const counts = {};
+  (porSev || []).forEach(x => { counts[x.severidad] = x.n; });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const tabs = [{ v: '', lab: 'Todas', n: total, hex: null }].concat(
+    ['critical', 'high', 'medium', 'low', 'untriaged'].map(v => ({
+      v: v, lab: SEV_LABEL[SEV_KEY[v]], n: counts[SEV_KEY[v]] || 0, hex: SEV_HEX[SEV_KEY[v]],
+    })));
+  document.getElementById('sevTabs').innerHTML = tabs.map(x =>
+    `<button type="button" role="tab" class="sevtab${x.v === sevFilter ? ' on' : ''}"
+       aria-selected="${x.v === sevFilter}" onclick="setSev('${x.v}')">
+       ${x.hex ? `<span class="dot" style="background:${x.hex}"></span>` : ''}
+       ${x.lab}<span class="n">${fmtNum.format(x.n)}</span></button>`).join('');
+}
+
+function setSev(v) {
+  if (v === sevFilter) return;
+  sevFilter = v;
+  reloadCves();
+}
+
 function renderChips() {
   const box = document.getElementById('activeChips');
   const chips = [];
   Object.keys(QUICK).forEach(function (k) {
     if (quickOn[k]) chips.push({ key: 'qf:' + k, label: QUICK[k].label });
   });
-  [['filter-sev', 'Severidad'], ['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
+  [['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
    ['filter-estado', 'Estado'], ['filter-agent', 'Servidor']].forEach(function (pair) {
     const el = document.getElementById(pair[0]);
     if (el && el.value) chips.push({ key: pair[0], label: pair[1], value: el.selectedOptions[0].textContent });
   });
+  if (sevFilter) chips.push({ key: 'sev', label: 'Severidad',
+    value: SEV_LABEL[SEV_KEY[sevFilter]] || sevFilter });
   const q = document.getElementById('filter-q').value.trim();
   if (q) chips.push({ key: 'filter-q', label: 'Busca', value: q });
-  if (document.getElementById('filter-kev').checked) chips.push({ key: 'filter-kev', label: 'Solo KEV' });
-  if (document.getElementById('filter-ransom').checked) chips.push({ key: 'filter-ransom', label: 'Ransomware' });
 
   if (!chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'flex';
@@ -947,7 +1001,8 @@ function renderChips() {
 }
 
 function clearFilter(key) {
-  if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
+  if (key === 'sev') { sevFilter = ''; }
+  else if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
   else {
     const el = document.getElementById(key);
     if (el.type === 'checkbox') el.checked = false; else el.value = '';
@@ -958,12 +1013,11 @@ function clearFilter(key) {
 function clearAllFilters() {
   Object.keys(QUICK).forEach(k => { quickOn[k] = false; });
   syncQuickButtons();
-  ['filter-sev', 'filter-plat', 'filter-owner', 'filter-estado', 'filter-agent'].forEach(id => {
+  sevFilter = '';
+  ['filter-plat', 'filter-owner', 'filter-estado', 'filter-agent'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('filter-q').value = '';
-  document.getElementById('filter-kev').checked = false;
-  document.getElementById('filter-ransom').checked = false;
   reloadCves();
 }
 
@@ -1088,6 +1142,7 @@ function renderPager() {
   const to = Math.min(page * pageSize, totalCves);
   document.getElementById('pagerRange').textContent =
     `Mostrando ${fmtNum.format(from)}–${fmtNum.format(to)} de ${fmtNum.format(totalCves)}`;
+  document.getElementById('pagerMobile').textContent = `Página ${page} de ${pages}`;
   document.getElementById('pgPrev').disabled = page <= 1;
   document.getElementById('pgNext').disabled = page >= pages;
 
@@ -1125,6 +1180,11 @@ function changePageSize() {
 }
 
 let SLA_DIAS = 15;
+async function doLogout() {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch (e) { /* igual salimos */ }
+  window.location = '/login';
+}
+
 function reloadCves(keepPage) {
   // Cambiar un filtro cambia el conjunto: seguir en la pagina 7 del anterior no
   // significa nada. Solo la navegacion explicita conserva la pagina.

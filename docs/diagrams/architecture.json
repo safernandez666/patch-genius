@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "How Patch Genius reads your Wazuh",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "collection",
+        "label": "Collection path",
+        "focus": [
+          "linuxAgents",
+          "windowsAgents",
+          "manager",
+          "indexer",
+          "collector"
+        ],
+        "note": "Agents report to the manager; the Vulnerability Detector writes state the collector reads."
+      },
+      {
+        "id": "enrichment",
+        "label": "Scoring and enrichment",
+        "focus": [
+          "mapper",
+          "scoring",
+          "feeds"
+        ],
+        "note": "Records are grouped per CVE, then scored with CVSS, EPSS and the KEV catalog."
+      },
+      {
+        "id": "serving",
+        "label": "Lifecycle and serving",
+        "focus": [
+          "lifecycle",
+          "store",
+          "api",
+          "dashboard"
+        ],
+        "note": "Lifecycle and history live in Postgres; every route is served behind a login."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "linuxAgents",
+      "type": "external",
+      "label": "Linux agents",
+      "sublabel": "deb / rpm packages",
+      "pos": [
+        40,
+        96
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "windowsAgents",
+      "type": "external",
+      "label": "Windows agents",
+      "sublabel": "programs + hotfixes",
+      "pos": [
+        40,
+        214
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "manager",
+      "type": "backend",
+      "label": "Wazuh Manager",
+      "sublabel": "Vulnerability Detector",
+      "pos": [
+        268,
+        155
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "indexer",
+      "type": "database",
+      "label": "Wazuh Indexer",
+      "sublabel": "wazuh-states-vulnerabilities-*",
+      "pos": [
+        506,
+        155
+      ],
+      "size": [
+        190,
+        62
+      ],
+      "tag": "active rows only"
+    },
+    {
+      "id": "collector",
+      "type": "backend",
+      "label": "Collector",
+      "sublabel": "point-in-time + search_after",
+      "pos": [
+        774,
+        155
+      ],
+      "size": [
+        170,
+        62
+      ]
+    },
+    {
+      "id": "mapper",
+      "type": "backend",
+      "label": "Mapper",
+      "sublabel": "group records per CVE",
+      "pos": [
+        1022,
+        155
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "scoring",
+      "type": "backend",
+      "label": "Scoring",
+      "sublabel": "CVSS + EPSS + KEV",
+      "pos": [
+        1022,
+        330
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "feeds",
+      "type": "external",
+      "label": "EPSS + CISA KEV",
+      "sublabel": "public feeds",
+      "pos": [
+        1022,
+        470
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "type": "backend",
+      "label": "Lifecycle",
+      "sublabel": "per CVE and per agent",
+      "pos": [
+        774,
+        330
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "state, snapshots, assignments",
+      "pos": [
+        506,
+        330
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "tag": "config encrypted"
+    },
+    {
+      "id": "api",
+      "type": "security",
+      "label": "FastAPI",
+      "sublabel": "session authentication",
+      "pos": [
+        268,
+        330
+      ],
+      "size": [
+        160,
+        62
+      ]
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "Dashboard",
+      "sublabel": "prioritised CVE inventory",
+      "pos": [
+        40,
+        330
+      ],
+      "size": [
+        160,
+        62
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Your Wazuh deployment",
+      "wraps": [
+        "linuxAgents",
+        "windowsAgents",
+        "manager",
+        "indexer"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "linuxReport",
+      "from": "linuxAgents",
+      "to": "manager",
+      "label": "inventory"
+    },
+    {
+      "id": "windowsReport",
+      "from": "windowsAgents",
+      "to": "manager",
+      "label": "inventory"
+    },
+    {
+      "id": "detectorWrite",
+      "from": "manager",
+      "to": "indexer",
+      "label": "writes state",
+      "variant": "emphasis",
+      "labelDy": -26
+    },
+    {
+      "id": "readIndexer",
+      "from": "indexer",
+      "to": "collector",
+      "label": "read-only :9200",
+      "variant": "emphasis",
+      "labelDy": -26
+    },
+    {
+      "id": "toMapper",
+      "from": "collector",
+      "to": "mapper"
+    },
+    {
+      "id": "toScoring",
+      "from": "mapper",
+      "to": "scoring",
+      "label": "group per CVE",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDx": 74,
+      "labelDy": 24
+    },
+    {
+      "id": "enrich",
+      "from": "feeds",
+      "to": "scoring",
+      "label": "CVE id only",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDx": 66
+    },
+    {
+      "id": "toLifecycle",
+      "from": "scoring",
+      "to": "lifecycle",
+      "label": "diff vs last run",
+      "labelDy": -26
+    },
+    {
+      "id": "persist",
+      "from": "lifecycle",
+      "to": "store",
+      "label": "state + snapshot",
+      "labelDy": -26
+    },
+    {
+      "id": "serve",
+      "from": "store",
+      "to": "api",
+      "label": "SQL",
+      "labelDy": -26
+    },
+    {
+      "id": "render",
+      "from": "api",
+      "to": "dashboard",
+      "label": "login required",
+      "variant": "security",
+      "labelDy": -26
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Collection",
+      "items": [
+        "Wazuh 4.8+ keeps vulnerability state in the Indexer, not the manager API",
+        "A point-in-time freezes the view: the scanner deletes rows as packages are patched"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Prioritisation",
+      "items": [
+        "CISA KEV first, then EPSS, then a single weighted score",
+        "Feeds are queried by CVE identifier only"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "History",
+      "items": [
+        "Resolved and reopened are derived by diffing successive ingests",
+        "First-seen dates are recorded here, because Wazuh rewrites detected_at"
+      ]
+    }
+  ]
+}

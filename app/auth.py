@@ -68,13 +68,11 @@ class AuthManager:
         if count:
             return
         if not bootstrap_user or not bootstrap_password:
-            # Every route requires a login, so starting with no account at all
-            # would lock the deployment out with no way back in. Fail loudly.
-            raise AuthError(
-                "No account exists and ADMIN_PASSWORD is not set, which would "
-                "leave this deployment unreachable. Set ADMIN_USER and "
-                "ADMIN_PASSWORD in .env (see .env.example) and start again."
-            )
+            # No account and no bootstrap credentials: the first-run sign-up page
+            # takes over. It only works while app_users is empty, so this cannot
+            # become an open registration form.
+            logger.info("auth_awaiting_first_run_signup")
+            return
         if len(bootstrap_password) < 12:
             raise AuthError("ADMIN_PASSWORD must be at least 12 characters")
         await self._pool.execute(
@@ -98,6 +96,33 @@ class AuthManager:
             "UPDATE app_users SET last_login = NOW() WHERE username = $1", username
         )
         return row["username"]
+
+    async def has_users(self) -> bool:
+        return bool(await self._pool.fetchval("SELECT 1 FROM app_users LIMIT 1"))
+
+    async def create_first_user(self, username: str, password: str) -> None:
+        """Create the initial account. Refuses once any account exists.
+
+        This is what makes the sign-up page safe to expose: it is not a
+        registration form, it is the one-time setup step, and it closes itself.
+        """
+        username = username.strip()
+        if not username:
+            raise AuthError("username is required")
+        if len(password) < 12:
+            raise AuthError("password must be at least 12 characters")
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                # Locking the table closes the window where two simultaneous
+                # requests both see an empty table and both create an account.
+                await conn.execute("LOCK TABLE app_users IN EXCLUSIVE MODE")
+                if await conn.fetchval("SELECT 1 FROM app_users LIMIT 1"):
+                    raise AuthError("an account already exists")
+                await conn.execute(
+                    "INSERT INTO app_users (username, password_hash) VALUES ($1, $2)",
+                    username, hash_password(password),
+                )
+        logger.info("auth_first_user_created", username=username)
 
     async def set_password(self, username: str, password: str) -> None:
         if len(password) < 12:

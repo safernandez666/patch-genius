@@ -36,32 +36,30 @@
 <body>
 <div class="wrap">
   <a class="back" href="/">&larr; Volver al panel</a>
+  <a class="back" href="/integraciones" style="margin-left:16px">Integraciones &rarr;</a>
   <h1 style="margin-top:14px">Configuración</h1>
-  <p class="sub">Conexión con tu Wazuh. Las credenciales se guardan cifradas y nunca se devuelven al navegador.</p>
+  <p class="sub">Ajustes de la instalación. La conexión con Wazuh vive en <a href="/integraciones" style="color:var(--pg-brand)">Integraciones</a>.</p>
 
   <form id="f">
     <div class="card">
-      <h2>Wazuh Indexer</h2>
-      <p class="hint">Puerto 9200. En Wazuh 4.8+ los datos de vulnerabilidades viven acá, no
-        en la API del manager. Si el indexer solo escucha en 127.0.0.1 y esta app corre en
-        otro host, seguí <code>docs/ONBOARDING.md</code> antes de continuar.</p>
-      <label for="indexer_url">URL</label>
-      <input type="text" id="indexer_url" name="indexer_url" placeholder="https://wazuh.example.com:9200">
+      <h2>General</h2>
+      <p class="hint">Cada cuánto se vuelve a leer el indexer, y en qué idioma se muestra
+        el panel.</p>
       <div class="row">
         <div>
-          <label for="indexer_user">Usuario</label>
-          <input type="text" id="indexer_user" name="indexer_user" autocomplete="off"
-                 placeholder="usuario de solo lectura">
+          <label for="refresh_minutes">Intervalo de actualización (minutos)</label>
+          <input type="number" id="refresh_minutes" name="refresh_minutes" min="5" max="1440">
         </div>
         <div>
-          <label for="indexer_password">Contraseña</label>
-          <input type="password" id="indexer_password" name="indexer_password"
-                 autocomplete="new-password" placeholder="(sin cambios)">
+          <label for="lang">Idioma de la interfaz</label>
+          <select id="lang" name="lang">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="verify_tls" name="verify_tls">
-        Verificar certificado TLS
-        <span style="color:var(--pg-text-muted)">— desactivalo si usás el autofirmado de Wazuh</span></label>
+      <p class="hint" style="margin-top:10px">El idioma es de toda la instalación, no por
+        usuario: en un SOC el panel lo mira el equipo entero.</p>
     </div>
 
     <div class="card">
@@ -75,9 +73,7 @@
     </div>
 
     <div class="actions">
-      <button type="button" class="ghost" id="testBtn">Probar conexión</button>
       <button type="submit" class="primary" id="saveBtn">Guardar</button>
-      <button type="button" class="ghost" id="ingestBtn">Actualizar ahora</button>
     </div>
     <div class="msg" id="msg"></div>
   </form>
@@ -109,39 +105,22 @@ var msg = document.getElementById('msg');
 function show(kind, text) { msg.className = 'msg ' + kind; msg.textContent = text; }
 function body() {
   var b = {
-    indexer_url: document.getElementById('indexer_url').value.trim(),
-    indexer_user: document.getElementById('indexer_user').value.trim(),
-    verify_tls: document.getElementById('verify_tls').checked,
     enrich_epss: document.getElementById('enrich_epss').checked,
     enrich_kev: document.getElementById('enrich_kev').checked,
-    refresh_minutes: parseInt(document.getElementById('refresh_minutes').value, 10)
+    refresh_minutes: parseInt(document.getElementById('refresh_minutes').value, 10),
+    lang: document.getElementById('lang').value
   };
-  var pw = document.getElementById('indexer_password').value;
-  if (pw) b.indexer_password = pw;   // omitted means "keep the stored one"
   return b;
 }
 async function load() {
   var r = await fetch('/api/config');
   if (r.status === 401) { window.location = '/login'; return; }
   var c = await r.json();
-  document.getElementById('indexer_url').value = c.indexer_url || '';
-  document.getElementById('indexer_user').value = c.indexer_user || '';
-  document.getElementById('verify_tls').checked = !!c.verify_tls;
   document.getElementById('enrich_epss').checked = !!c.enrich_epss;
   document.getElementById('enrich_kev').checked = !!c.enrich_kev;
   document.getElementById('refresh_minutes').value = c.refresh_minutes;
-  document.getElementById('indexer_password').placeholder =
-    c.has_password ? '(guardada — dejar vacío para no cambiarla)' : 'sin configurar';
+  document.getElementById('lang').value = c.lang || 'es';
 }
-document.getElementById('testBtn').addEventListener('click', async function () {
-  show('', 'Probando…');
-  var r = await fetch('/api/config/test', {method: 'POST',
-    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body())});
-  var d = await r.json();
-  if (d.ok) show('ok', 'Conectado a "' + d.cluster_name + '" — cluster ' + d.status +
-                       ', ' + d.nodes + ' nodo(s), ' + d.vulnerability_docs + ' documentos de vulnerabilidades.');
-  else show('bad', 'No conectó: ' + d.error);
-});
 document.getElementById('f').addEventListener('submit', async function (ev) {
   ev.preventDefault();
   var r = await fetch('/api/config', {method: 'PUT',
@@ -161,15 +140,6 @@ document.getElementById('f').addEventListener('submit', async function (ev) {
 load();
               show('ok', 'Configuración guardada.'); }
   else { var d = await r.json(); show('bad', 'No se pudo guardar: ' + (d.detail || r.status)); }
-});
-document.getElementById('ingestBtn').addEventListener('click', async function () {
-  show('', 'Ingestando desde Wazuh…');
-  var r = await fetch('/api/ingest', {method: 'POST'});
-  var d = await r.json();
-  if (r.ok) show('ok', d.cves + ' CVEs desde ' + d.documentos + ' registros · ' +
-                       d.nuevos + ' nuevos · ' + d.resueltos + ' resueltos · ' +
-                       d.kev_coincidencias + ' en CISA KEV.');
-  else show('bad', 'Falló la ingesta: ' + (d.detail || r.status));
 });
 load();
 </script>

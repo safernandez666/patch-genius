@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "One ingest run",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "views": [
+      {
+        "id": "pull",
+        "label": "Frozen read",
+        "focus": [
+          "ingest",
+          "indexer"
+        ],
+        "note": "A point-in-time keeps the view still while the scanner deletes patched rows."
+      },
+      {
+        "id": "enrich",
+        "label": "Scoring",
+        "focus": [
+          "ingest",
+          "feeds"
+        ],
+        "note": "EPSS and the KEV catalog are requested by CVE identifier only."
+      },
+      {
+        "id": "persist",
+        "label": "Lifecycle",
+        "focus": [
+          "ingest",
+          "store"
+        ],
+        "note": "Pairs that stopped appearing are the ones that got patched."
+      }
+    ],
+    "viewBox": [
+      1080,
+      640
+    ]
+  },
+  "participants": [
+    {
+      "id": "scheduler",
+      "type": "backend",
+      "label": "Scheduler",
+      "sublabel": "every N minutes"
+    },
+    {
+      "id": "ingest",
+      "type": "backend",
+      "label": "Ingest",
+      "sublabel": "app/ingest.py"
+    },
+    {
+      "id": "indexer",
+      "type": "database",
+      "label": "Wazuh Indexer",
+      "sublabel": "vulnerability state"
+    },
+    {
+      "id": "feeds",
+      "type": "external",
+      "label": "EPSS + CISA KEV",
+      "sublabel": "public feeds"
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "lifecycle + history"
+    }
+  ],
+  "messages": [
+    {
+      "id": "tick",
+      "from": "scheduler",
+      "to": "ingest",
+      "y": 175,
+      "label": "run ingest",
+      "variant": "emphasis"
+    },
+    {
+      "id": "openPit",
+      "from": "ingest",
+      "to": "indexer",
+      "y": 217,
+      "label": "open point-in-time",
+      "note": "The scanner deletes a row the moment its package is patched. Without a frozen view the cursor skips records the ingest would then report as resolved."
+    },
+    {
+      "id": "page",
+      "from": "ingest",
+      "to": "indexer",
+      "y": 259,
+      "label": "search_after, size 1000"
+    },
+    {
+      "id": "records",
+      "from": "indexer",
+      "to": "ingest",
+      "y": 301,
+      "label": "records",
+      "variant": "return"
+    },
+    {
+      "id": "askFeeds",
+      "from": "ingest",
+      "to": "feeds",
+      "y": 343,
+      "label": "EPSS and KEV by CVE id"
+    },
+    {
+      "id": "feedsBack",
+      "from": "feeds",
+      "to": "ingest",
+      "y": 385,
+      "label": "probabilities + catalog",
+      "variant": "return"
+    },
+    {
+      "id": "markSeen",
+      "from": "ingest",
+      "to": "store",
+      "y": 427,
+      "label": "mark (CVE, agent) pairs present"
+    },
+    {
+      "id": "firstSeen",
+      "from": "store",
+      "to": "ingest",
+      "y": 469,
+      "label": "own first-seen dates",
+      "variant": "return"
+    },
+    {
+      "id": "resolve",
+      "from": "ingest",
+      "to": "store",
+      "y": 511,
+      "label": "close absent pairs as resolved",
+      "variant": "emphasis"
+    },
+    {
+      "id": "snapshot",
+      "from": "ingest",
+      "to": "store",
+      "y": 550,
+      "label": "save state + daily snapshot"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Why a point-in-time",
+      "items": [
+        "Wazuh keeps only active vulnerabilities and deletes patched rows",
+        "An unfrozen cursor would misreport a skipped record as resolved",
+        "Absent pairs become resolved; first-seen is recorded here, so the SLA clock cannot reset itself"
+      ]
+    }
+  ]
+}

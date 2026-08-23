@@ -11,13 +11,30 @@ reports, or nothing at all.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import asyncpg
 import structlog
 from cryptography.fernet import Fernet, InvalidToken
 
 logger = structlog.get_logger(__name__)
+
+INTEGRATIONS_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS app_integrations (
+    name TEXT PRIMARY KEY,
+    enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    settings JSONB NOT NULL DEFAULT '{}',
+    secret_enc BYTEA,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_by TEXT NOT NULL DEFAULT ''
+);
+"""
+
+# Cada integracion guarda su parte no sensible en `settings` y exactamente un
+# secreto cifrado: contrasena SMTP, token de Jira, URL de webhook de Slack o de
+# Teams. La URL de un webhook es un secreto en si misma — quien la tenga puede
+# publicar en el canal — asi que va cifrada como cualquier contrasena.
+INTEGRATIONS = ("smtp", "jira", "slack", "teams")
 
 CONFIG_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS app_config (
@@ -29,13 +46,19 @@ CREATE TABLE IF NOT EXISTS app_config (
     enrich_epss BOOLEAN NOT NULL DEFAULT TRUE,
     enrich_kev BOOLEAN NOT NULL DEFAULT TRUE,
     refresh_minutes INTEGER NOT NULL DEFAULT 60,
+    lang TEXT NOT NULL DEFAULT 'es',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_by TEXT NOT NULL DEFAULT '',
     CHECK (id = 1)
 );
 """
 
+# Idiomas de la interfaz. Es una configuracion global de la instalacion: en un
+# SOC el panel lo mira el equipo entero.
+LANGS = ("es", "en")
+
 DEFAULTS: Dict[str, Any] = {
+    "lang": "es",
     "indexer_url": "",
     "indexer_user": "",
     "verify_tls": False,
@@ -65,9 +88,14 @@ class ConfigStore:
 
     async def init(self) -> None:
         await self._pool.execute(CONFIG_TABLE_SQL)
+        # CREATE TABLE IF NOT EXISTS no agrega columnas a una tabla que ya existe.
+        await self._pool.execute(
+            "ALTER TABLE app_config ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'es'"
+        )
         await self._pool.execute(
             "INSERT INTO app_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING"
         )
+        await self._pool.execute(INTEGRATIONS_TABLE_SQL)
 
     async def load(self) -> Dict[str, Any]:
         """Config with the password decrypted. Never send this to the browser."""
@@ -94,6 +122,10 @@ class ConfigStore:
         if not 5 <= refresh <= 1440:
             raise ConfigError("refresh_minutes must be between 5 and 1440")
 
+        lang = updates.get("lang", current["lang"])
+        if lang not in LANGS:
+            raise ConfigError(f"lang must be one of {LANGS}")
+
         # An omitted password means "keep the stored one" — the UI never receives the
         # current value, so it cannot echo it back on save.
         password = updates.get("indexer_password")
@@ -104,7 +136,8 @@ class ConfigStore:
             UPDATE app_config SET
                 indexer_url = $1, indexer_user = $2,
                 indexer_password_enc = $3, verify_tls = $4, enrich_epss = $5,
-                enrich_kev = $6, refresh_minutes = $7, updated_at = NOW(), updated_by = $8
+                enrich_kev = $6, refresh_minutes = $7, lang = $8,
+                updated_at = NOW(), updated_by = $9
             WHERE id = 1
             """,
             (updates.get("indexer_url", current["indexer_url"]) or "").strip().rstrip("/"),
@@ -114,6 +147,7 @@ class ConfigStore:
             bool(updates.get("enrich_epss", current["enrich_epss"])),
             bool(updates.get("enrich_kev", current["enrich_kev"])),
             refresh,
+            lang,
             updated_by,
         )
         logger.info("app_config_updated", by=updated_by)
@@ -133,3 +167,67 @@ class ConfigStore:
             # re-enter it, rather than crash-looping on every request.
             logger.error("app_config_decrypt_failed")
             return ""
+
+
+    # ------------------------------------------------------------------
+    # Integraciones
+    # ------------------------------------------------------------------
+    async def load_integration(self, name: str) -> Dict[str, Any]:
+        """Configuracion de una integracion, con el secreto descifrado."""
+        if name not in INTEGRATIONS:
+            raise ConfigError(f"unknown integration: {name}")
+        row = await self._pool.fetchrow(
+            "SELECT * FROM app_integrations WHERE name = $1", name
+        )
+        if row is None:
+            return {"name": name, "enabled": False, "settings": {}, "secret": ""}
+        import json as _json
+
+        raw = row["settings"]
+        return {
+            "name": name,
+            "enabled": row["enabled"],
+            "settings": _json.loads(raw) if isinstance(raw, str) else dict(raw or {}),
+            "secret": self._decrypt(row["secret_enc"]),
+            "updated_at": row["updated_at"],
+            "updated_by": row["updated_by"],
+        }
+
+    async def load_integrations_public(self) -> List[Dict[str, Any]]:
+        """Todas las integraciones sin secretos — esto si puede ir al navegador."""
+        out = []
+        for name in INTEGRATIONS:
+            item = await self.load_integration(name)
+            secret = item.pop("secret", "")
+            item["has_secret"] = bool(secret)
+            out.append(item)
+        return out
+
+    async def save_integration(
+        self, name: str, enabled: bool, settings: Dict[str, Any],
+        secret: Optional[str], updated_by: str,
+    ) -> Dict[str, Any]:
+        if name not in INTEGRATIONS:
+            raise ConfigError(f"unknown integration: {name}")
+        import json as _json
+
+        current = await self.load_integration(name)
+        # Un secreto ausente significa "dejá el guardado": el navegador nunca lo
+        # recibe, asi que no puede devolverlo al guardar.
+        enc = self._encrypt(secret) if secret else self._encrypt(current["secret"])
+        await self._pool.execute(
+            """
+            INSERT INTO app_integrations (name, enabled, settings, secret_enc, updated_by)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (name) DO UPDATE SET
+                enabled = EXCLUDED.enabled, settings = EXCLUDED.settings,
+                secret_enc = EXCLUDED.secret_enc, updated_at = NOW(),
+                updated_by = EXCLUDED.updated_by
+            """,
+            name, bool(enabled), _json.dumps(settings or {}), enc, updated_by,
+        )
+        logger.info("integration_saved", name=name, enabled=bool(enabled), by=updated_by)
+        item = await self.load_integration(name)
+        item.pop("secret", "")
+        item["has_secret"] = bool(enc)
+        return item
