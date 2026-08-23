@@ -5,31 +5,32 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Configuración — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
+<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
 <style>
-  body{margin:0;background:#303841;color:#f5f5f5;font-family:Outfit,system-ui,-apple-system,sans-serif}
+  body{margin:0;background:var(--pg-bg);color:var(--pg-text);font-family:Outfit,system-ui,-apple-system,sans-serif}
   .wrap{max-width:760px;margin:0 auto;padding:34px 20px 60px}
   h1{font-size:1.3rem;margin:0 0 6px}
-  .sub{color:#a8b3bd;font-size:.85rem;margin:0 0 26px}
-  .card{background:#39424c;border:1px solid #4a5561;border-radius:14px;padding:22px;margin-bottom:18px}
+  .sub{color:var(--pg-text-muted);font-size:.85rem;margin:0 0 26px}
+  .card{background:var(--pg-surface);border:1px solid var(--pg-border);border-radius:14px;padding:22px;margin-bottom:18px}
   h2{font-size:.95rem;margin:0 0 4px}
-  .hint{color:#a8b3bd;font-size:.78rem;margin:0 0 16px;line-height:1.5}
-  label{display:block;font-size:.78rem;color:#a8b3bd;margin:14px 0 5px}
+  .hint{color:var(--pg-text-muted);font-size:.78rem;margin:0 0 16px;line-height:1.5}
+  label{display:block;font-size:.78rem;color:var(--pg-text-muted);margin:14px 0 5px}
   input[type=text],input[type=password],input[type=number],select{
     width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;
-    border:1px solid #55606c;background:#2b333b;color:#f5f5f5;font-size:.88rem}
+    border:1px solid var(--pg-border-strong);background:var(--pg-surface-alt);color:var(--pg-text);font-size:.88rem}
   .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:200px}
-  .check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.84rem;color:#dbe2e8}
+  .check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.84rem;color:var(--pg-text-soft)}
   .check input{width:16px;height:16px}
   button{padding:9px 16px;border:0;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer}
-  .primary{background:#76abae;color:#1d2529}.ghost{background:#454f5a;color:#dbe2e8}
+  .primary{background:var(--pg-brand);color:var(--pg-on-brand)}.ghost{background:var(--pg-ghost);color:var(--pg-text-soft)}
   .actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
   .msg{margin-top:16px;font-size:.82rem;padding:11px 13px;border-radius:8px;display:none;line-height:1.5}
-  .ok{background:#0e2e1d;color:#86efac;border:1px solid #17593a;display:block}
-  .bad{background:#331519;color:#fca5a5;border:1px solid #6b2027;display:block}
-  .warn{background:#332612;color:#fcd34d;border:1px solid #6b4e14;font-size:.8rem;
+  .ok{background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border);display:block}
+  .bad{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border);display:block}
+  .warn{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);font-size:.8rem;
         padding:11px 13px;border-radius:8px;margin-bottom:18px;line-height:1.5}
-  a.back{color:#a8b3bd;font-size:.82rem;text-decoration:none}
+  a.back{color:var(--pg-text-muted);font-size:.82rem;text-decoration:none}
 </style>
 </head>
 <body>
@@ -60,7 +61,7 @@
       </div>
       <label class="check"><input type="checkbox" id="verify_tls" name="verify_tls">
         Verificar certificado TLS
-        <span style="color:#a8b3bd">— desactivalo si usás el autofirmado de Wazuh</span></label>
+        <span style="color:var(--pg-text-muted)">— desactivalo si usás el autofirmado de Wazuh</span></label>
     </div>
 
     <div class="card">

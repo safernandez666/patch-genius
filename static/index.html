@@ -8,6 +8,7 @@
 <title>Patch Genius — Vulnerabilidades</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="preload" href="/static/tailwind.css" as="style">
+<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
 <link rel="stylesheet" href="/static/sidebar.css">
 <script>try{if(localStorage.getItem('soc.navCollapsed')==='1')document.documentElement.classList.add('nav-collapsed')}catch(e){}</script>
@@ -68,7 +69,7 @@
 [data-theme="dark"] .stat-card .value{color:var(--color-white)}
 [data-theme="dark"] .stat-card .label{color:var(--color-gray-400)}
 [data-theme="dark"] .stat-card.is-bad .value{color:#fda29b}
-[data-theme="dark"] .stat-card.is-good .value{color:#86efac}
+[data-theme="dark"] .stat-card.is-good .value{color:var(--pg-ok-fg)}
 
 .card-h{font-size:14px;font-weight:600;color:var(--color-gray-800);margin:0 0 2px}
 .card-sub{font-size:12px;color:var(--color-gray-500);margin:0 0 10px}
@@ -91,7 +92,7 @@
 .kev-badge svg{width:10px;height:10px;flex:none}
 .sla-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;
   background:#fde7e9;color:#b42318}
-[data-theme="dark"] .sla-badge{background:#f0443826;color:#fda29b}
+[data-theme="dark"] .sla-badge{background:var(--pg-sev-critical)26;color:#fda29b}
 .ransom-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;
   font-size:10.5px;font-weight:700;background:#3b0764;color:#fff}
 [data-theme="dark"] .ransom-badge{background:#a855f740;color:#e9d5ff}
@@ -138,7 +139,7 @@
 [data-theme="dark"] .empty h3{color:var(--color-gray-200)}
 .alert{border-radius:var(--radius-lg);padding:12px 14px;font-size:13px}
 .alert-err{background:var(--color-error-50);color:var(--color-error-700);border:1px solid var(--color-error-200)}
-[data-theme="dark"] .alert-err{background:#f0443826;color:#fda29b;border-color:#f0443840}
+[data-theme="dark"] .alert-err{background:var(--pg-sev-critical)26;color:#fda29b;border-color:var(--pg-sev-critical)40}
 
 /* Modal de asignación */
 .modal-backdrop{position:fixed;inset:0;background:#00000066;display:flex;align-items:center;justify-content:center;z-index:100}
@@ -167,41 +168,41 @@
    seguridad el naranja ya significa algo, y usarlo tambien de color de marca
    volveria ambiguo cada boton. La marca es el teal. */
 [data-theme="dark"]{
-  --color-gray-dark:#39424c;   /* superficie de tarjetas */
-  --color-gray-900:#303841;    /* fondo de pagina */
-  --color-gray-950:#272e36;
-  --color-gray-800:#4a5561;    /* bordes */
+  --color-gray-dark:var(--pg-surface);   /* superficie de tarjetas */
+  --color-gray-900:var(--pg-bg);    /* fondo de pagina */
+  --color-gray-950:var(--pg-surface-deep);
+  --color-gray-800:var(--pg-border);    /* bordes */
   --color-gray-700:#5a6672;
-  --color-gray-400:#a8b3bd;
+  --color-gray-400:var(--pg-text-muted);
   --color-gray-300:#c9d1d9;
-  --color-white:#f5f5f5;
-  --color-brand-500:#76abae;
-  --color-brand-400:#8fbfc2;
-  --color-brand-300:#a9d2d4;
+  --color-white:var(--pg-text);
+  --color-brand-500:var(--pg-brand);
+  --color-brand-400:var(--pg-brand-soft);
+  --color-brand-300:var(--pg-brand-pale);
 }
-[data-theme="dark"] body{background:#303841;color:#f5f5f5}
-[data-theme="dark"] .sidebar{background:#272e36;border-right:1px solid #4a5561}
-[data-theme="dark"] .brand-platform{color:#f5f5f5}
-[data-theme="dark"] .side-nav a{color:#a8b3bd}
-[data-theme="dark"] .side-nav a:hover{background:#39424c;color:#f5f5f5}
-[data-theme="dark"] .side-nav a.active{background:#3d4d50;color:#76abae}
-[data-theme="dark"] .footer{color:#a8b3bd}
-[data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:#76abae;border-color:#76abae;color:#1d2529}
-[data-theme="dark"] a{color:#76abae}
-[data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid #76abae}
+[data-theme="dark"] body{background:var(--pg-bg);color:var(--pg-text)}
+[data-theme="dark"] .sidebar{background:var(--pg-surface-deep);border-right:1px solid var(--pg-border)}
+[data-theme="dark"] .brand-platform{color:var(--pg-text)}
+[data-theme="dark"] .side-nav a{color:var(--pg-text-muted)}
+[data-theme="dark"] .side-nav a:hover{background:var(--pg-surface);color:var(--pg-text)}
+[data-theme="dark"] .side-nav a.active{background:#3d4d50;color:var(--pg-brand)}
+[data-theme="dark"] .footer{color:var(--pg-text-muted)}
+[data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand)}
+[data-theme="dark"] a{color:var(--pg-brand)}
+[data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid var(--pg-brand)}
 .brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
 .qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
     border:1px solid var(--color-gray-800);background:transparent;color:var(--color-gray-400)}
-.qf:hover{border-color:#76abae;color:#76abae}
-.qf.on{background:#76abae;border-color:#76abae;color:#1d2529;font-weight:600}
+.qf:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
+.qf.on{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px 4px 10px;
       border-radius:999px;background:var(--color-gray-dark);border:1px solid var(--color-gray-800);
       color:var(--color-gray-300)}
 .chip b{font-weight:600;color:var(--color-white)}
 .chip button{border:0;background:transparent;color:var(--color-gray-400);cursor:pointer;
              font-size:14px;line-height:1;padding:0 2px}
-.chip button:hover{color:#ff5722}
-.chip-clear{font-size:12px;color:#76abae;background:none;border:0;cursor:pointer;text-decoration:underline}
+.chip button:hover{color:var(--pg-sev-high)}
+.chip-clear{font-size:12px;color:var(--pg-brand);background:none;border:0;cursor:pointer;text-decoration:underline}
 /* Jerarquia de indicadores, siguiendo el patron de TailAdmin: pocas tarjetas
    grandes con icono arriba, el resto compacto debajo. Antes eran catorce cajas
    identicas y ninguna se leia primero. */
@@ -211,10 +212,10 @@
 .stat-hero .value{font-size:34px;letter-spacing:-.5px}
 .stat-hero .label{font-size:13px}
 .stat-ico{display:flex;align-items:center;justify-content:center;width:44px;height:44px;
-          border-radius:12px;margin-bottom:14px;background:#4a556133;color:#76abae}
+          border-radius:12px;margin-bottom:14px;background:var(--pg-border)33;color:var(--pg-brand)}
 .stat-ico svg{width:22px;height:22px}
-.stat-hero.is-bad .stat-ico{background:#ff572226;color:#ff5722}
-[data-theme="dark"] .stat-ico{background:#4a556140}
+.stat-hero.is-bad .stat-ico{background:var(--pg-sev-high)26;color:var(--pg-sev-high)}
+[data-theme="dark"] .stat-ico{background:var(--pg-border)40}
 .stat-grid-sub .stat-card{padding:14px 16px}
 .stat-grid-sub .value{font-size:20px}
 </style>
@@ -260,10 +261,10 @@
     <p class="page-desc">Estado del parque leído de tu Wazuh, priorizado por <strong>CISA KEV</strong> y <strong>EPSS</strong>. <a href="/ayuda">Cómo funciona la priorización, el aging y el SLA &rarr;</a></p>
   </div>
 
-  <div id="setupHint" style="display:none;background:#332612;color:#fcd34d;border:1px solid #6b4e14;
+  <div id="setupHint" style="display:none;background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
        border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6">
     <b>Todavía no hay datos.</b> Conectá tu Wazuh en
-    <a href="/config" style="color:#fcd34d;text-decoration:underline">Configuración</a>
+    <a href="/config" style="color:var(--pg-warn-fg);text-decoration:underline">Configuración</a>
     y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
     corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
   </div>
@@ -455,8 +456,18 @@ let debounceTimer = null;
 
 const SEV_CLASS = { Critical: 'p-critical', High: 'p-high', Medium: 'p-medium', Low: 'p-low', Untriaged: 'p-unknown' };
 const SEV_LABEL = { Critical: 'Crítica', High: 'Alta', Medium: 'Media', Low: 'Baja', Untriaged: 'Sin triar' };
+// Los colores de los graficos salen de los mismos tokens que el CSS (theme.css),
+// no de literales duplicados: cambiar la paleta en un solo lugar alcanza.
+const cssVar = (name, fallback) =>
+  (getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim() || fallback;
 // Sin triar = gris: Wazuh todavia no tiene score de NVD, no es una severidad baja.
-const SEV_HEX = { Critical: '#f04438', High: '#ff5722', Medium: '#eab308', Low: '#22c55e', Untriaged: '#94a3b8' };
+const SEV_HEX = {
+  Critical:  cssVar('--pg-sev-critical',  '#f04438'),
+  High:      cssVar('--pg-sev-high',      '#ff5722'),
+  Medium:    cssVar('--pg-sev-medium',    '#eab308'),
+  Low:       cssVar('--pg-sev-low',       '#22c55e'),
+  Untriaged: cssVar('--pg-sev-untriaged', '#94a3b8'),
+};
 const ESTADO_LABEL = {
   pendiente: 'Pendiente', en_curso: 'En curso', parcial: 'Parcial',
   resuelto: 'Resuelto', aceptado_riesgo: 'Riesgo aceptado',
@@ -606,8 +617,14 @@ function renderSevDonut(porSev) {
 // --- Donut por plataforma ---
 // Paleta propia, deliberadamente fuera de la escala de severidad: si Windows
 // fuera naranja se leeria como "alto" en vez de como un sistema operativo.
-const PLAT_HEX = { windows: '#76abae', debian: '#c2708a', ubuntu: '#e8834a',
-                   linux: '#8fbf7a', darwin: '#9b8fc4', macos: '#9b8fc4' };
+const PLAT_HEX = {
+  windows: cssVar('--pg-plat-windows', '#76abae'),
+  debian:  cssVar('--pg-plat-debian',  '#c2708a'),
+  ubuntu:  cssVar('--pg-plat-ubuntu',  '#e8834a'),
+  linux:   cssVar('--pg-plat-linux',   '#8fbf7a'),
+  darwin:  cssVar('--pg-plat-macos',   '#9b8fc4'),
+  macos:   cssVar('--pg-plat-macos',   '#9b8fc4'),
+};
 const PLAT_LABEL = { windows: 'Windows', debian: 'Debian', ubuntu: 'Ubuntu',
                      linux: 'Linux', darwin: 'macOS', macos: 'macOS' };
 
@@ -622,7 +639,8 @@ function renderPlatDonut(porPlat) {
   }
   const labels = entries.map(p => PLAT_LABEL[p.plataforma] || p.plataforma);
   const series = entries.map(p => p.total);
-  const cols = entries.map((p, i) => PLAT_HEX[p.plataforma] || ['#76abae','#e8834a','#c2708a','#8fbf7a'][i % 4]);
+  const fallbacks = [PLAT_HEX.windows, PLAT_HEX.ubuntu, PLAT_HEX.debian, PLAT_HEX.linux];
+  const cols = entries.map((p, i) => PLAT_HEX[p.plataforma] || fallbacks[i % 4]);
   const opts = {
     chart: { type: 'donut', height: 190, fontFamily: 'Outfit, ui-sans-serif, sans-serif', foreColor: chartFore() },
     series, labels, colors: cols,
