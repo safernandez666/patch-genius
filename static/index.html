@@ -218,6 +218,21 @@
 [data-theme="dark"] .stat-ico{background:var(--pg-border)40}
 .stat-grid-sub .stat-card{padding:14px 16px}
 .stat-grid-sub .value{font-size:20px}
+/* Metricas de contexto agrupadas en una sola tarjeta con divisores internos
+   (patron del dashboard SaaS de TailAdmin). Diez cajas bordeadas sueltas eran
+   mucho borde para numeros que son contexto, y no decian que va con que. */
+.stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  border:1px solid var(--pg-border);border-radius:var(--radius-2xl,16px);
+  background:var(--pg-surface);margin-bottom:14px;overflow:hidden}
+.strip-cell{padding:15px 18px;border-left:1px solid var(--pg-border)}
+.strip-cell:first-child{border-left:0}
+.strip-cell .label{font-size:12.5px;color:var(--pg-text-muted);font-weight:500}
+.strip-cell .value{font-size:21px;font-weight:700;color:var(--pg-text);
+  font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.strip-cell .value.is-muted{color:var(--pg-text-muted);opacity:.55}
+.strip-cell .hint{font-size:11px;color:var(--pg-text-muted);margin-top:3px;line-height:1.4}
+@media (max-width:640px){.strip-cell{border-left:0;border-top:1px solid var(--pg-border)}
+  .strip-cell:first-child{border-top:0}}
 </style>
 </head>
 <body>
@@ -323,20 +338,20 @@
     <div class="stat-card stat-hero"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><div class="label">Críticas + altas</div><div class="value is-muted" id="stat-ca">…</div><div class="hint">de los CVEs únicos del parque</div></div>
   </section>
 
-  <section class="stat-grid stat-grid-sub" aria-label="Contexto del parque">
-    <div class="stat-card"><div class="label">Vulnerabilidades activas</div><div class="value is-muted" id="stat-total">…</div></div>
-    <div class="stat-card"><div class="label">CVEs únicos</div><div class="value is-muted" id="stat-cves">…</div></div>
-    <div class="stat-card"><div class="label">Servidores</div><div class="value is-muted" id="stat-srv">…</div></div>
-    <div class="stat-card"><div class="label">Ransomware conocido</div><div class="value is-muted" id="stat-ransom">…</div></div>
-    <div class="stat-card"><div class="label">EPSS alto</div><div class="value is-muted" id="stat-epss">…</div><div class="hint" id="hint-epss">probabilidad ≥ 50%</div></div>
+  <section class="stat-strip" aria-label="Contexto del parque">
+      <div class="strip-cell"><div class="label">Vulnerabilidades activas</div><div class="value is-muted" id="stat-total">…</div></div>
+      <div class="strip-cell"><div class="label">CVEs únicos</div><div class="value is-muted" id="stat-cves">…</div></div>
+      <div class="strip-cell"><div class="label">Servidores</div><div class="value is-muted" id="stat-srv">…</div></div>
+      <div class="strip-cell"><div class="label">Ransomware conocido</div><div class="value is-muted" id="stat-ransom">…</div></div>
+      <div class="strip-cell"><div class="label">EPSS alto</div><div class="value is-muted" id="stat-epss">…</div><div class="hint"><span id="hint-epss">probabilidad ≥ 50%</span></div></div>
   </section>
 
-  <section class="stat-grid stat-grid-sub" aria-label="Movimiento de los últimos 7 días">
-    <div class="stat-card"><div class="label">Nuevas (7 días)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
-    <div class="stat-card"><div class="label">Resueltas (7 días)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
-    <div class="stat-card"><div class="label">Reabiertas (7 días)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
-    <div class="stat-card"><div class="label">Aging promedio</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">días desde detección (activas)</div></div>
-    <div class="stat-card"><div class="label">SLA críticas resueltas</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% remediadas dentro del plazo</div></div>
+  <section class="stat-strip" aria-label="Movimiento de los últimos 7 días">
+      <div class="strip-cell"><div class="label">Nuevas (7 días)</div><div class="value is-muted" id="stat-nuevas">…</div></div>
+      <div class="strip-cell"><div class="label">Resueltas (7 días)</div><div class="value is-muted" id="stat-resueltas">…</div></div>
+      <div class="strip-cell"><div class="label">Reabiertas (7 días)</div><div class="value is-muted" id="stat-reabiertas">…</div></div>
+      <div class="strip-cell"><div class="label">Aging promedio</div><div class="value is-muted" id="stat-aging">…</div><div class="hint">días desde detección</div></div>
+      <div class="strip-cell"><div class="label">SLA críticas resueltas</div><div class="value is-muted" id="stat-sla-pct">…</div><div class="hint">% dentro del plazo</div></div>
   </section>
 
   <div id="sin-datos" hidden>
