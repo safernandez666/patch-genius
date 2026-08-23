@@ -415,7 +415,8 @@ async def _make_brief(app: FastAPI, cfg: Optional[Dict[str, Any]] = None) -> Dic
     rows = _sort_by_priority(_vuln_rows(state, lifecycle, assigns))
     metrics = await store.patching_metrics(sla_days=settings.vuln_sla_critical_days)
     app_cfg = await app.state.config_store.load_public()
-    snapshot = build_snapshot(state, rows, metrics or {})
+    include_hostnames = cfg.get("settings", {}).get("include_hostnames", True)
+    snapshot = build_snapshot(state, rows, metrics or {}, include_hostnames=include_hostnames)
     result = await generate_brief(cfg, snapshot, language=app_cfg.get("lang", "en"))
     await store.save_priority_brief(
         result["text"],

@@ -64,6 +64,36 @@ function ago(iso) {
   return `${Math.round(min / 1440)} d ago`;
 }
 
+function renderMarkdown(text) {
+  // Minimal markdown renderer for the brief: headings, bold, italic, lists, paragraphs.
+  const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lines = text.split('\n');
+  const out = [];
+  let inList = false;
+  for (let raw of lines) {
+    let line = escape(raw);
+    line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    line = line.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    if (line.startsWith('# ')) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<h2>' + line.slice(2) + '</h2>');
+    } else if (line.startsWith('## ')) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<h3>' + line.slice(3) + '</h3>');
+    } else if (line.startsWith('- ')) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push('<li>' + line.slice(2) + '</li>');
+    } else if (line.trim() === '') {
+      if (inList) { out.push('</ul>'); inList = false; }
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<p>' + line + '</p>');
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+
 async function load() {
   const body = document.getElementById('body');
   const meta = document.getElementById('meta');
@@ -74,11 +104,10 @@ async function load() {
     if (!d || !d.brief) {
       meta.textContent = '';
       body.innerHTML = '<p class="empty">No brief yet. Enable the AI integration in '
-        + '<a href="/integraciones">Integrations</a>, then generate one — it is also '
-        + 'written automatically once a day after the ingest.</p>';
+        + '<a href="/integraciones">Integrations</a>, then generate one from the dashboard.</p>';
       return;
     }
-    body.textContent = d.brief;
+    body.innerHTML = renderMarkdown(d.brief);
     const refs = d.cve_refs || {};
     const bits = [`Generated ${ago(d.updated_at)}`];
     if (refs.model) bits.push(refs.model);

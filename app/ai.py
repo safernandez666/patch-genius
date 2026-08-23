@@ -62,7 +62,10 @@ class AIError(RuntimeError):
 
 
 def build_snapshot(
-    state: Dict[str, Any], rows: List[Dict[str, Any]], metrics: Dict[str, Any]
+    state: Dict[str, Any],
+    rows: List[Dict[str, Any]],
+    metrics: Dict[str, Any],
+    include_hostnames: bool = True,
 ) -> str:
     """Render the fleet state as the prompt's factual input.
 
@@ -115,6 +118,11 @@ def build_snapshot(
         if "os_update" in (r.get("tipos") or []):
             flags.append("OS-level")
         epss = r.get("epss")
+        hosts = r.get("agentes") or []
+        if include_hostnames:
+            host_txt = ", ".join(hosts[:6]) or "n/a"
+        else:
+            host_txt = f"{len(hosts)} host(s)" if hosts else "n/a"
         lines.append(
             "- {cve} score={score} severity={sev} cvss={cvss} epss={epss}{flags}"
             " | packages: {pkgs} | hosts: {hosts} | open {days}d".format(
@@ -125,7 +133,7 @@ def build_snapshot(
                 epss=f"{epss:.3f}" if isinstance(epss, (int, float)) else "n/a",
                 flags=" [" + ", ".join(flags) + "]" if flags else "",
                 pkgs=", ".join((r.get("paquetes") or [])[:3]) or "n/a",
-                hosts=", ".join((r.get("agentes") or [])[:6]) or "n/a",
+                hosts=host_txt,
                 days=r.get("dias_detectado") if r.get("dias_detectado") is not None else "?",
             )
         )

@@ -138,8 +138,9 @@ const DEFS = [
       openai:    { model: 'gpt-4o', base_url: '' },
       local:     { model: 'llama3.1', base_url: 'http://host.docker.internal:11434/v1' },
     },
+    checks: [ { k: 'include_hostnames', l: 'Include server hostnames in the brief', def: true } ],
     secret: 'API key', optionalSecret: true,
-    warn: 'The brief is built from your fleet\'s real state — <b>including your server names</b> and which CVEs each one carries. With Claude or OpenAI that leaves your network. With a local model nothing does.',
+    warn: 'The brief is built from your fleet\'s real state. With server names enabled and a hosted model, that inventory leaves your network. With a local model nothing does.',
     hint: 'Generated on demand from the dashboard. For Ollama on the Docker host, use http://host.docker.internal:11434/v1.' },
   { name: 'smtp', title: 'SMTP', desc: 'E-mail reminders to the owner of each CVE',
     fields: [
