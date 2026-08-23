@@ -31,6 +31,16 @@
   .empty a{color:var(--pg-brand)}
   .warn{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
         border-radius:9px;padding:12px 14px;font-size:.8rem;line-height:1.55;margin-top:20px}
+  .modal{position:fixed;inset:0;background:#00000080;display:none;align-items:center;
+         justify-content:center;z-index:100}
+  .modal.open{display:flex}
+  .modal-box{background:var(--pg-surface);border:1px solid var(--pg-border);border-radius:16px;
+             padding:28px 32px;text-align:center;max-width:340px}
+  .spinner{width:40px;height:40px;border:3px solid var(--pg-border);border-top-color:var(--pg-brand);
+           border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .modal-box p{margin:0;font-size:.9rem;color:var(--pg-text-soft)}
+  .modal-box small{display:block;margin-top:8px;font-size:.75rem;color:var(--pg-text-muted)}
 </style>
 </head>
 <body>
@@ -47,6 +57,14 @@
       <button type="button" id="btn" onclick="regen()">Regenerate</button>
     </div>
     <div id="body"></div>
+  </div>
+
+  <div class="modal" id="waitModal">
+    <div class="modal-box">
+      <div class="spinner"></div>
+      <p>Generating brief…</p>
+      <small>This can take from a few seconds up to a couple of minutes, depending on the model.</small>
+    </div>
   </div>
 
   <p class="warn">The brief is built from your fleet's real state, hostnames included. With a
@@ -119,9 +137,14 @@ async function load() {
   }
 }
 
+function showWait(show) {
+  document.getElementById('waitModal').classList.toggle('open', show);
+}
+
 async function regen() {
   const b = document.getElementById('btn'), body = document.getElementById('body');
   b.disabled = true; const prev = b.textContent; b.textContent = 'Generating…';
+  showWait(true);
   try {
     const r = await fetch('/api/brief', { method: 'POST' });
     if (r.ok) { await load(); }
@@ -133,6 +156,7 @@ async function regen() {
   } catch (e) {
     body.innerHTML = '<p class="empty">Could not generate: ' + e.message + '</p>';
   }
+  showWait(false);
   b.disabled = false; b.textContent = prev;
 }
 load();
