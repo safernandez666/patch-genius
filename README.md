@@ -4,10 +4,10 @@
 
 # **Patch Genius**
 
-**Seguimiento de vulnerabilidades y parcheo sobre tu propio Wazuh.**
-Prioriza con CISA KEV y EPSS, calcula SLA y aging reales, y separa Linux de Windows.
+**Vulnerability and patch tracking on top of your own Wazuh.**
+Prioritises with CISA KEV and EPSS, measures real patching SLAs, and keeps Linux and Windows apart.
 
-Un producto de **[Zebra Security](https://zebrasecurity.io)**.
+A product of **[Zebra Security](https://zebrasecurity.io)**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-76ABAE.svg)](LICENSE)
 ![Wazuh 4.8+](https://img.shields.io/badge/Wazuh-4.8%2B-303841)
@@ -17,30 +17,30 @@ Un producto de **[Zebra Security](https://zebrasecurity.io)**.
 
 ---
 
-> **No trae datos de ejemplo.** Muestra lo que reporta el Wazuh que configures, o nada.
+> **No sample data.** It shows what the Wazuh you configure reports, or nothing at all.
 
-![Panel principal](docs/img/dashboard.png)
+![Dashboard](docs/img/dashboard.png)
 
-## Qué resuelve
+## What it solves
 
-Wazuh te dice **qué** está sin parchear. No te dice qué parchear **primero**, ni hace
-cuánto que viene sin parchear, ni quién es el responsable.
+Wazuh tells you **what** is unpatched. It does not tell you what to patch **first**, how
+long it has been that way, or who owns it.
 
-| Problema | Qué hace Patch Genius |
+| Problem | What Patch Genius does |
 |---|---|
-| Miles de CVEs sin orden | Prioriza: **KEV** primero (explotación confirmada), **EPSS** después, y un score único para ordenar |
-| Wazuh no guarda historia | Un snapshot por día; deriva **nuevo / resuelto / reabierto** comparando ingestas |
-| `detected_at` se resetea solo | Guarda **fecha propia** de primera detección, así el SLA no se reinicia y sí vence |
-| Windows tapa el ranking | Los CVEs a nivel SO van aparte: se cierran con un **KB acumulativo**, no con `apt` |
-| Nadie es dueño del parche | Responsable, estado y fecha objetivo **por CVE y por agente** |
+| Thousands of CVEs in no order | Ranks them: **KEV** first (confirmed exploitation), **EPSS** next, and a single score to sort by |
+| Wazuh keeps no history | One snapshot per day; derives **new / resolved / reopened** by diffing successive ingests |
+| `detected_at` resets itself | Keeps its **own** first-seen date, so the SLA clock does not restart and can actually breach |
+| Windows buries the ranking | OS-level CVEs are listed separately — they close with a **cumulative update or KB**, not with `apt` |
+| Nobody owns the patch | Owner, status and due date **per CVE and per agent** |
 
-## Arquitectura
+## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph infra["Tu infraestructura"]
-        AL["Agentes Linux<br/>deb / rpm"]
-        AW["Agentes Windows<br/>programas + KB"]
+    subgraph infra["Your infrastructure"]
+        AL["Linux agents<br/>deb / rpm"]
+        AW["Windows agents<br/>programs + KB"]
         MGR["Wazuh Manager"]
         IDX[("Wazuh Indexer<br/>wazuh-states-<br/>vulnerabilities-*")]
         AL --> MGR
@@ -49,116 +49,121 @@ flowchart LR
     end
 
     subgraph pg["Patch Genius"]
-        COL["Colector<br/>PIT + search_after"]
-        MAP["Mapper<br/>agrupa por CVE"]
+        COL["Collector<br/>PIT + search_after"]
+        MAP["Mapper<br/>group by CVE"]
         SCORE["Scoring<br/>CVSS + EPSS + KEV"]
-        LIFE["Ciclo de vida<br/>por CVE y agente"]
+        LIFE["Lifecycle<br/>per CVE and agent"]
         API["FastAPI + Auth"]
         COL --> MAP --> SCORE --> LIFE --> API
     end
 
-    subgraph feeds["Feeds públicos"]
+    subgraph feeds["Public feeds"]
         EPSS["EPSS<br/>FIRST.org"]
         KEV["CISA KEV"]
     end
 
     subgraph store["Postgres"]
-        DB[("estado, ciclo de vida,<br/>snapshots, asignaciones,<br/>config cifrada")]
+        DB[("state, lifecycle,<br/>snapshots, assignments,<br/>encrypted config")]
     end
 
-    IDX -->|"HTTPS 9200<br/>solo lectura"| COL
-    EPSS -.->|"solo el ID del CVE"| SCORE
-    KEV -.->|"solo el ID del CVE"| SCORE
+    IDX -->|"HTTPS 9200<br/>read only"| COL
+    EPSS -.->|"CVE id only"| SCORE
+    KEV -.->|"CVE id only"| SCORE
     LIFE <--> DB
-    API --> UI["Panel web"]
+    API --> UI["Web dashboard"]
 ```
 
-A los feeds públicos se les consulta **únicamente por identificador de CVE**: no sale
-ningún dato de tu infraestructura. En una red aislada se desactivan y el score degrada a
-CVSS solo.
+The public feeds are queried **by CVE identifier only** — nothing about your
+infrastructure leaves the network. On an isolated host, turn them off and scoring degrades
+to CVSS alone.
 
-## Cómo funciona una ingesta
+## How an ingest runs
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant S as Scheduler
-    participant I as Ingesta
+    participant I as Ingest
     participant W as Wazuh Indexer
     participant F as EPSS / CISA KEV
     participant P as Postgres
 
-    S->>I: cada N minutos
-    I->>W: abrir point-in-time
-    Note over I,W: El scanner borra filas al parchear.<br/>Sin PIT, la vista cambia bajo el cursor<br/>y un registro salteado se reportaría<br/>como "resuelto".
-    loop paginado con search_after
-        I->>W: buscar (size 1000)
-        W-->>I: registros
+    S->>I: every N minutes
+    I->>W: open point-in-time
+    Note over I,W: The scanner deletes rows the moment<br/>a package is patched. Without a PIT the<br/>view shifts under the cursor, and a<br/>skipped record reads as "resolved".
+    loop paginated with search_after
+        I->>W: search (size 1000)
+        W-->>I: records
     end
-    I->>W: cerrar point-in-time
-    I->>I: agrupar por CVE
-    I->>F: pedir EPSS y KEV por ID de CVE
-    F-->>I: probabilidades y catálogo
-    I->>I: score = CVSS·p + EPSS·p + bonus KEV
-    I->>P: marcar pares (CVE, agente) presentes
-    P-->>I: primera detección propia
-    I->>P: cerrar los ausentes como resueltos
-    I->>P: guardar estado + snapshot del día
+    I->>W: close point-in-time
+    I->>I: group by CVE
+    I->>F: request EPSS and KEV by CVE id
+    F-->>I: probabilities and catalog
+    I->>I: score = CVSS·w + EPSS·w + KEV bonus
+    I->>P: mark (CVE, agent) pairs present
+    P-->>I: own first-seen dates
+    I->>P: close the absent ones as resolved
+    I->>P: save state + daily snapshot
 ```
 
-## Instalación
+## Install
 
-Requisitos: **Wazuh 4.8+**, acceso al Indexer (9200), Docker y Docker Compose.
+Requirements: **Wazuh 4.8+**, network access to the Indexer (9200), Docker and Docker Compose.
 
 ```bash
 git clone https://github.com/safernandez666/patch-genius.git
 cd patch-genius
-./scripts/setup-env.sh      # genera .env e imprime tu contraseña inicial
+./scripts/setup-env.sh      # generates .env and prints your initial password
 docker compose up -d --build
 ```
 
-Entrá a `http://localhost:8000` y conectá tu Wazuh desde **Configuración**.
+Open `http://localhost:8000` and connect your Wazuh from **Configuración**.
 
-> Si el Indexer solo escucha en `127.0.0.1` y esta app corre en otro host, leé
-> **[docs/ONBOARDING.md](docs/ONBOARDING.md)** primero — es donde se traba la mayoría.
+> If the Indexer only listens on `127.0.0.1` and this app runs on another host, read
+> **[docs/ONBOARDING.md](docs/ONBOARDING.md)** first — that is where most deployments get
+> stuck.
 
-### Configuración
+### Configuration
 
-![Configuración](docs/img/configuracion.png)
+![Configuration](docs/img/configuracion.png)
 
-Probá la conexión antes de guardar: te devuelve el estado del cluster y cuántos documentos
-de vulnerabilidades ve. Las credenciales se guardan **cifradas con Fernet** y nunca vuelven
-al navegador.
+Test the connection before saving: it reports the cluster status and how many
+vulnerability documents it can see. Credentials are stored **encrypted with Fernet** and
+are never returned to the browser.
 
-### Ayuda integrada
+### Built-in help
 
-![Ayuda](docs/img/ayuda.png)
+![Help](docs/img/ayuda.png)
 
-## Seguridad
+## Security
 
-- **Todas las rutas requieren login.** La pantalla lista los CVEs sin parchear de máquinas
-  vivas; no hay modo abierto.
-- Usá un usuario de **solo lectura** del Indexer, no `admin` — ver ONBOARDING.
-- `APP_SECRET_KEY` cifra las credenciales de Wazuh y nunca va a la base ni al repositorio.
-- Cambiá la contraseña inicial desde Configuración después del primer ingreso.
+- **Every route requires a login.** The dashboard lists the unpatched CVEs of live hosts;
+  there is no open mode.
+- Use a **read-only** Indexer user, not `admin` — see ONBOARDING.
+- `APP_SECRET_KEY` encrypts the Wazuh credentials and never reaches the database or the
+  repository.
+- Change the initial password from the configuration tab after your first sign-in.
 
-## Estructura
+## Layout
 
 ```
-app/          FastAPI: rutas, ingesta, scoring, auth y configuración
-app/wazuh/    Cliente del Indexer y mapeo a la vista por CVE
-static/       Frontend (HTML/CSS/JS vanilla + ApexCharts vendorizado)
-docs/         Onboarding de Wazuh
-deploy/       nginx + notas para desplegar en un VPS propio
+app/          FastAPI: routes, ingest, scoring, auth and configuration
+app/wazuh/    Indexer client and the mapping to the per-CVE view
+static/       Frontend (vanilla HTML/CSS/JS + vendored ApexCharts)
+docs/         Wazuh onboarding
+deploy/       nginx and notes for deploying on your own VPS
 ```
 
-## Licencia
+> The interface itself is in Spanish. Documentation, code comments and commits are in
+> English.
 
-MIT — ver [LICENSE](LICENSE). Los assets de terceros conservan la suya:
-ver [static/assets/CREDITS.md](static/assets/CREDITS.md).
+## License
+
+MIT — see [LICENSE](LICENSE). Third-party assets keep their own:
+see [static/assets/CREDITS.md](static/assets/CREDITS.md).
 
 ---
 
 <div align="center">
-<sub>Hecho por <a href="https://zebrasecurity.io"><b>Zebra Security</b></a></sub>
+<sub>Built by <a href="https://zebrasecurity.io"><b>Zebra Security</b></a></sub>
 </div>
