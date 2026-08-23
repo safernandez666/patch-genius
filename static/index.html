@@ -310,6 +310,7 @@
   <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
     <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Vistas rápidas:</span>
     <button type="button" class="qf" data-qf="kev">Explotación activa (KEV)</button>
+    <button type="button" class="qf" data-qf="ransom">Ransomware conocido</button>
     <button type="button" class="qf" data-qf="score">Prioridad ≥ 80</button>
     <button type="button" class="qf" data-qf="sla">Críticas fuera de SLA</button>
     <button type="button" class="qf" data-qf="os">Parches de sistema operativo</button>
@@ -432,8 +433,9 @@
       <div class="pager-size">
         <label for="page-size">Filas por página</label>
         <select class="select" id="page-size" onchange="changePageSize()">
+          <option value="10" selected>10</option>
           <option value="25">25</option>
-          <option value="50" selected>50</option>
+          <option value="50">50</option>
           <option value="100">100</option>
           <option value="200">200</option>
         </select>
@@ -496,7 +498,7 @@ function escapeHtml(text) {
 const fmtNum = new Intl.NumberFormat('es-AR');
 
 // --- Estado ---
-let pageSize = 50;
+let pageSize = 10;
 let page = 1;
 let totalCves = 0;
 let allCves = [];
@@ -924,6 +926,7 @@ function filters() {
 
 const QUICK = {
   kev:       { label: 'Explotación activa (KEV)', params: { kev: '1' } },
+  ransom:    { label: 'Ransomware conocido', params: { ransomware: '1' } },
   score:     { label: 'Prioridad ≥ 80', params: { score_min: '80' } },
   sla:       { label: 'Críticas fuera de SLA', params: { sla: 'vencidos' } },
   os:        { label: 'Parches de sistema operativo', params: { tipo: 'os_update' } },

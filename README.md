@@ -143,13 +143,22 @@ docker compose up -d --build
 ```
 
 `setup-env.sh` generates `.env` with a fresh encryption key and a random admin password,
-and prints the credentials. Open `http://localhost:8000`, sign in, and connect your Wazuh
-from the configuration tab.
+and prints the credentials. Skip it and the sign-up screen creates the first account
+instead — it answers only while no account exists and closes itself the moment one does, so
+it never becomes an open registration form.
 
-![Configuration](docs/img/configuracion.png)
+![Sign in](docs/img/login.png)
 
-**Test connection** reports the cluster status, the Wazuh version and how many
-vulnerability documents it can see. A green result means you can run the first ingest.
+### Integrations
+
+Wazuh, SMTP, Jira, Slack and Microsoft Teams are configured from one page.
+
+![Integrations](docs/img/integraciones.png)
+
+**Test** exercises the real thing — it authenticates against the indexer, sends the mail,
+posts to the channel — because a saved setting that was never tried tells you nothing.
+Credentials are encrypted at rest and never returned to the browser; a webhook URL counts
+as one, since anyone holding it can post into your channel.
 
 > [!WARNING]
 > A default Wazuh install binds the Indexer to `127.0.0.1` only. If Patch Genius runs on a

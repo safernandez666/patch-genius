@@ -24,3 +24,11 @@ ApexCharts — MIT License.
 Wazuh logo, from the [dashboard-icons](https://github.com/homarr-labs/dashboard-icons)
 collection. Used to identify the Wazuh integration in the UI. Wazuh is a trademark of
 Wazuh Inc.; this project is not affiliated with or endorsed by them.
+
+## slack.svg, jira.svg
+
+Slack and Jira brand marks, via [SVG Repo](https://www.svgrepo.com).
+
+Used solely to identify the corresponding integration in the UI. Slack is a
+trademark of Slack Technologies; Jira is a trademark of Atlassian. This project is
+not affiliated with or endorsed by either company.

@@ -12,6 +12,13 @@ body{margin:0;background:var(--pg-bg);color:var(--pg-text);
 .auth-back{display:inline-flex;align-items:center;gap:6px;font-size:.83rem;
            color:var(--pg-text-muted);text-decoration:none;margin-bottom:28px}
 .auth-back:hover{color:var(--pg-brand)}
+/* La marca tambien arriba del formulario: el panel de la derecha no existe en
+   pantallas chicas, y es donde esta mirando quien va a escribir la contrasena. */
+.auth-mark{display:flex;align-items:center;gap:11px;margin-bottom:26px}
+.auth-mark img{width:44px;height:44px}
+.auth-mark span{font-size:1.12rem;letter-spacing:-.3px}
+.auth-mark b{color:var(--pg-brand)}
+
 .auth h1{font-size:1.6rem;margin:0 0 6px;letter-spacing:-.4px}
 .auth .sub{margin:0 0 26px;color:var(--pg-text-muted);font-size:.87rem;line-height:1.55}
 .auth label{display:block;font-size:.79rem;color:var(--pg-text-muted);margin:16px 0 6px;font-weight:500}

@@ -20,7 +20,7 @@
   .head{display:flex;align-items:center;gap:13px}
   .logo{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
         justify-content:center;background:var(--pg-surface-alt);flex:none;overflow:hidden}
-  .logo img{width:26px;height:26px;object-fit:contain}
+  .logo img{width:24px;height:24px;object-fit:contain}
   .logo svg{width:22px;height:22px}
   .head h2{font-size:.98rem;margin:0}
   .head p{margin:2px 0 0;font-size:.79rem;color:var(--pg-text-muted)}
@@ -52,6 +52,15 @@
   .msg{margin-top:13px;font-size:.82rem;padding:10px 12px;border-radius:8px;display:none;line-height:1.5}
   .msg.ok{background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border);display:block}
   .msg.bad{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border);display:block}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;
+    margin:0 0 16px;background:var(--pg-border);border:1px solid var(--pg-border);
+    border-radius:10px;overflow:hidden}
+  .facts>div{background:var(--pg-surface);padding:11px 14px}
+  .facts dt{font-size:.72rem;color:var(--pg-text-muted);margin:0 0 3px;
+    text-transform:uppercase;letter-spacing:.04em}
+  .facts dd{margin:0;font-size:.85rem;color:var(--pg-text);font-weight:600;
+    overflow-wrap:anywhere}
+  a.act{text-decoration:none;display:inline-block;line-height:1.35}
   .hint{font-size:.76rem;color:var(--pg-text-muted);margin:4px 0 0;line-height:1.5}
 </style>
 </head>
@@ -61,16 +70,57 @@
   <h1 data-i18n="integr.title">Integraciones</h1>
   <p class="sub" data-i18n="integr.sub">Avisos y tickets a partir de lo que encuentra Patch Genius.
     Todas están desactivadas por defecto y sus credenciales se guardan cifradas.</p>
+  <div class="card" id="wazuhCard">
+    <div class="head">
+      <span class="logo"><img src="/static/assets/wazuh.webp" alt=""></span>
+      <div>
+        <h2>Wazuh</h2>
+        <p data-i18n="integr.wazuh.desc">Origen de los datos — índice de vulnerabilidades del Indexer</p>
+      </div>
+      <span class="grow"></span>
+      <span class="state off" id="wzState">…</span>
+    </div>
+    <div class="body open">
+      <dl class="facts" id="wzFacts"></dl>
+      <p class="hint" id="wzHint" style="display:none;margin-bottom:14px"></p>
+
+      <p class="hint">Puerto 9200. En Wazuh 4.8+ las vulnerabilidades viven en el Indexer, no
+        en la API del manager. Si solo escucha en 127.0.0.1 y esta app corre en otro host,
+        mirá <code>docs/ONBOARDING.md</code> antes.</p>
+      <label for="wz-url">URL del Indexer</label>
+      <input type="text" id="wz-url" placeholder="https://wazuh.example.com:9200">
+      <div class="row">
+        <div>
+          <label for="wz-user">Usuario</label>
+          <input type="text" id="wz-user" autocomplete="off" placeholder="usuario de solo lectura">
+        </div>
+        <div>
+          <label for="wz-pass">Contraseña</label>
+          <input type="password" id="wz-pass" autocomplete="new-password">
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="wz-tls"> Verificar certificado TLS
+        <span style="color:var(--pg-text-muted)">— desactivalo con el autofirmado de Wazuh</span></label>
+      <div class="actions">
+        <button type="button" class="act ghost" onclick="wzTest()">Probar conexión</button>
+        <button type="button" class="act primary" onclick="wzSave()">Guardar</button>
+        <button type="button" class="act ghost" onclick="wzIngest()">Actualizar ahora</button>
+      </div>
+      <div class="msg" id="wz-msg"></div>
+    </div>
+  </div>
+
   <div id="cards"></div>
 </div>
 
 <script src="/static/i18n.js"></script>
 <script>
-const SVG = {
-  smtp: '<svg viewBox="0 0 24 24" fill="none" stroke="#76abae" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>',
-  jira: '<svg viewBox="0 0 24 24" fill="#2684FF"><path d="M11.5 2 3 10.5a1 1 0 0 0 0 1.4l8.5 8.5 3-3-6.5-6.2 6.5-6.2z"/><path d="M12.5 22 21 13.5a1 1 0 0 0 0-1.4L12.5 3.6l-3 3 6.5 6.2-6.5 6.2z" opacity=".6"/></svg>',
-  slack: '<svg viewBox="0 0 24 24" fill="none" stroke="#E01E5A" stroke-width="1.9" stroke-linecap="round"><path d="M9 3v9M15 12v9M3 9h9M12 15h9" /><circle cx="9" cy="3" r="1.6"/><circle cx="15" cy="21" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="21" cy="15" r="1.6"/></svg>',
-  teams: '<svg viewBox="0 0 24 24" fill="none" stroke="#6264A7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M6 9h6M9 9v6"/><circle cx="18.5" cy="7" r="2.2"/><path d="M16 12h5v4a2.5 2.5 0 0 1-2.5 2.5H17"/></svg>',
+const LOGO = {
+  wazuh: '<img src="/static/assets/wazuh.webp" alt="">',
+  jira:  '<img src="/static/assets/jira.svg" alt="">',
+  slack: '<img src="/static/assets/slack.svg" alt="">',
+  smtp:  '<img src="/static/assets/mail.svg" alt="">',
+  teams: '<img src="/static/assets/teams.svg" alt="">',
 };
 
 const DEFS = [
@@ -115,7 +165,7 @@ function field(n, f, v) {
 function render() {
   document.getElementById('cards').innerHTML = DEFS.map(function (d) {
     const st = STATE[d.name] || { enabled: false, settings: {}, has_secret: false };
-    const logo = d.name === 'smtp' ? SVG.smtp : SVG[d.name];
+    const logo = LOGO[d.name] || '';
     return `<div class="card" data-n="${d.name}">
       <div class="head">
         <span class="logo">${logo}</span>
@@ -189,6 +239,91 @@ async function testOne(n) {
   else say(n, 'bad', d.error || d.detail || ('Error ' + r.status));
 }
 
+function wzBody() {
+  const b = {
+    indexer_url: document.getElementById('wz-url').value.trim(),
+    indexer_user: document.getElementById('wz-user').value.trim(),
+    verify_tls: document.getElementById('wz-tls').checked,
+  };
+  const pw = document.getElementById('wz-pass').value;
+  if (pw) b.indexer_password = pw;     // vacío = conservar la guardada
+  return b;
+}
+
+function wzSay(kind, text) {
+  const m = document.getElementById('wz-msg');
+  m.className = 'msg ' + kind; m.textContent = text;
+}
+
+async function wzTest() {
+  wzSay('', 'Probando…');
+  const r = await fetch('/api/config/test', {method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(wzBody())});
+  const d = await r.json();
+  if (d.ok) wzSay('ok', `Conectado a "${d.cluster_name}" — ${d.status}, `
+    + `${Number(d.vulnerability_docs).toLocaleString('es-AR')} documentos.`);
+  else wzSay('bad', 'No conectó: ' + d.error);
+}
+
+async function wzSave() {
+  const r = await fetch('/api/config', {method: 'PUT',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(wzBody())});
+  if (r.ok) { document.getElementById('wz-pass').value = ''; await loadWazuh(); wzSay('ok', 'Guardado.'); }
+  else { const d = await r.json().catch(() => ({})); wzSay('bad', d.detail || ('Error ' + r.status)); }
+}
+
+async function wzIngest() {
+  wzSay('', 'Ingestando desde Wazuh…');
+  const r = await fetch('/api/ingest', {method: 'POST'});
+  const d = await r.json();
+  if (r.ok) { wzSay('ok', `${d.cves} CVEs desde ${d.documentos} registros · ${d.nuevos} nuevos · `
+    + `${d.resueltos} resueltos · ${d.kev_coincidencias} en CISA KEV.`); loadWazuh(); }
+  else wzSay('bad', 'Falló la ingesta: ' + (d.detail || r.status));
+}
+
+async function loadWazuh() {
+  const st = document.getElementById('wzState');
+  const facts = document.getElementById('wzFacts');
+  const hint = document.getElementById('wzHint');
+  const show = (rows) => {
+    facts.innerHTML = rows.map(r => `<div><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join('');
+    facts.style.display = rows.length ? 'grid' : 'none';
+  };
+  const warn = (txt) => { hint.textContent = txt; hint.style.display = txt ? 'block' : 'none'; };
+  try {
+    const r = await fetch('/api/config');
+    if (r.status === 401) { window.location = '/login'; return; }
+    const c = await r.json();
+    document.getElementById('wz-url').value = c.indexer_url || '';
+    document.getElementById('wz-user').value = c.indexer_user || '';
+    document.getElementById('wz-tls').checked = !!c.verify_tls;
+    document.getElementById('wz-pass').placeholder =
+      c.has_password ? '(guardada — dejar vacío para no cambiarla)' : 'sin configurar';
+    if (!c.indexer_url) {
+      st.className = 'state off'; st.textContent = 'Sin configurar';
+      show([]); warn('Todavía no hay ningún Wazuh conectado, así que el panel no tiene datos.');
+      return;
+    }
+    // "Hay una URL guardada" no es lo mismo que "responde": se prueba de verdad.
+    const t = await fetch('/api/config/test', {method: 'POST',
+      headers: {'Content-Type': 'application/json'}, body: '{}'});
+    const d = await t.json();
+    if (d.ok) {
+      st.className = 'state on'; st.textContent = 'Conectada';
+      warn('');
+      show([['Cluster', `${d.cluster_name} · ${d.status}`],
+            ['Documentos', Number(d.vulnerability_docs).toLocaleString('es-AR')],
+            ['Actualiza cada', `${c.refresh_minutes} min`]]);
+    } else {
+      st.className = 'state off'; st.textContent = 'Con error';
+      show([]); warn('No responde: ' + d.error);
+    }
+  } catch (e) {
+    st.className = 'state off'; st.textContent = 'Con error';
+    show([]); warn('No se pudo consultar el estado de la conexión.');
+  }
+}
+
 async function load() {
   const r = await fetch('/api/integrations');
   if (r.status === 401) { window.location = '/login'; return; }
@@ -198,6 +333,7 @@ async function load() {
   render();
 }
 load();
+loadWazuh();
 </script>
 </body>
 </html>

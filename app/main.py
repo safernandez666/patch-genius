@@ -657,7 +657,7 @@ async def vuln_cves(
     agent: Optional[str] = None,
     q: Optional[str] = None,
     ransomware: Optional[int] = None,
-    limit: int = 50,
+    limit: int = 10,
     offset: int = 0,
 ):
     store = _store(request)
