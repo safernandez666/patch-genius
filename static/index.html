@@ -249,6 +249,33 @@
 .pg-gap{color:var(--pg-text-muted);padding:0 2px;font-size:12.5px}
 .pager button[disabled]{opacity:.4;cursor:default}
 @media (max-width:640px){.pager{justify-content:center}}
+/* Severidad como control segmentado en vez de desplegable (patron de tabs de
+   TailAdmin). Son seis opciones fijas: verlas todas y elegir en un clic es mejor
+   que abrir una lista, y ademas deja lugar para el conteo de cada una. */
+.sevtabs{display:flex;overflow-x:auto;gap:2px;padding:4px;border-radius:11px;
+  background:var(--pg-surface-alt);margin-bottom:12px}
+.sevtabs::-webkit-scrollbar{height:5px}
+.sevtabs::-webkit-scrollbar-thumb{background:var(--pg-border);border-radius:999px}
+.sevtab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer;
+  border:0;background:transparent;color:var(--pg-text-muted);font-size:.83rem;font-weight:500;
+  padding:8px 13px;border-radius:8px;transition:background .15s,color .15s;font-family:inherit}
+.sevtab:hover{color:var(--pg-text)}
+.sevtab.on{background:var(--pg-surface);color:var(--pg-text);font-weight:600;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sevtab .dot{width:8px;height:8px;border-radius:3px;flex:none}
+.sevtab .n{font-size:.76rem;color:var(--pg-text-muted);font-variant-numeric:tabular-nums}
+.sevtab.on .n{color:var(--pg-text)}
+
+/* Paginacion con texto: numeros de 40x40 y "Pagina X de Y" cuando no entran. */
+.pg-num{min-width:40px;height:40px;padding:0 10px;border-radius:9px;font-size:.84rem;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--pg-text-muted);font-family:inherit}
+.pg-num:hover{background:var(--pg-brand);color:var(--pg-on-brand)}
+.pg-num.on{background:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
+.pager-mobile{display:none;font-size:.83rem;color:var(--pg-text-muted);font-weight:500}
+@media (max-width:700px){
+  #pagerPages{display:none}
+  .pager-mobile{display:block}
+}
 </style>
 </head>
 <body>
@@ -307,6 +334,7 @@
     y ejecutá la primera actualización. Si el indexer solo escucha en 127.0.0.1 y esta app
     corre en otro host, mirá <code>docs/ONBOARDING.md</code> antes.
   </div>
+  <nav class="sevtabs" id="sevTabs" role="tablist" aria-label="Filtrar por severidad"></nav>
   <div class="quick-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
     <span style="font-size:12px;color:var(--color-gray-500);margin-right:2px">Vistas rápidas:</span>
     <button type="button" class="qf" data-qf="kev">Explotación activa (KEV)</button>
@@ -318,15 +346,6 @@
   </div>
   <div id="activeChips" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
   <div class="toolbar">
-    <label class="visually-hidden" for="filter-sev">Filtrar por severidad</label>
-    <select class="select" id="filter-sev" aria-label="Filtrar por severidad" onchange="reloadCves()">
-      <option value="">Todas las severidades</option>
-      <option value="critical">Crítica</option>
-      <option value="high">Alta</option>
-      <option value="medium">Media</option>
-      <option value="low">Baja</option>
-      <option value="untriaged">Sin triar</option>
-    </select>
     <label class="visually-hidden" for="filter-plat">Filtrar por plataforma</label>
     <select class="select" id="filter-plat" aria-label="Filtrar por plataforma" onchange="reloadCves()">
       <option value="">Todas las plataformas</option>
@@ -443,6 +462,7 @@
       <div class="pager-range" id="pagerRange"></div>
       <div class="pager-nav">
         <button type="button" class="btn-ghost btn-sm" id="pgPrev" onclick="goPage(page-1)">Anterior</button>
+        <span class="pager-mobile" id="pagerMobile"></span>
         <span id="pagerPages"></span>
         <button type="button" class="btn-ghost btn-sm" id="pgNext" onclick="goPage(page+1)">Siguiente</button>
       </div>
@@ -498,6 +518,10 @@ function escapeHtml(text) {
 const fmtNum = new Intl.NumberFormat('es-AR');
 
 // --- Estado ---
+let sevFilter = '';
+// El filtro viaja en minusculas; el estado y las etiquetas usan la forma de Wazuh.
+const SEV_KEY = { critical: 'Critical', high: 'High', medium: 'Medium',
+                  low: 'Low', untriaged: 'Untriaged' };
 let pageSize = 10;
 let page = 1;
 let totalCves = 0;
@@ -601,6 +625,7 @@ async function loadSummary() {
   showSetupHint(d);
   renderChips();
   populatePlatformFilter(d.plataformas || []);
+  renderSevTabs(d.por_severidad || []);
   renderSevDonut(d.por_severidad || []);
   renderPlatDonut(d.por_plataforma || []);
   renderPkgsChart(d.top_paquetes || []);
@@ -902,7 +927,7 @@ async function loadHistory() {
 // --- Tabla de CVEs ---
 function filters() {
   const qs = new URLSearchParams();
-  const sev = document.getElementById('filter-sev').value;
+  const sev = sevFilter;
   const owner = document.getElementById('filter-owner').value;
   const estado = document.getElementById('filter-estado').value;
   const agent = document.getElementById('filter-agent').value;
@@ -934,17 +959,40 @@ const QUICK = {
 };
 const quickOn = {};
 
+function renderSevTabs(porSev) {
+  const counts = {};
+  (porSev || []).forEach(x => { counts[x.severidad] = x.n; });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const tabs = [{ v: '', lab: 'Todas', n: total, hex: null }].concat(
+    ['critical', 'high', 'medium', 'low', 'untriaged'].map(v => ({
+      v: v, lab: SEV_LABEL[SEV_KEY[v]], n: counts[SEV_KEY[v]] || 0, hex: SEV_HEX[SEV_KEY[v]],
+    })));
+  document.getElementById('sevTabs').innerHTML = tabs.map(x =>
+    `<button type="button" role="tab" class="sevtab${x.v === sevFilter ? ' on' : ''}"
+       aria-selected="${x.v === sevFilter}" onclick="setSev('${x.v}')">
+       ${x.hex ? `<span class="dot" style="background:${x.hex}"></span>` : ''}
+       ${x.lab}<span class="n">${fmtNum.format(x.n)}</span></button>`).join('');
+}
+
+function setSev(v) {
+  if (v === sevFilter) return;
+  sevFilter = v;
+  reloadCves();
+}
+
 function renderChips() {
   const box = document.getElementById('activeChips');
   const chips = [];
   Object.keys(QUICK).forEach(function (k) {
     if (quickOn[k]) chips.push({ key: 'qf:' + k, label: QUICK[k].label });
   });
-  [['filter-sev', 'Severidad'], ['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
+  [['filter-plat', 'Plataforma'], ['filter-owner', 'Responsable'],
    ['filter-estado', 'Estado'], ['filter-agent', 'Servidor']].forEach(function (pair) {
     const el = document.getElementById(pair[0]);
     if (el && el.value) chips.push({ key: pair[0], label: pair[1], value: el.selectedOptions[0].textContent });
   });
+  if (sevFilter) chips.push({ key: 'sev', label: 'Severidad',
+    value: SEV_LABEL[SEV_KEY[sevFilter]] || sevFilter });
   const q = document.getElementById('filter-q').value.trim();
   if (q) chips.push({ key: 'filter-q', label: 'Busca', value: q });
   if (document.getElementById('filter-kev').checked) chips.push({ key: 'filter-kev', label: 'Solo KEV' });
@@ -959,7 +1007,8 @@ function renderChips() {
 }
 
 function clearFilter(key) {
-  if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
+  if (key === 'sev') { sevFilter = ''; }
+  else if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
   else {
     const el = document.getElementById(key);
     if (el.type === 'checkbox') el.checked = false; else el.value = '';
@@ -970,7 +1019,8 @@ function clearFilter(key) {
 function clearAllFilters() {
   Object.keys(QUICK).forEach(k => { quickOn[k] = false; });
   syncQuickButtons();
-  ['filter-sev', 'filter-plat', 'filter-owner', 'filter-estado', 'filter-agent'].forEach(id => {
+  sevFilter = '';
+  ['filter-plat', 'filter-owner', 'filter-estado', 'filter-agent'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('filter-q').value = '';
@@ -1100,6 +1150,7 @@ function renderPager() {
   const to = Math.min(page * pageSize, totalCves);
   document.getElementById('pagerRange').textContent =
     `Mostrando ${fmtNum.format(from)}–${fmtNum.format(to)} de ${fmtNum.format(totalCves)}`;
+  document.getElementById('pagerMobile').textContent = `Página ${page} de ${pages}`;
   document.getElementById('pgPrev').disabled = page <= 1;
   document.getElementById('pgNext').disabled = page >= pages;
 

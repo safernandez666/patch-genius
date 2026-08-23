@@ -49,7 +49,9 @@ body{margin:0;background:var(--pg-bg);color:var(--pg-text);
     overflow:hidden}
 }
 .auth-brand-inner{text-align:center;padding:40px;position:relative;z-index:1;max-width:420px}
-.auth-brand img{width:132px;height:132px;margin-bottom:22px}
+/* display:block + margin auto: como <img> inline quedaba desplazado a la
+   izquierda del texto en vez de centrado sobre el. */
+.auth-brand img{display:block;width:132px;height:132px;margin:0 auto 22px}
 .auth-brand h2{font-size:1.5rem;margin:0 0 10px;letter-spacing:-.3px}
 .auth-brand h2 b{color:var(--pg-brand)}
 .auth-brand p{color:var(--pg-text-muted);font-size:.87rem;line-height:1.65;margin:0}
