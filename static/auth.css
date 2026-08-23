@@ -1,0 +1,51 @@
+/* Pantallas de autenticación — split de dos columnas al estilo TailAdmin:
+   formulario a la izquierda, panel de marca a la derecha. El panel se oculta
+   por debajo de 1024px en vez de encogerse, que es lo que hace el original. */
+body{margin:0;background:var(--pg-bg);color:var(--pg-text);
+     font-family:Outfit,system-ui,-apple-system,Segoe UI,sans-serif}
+.auth{display:flex;min-height:100vh;flex-direction:column}
+@media (min-width:1024px){.auth{flex-direction:row}}
+.auth-form-col{display:flex;flex:1;flex-direction:column;justify-content:center;
+               padding:40px 24px}
+@media (min-width:1024px){.auth-form-col{width:50%;padding:40px 56px}}
+.auth-box{width:100%;max-width:400px;margin:0 auto}
+.auth-back{display:inline-flex;align-items:center;gap:6px;font-size:.83rem;
+           color:var(--pg-text-muted);text-decoration:none;margin-bottom:28px}
+.auth-back:hover{color:var(--pg-brand)}
+.auth h1{font-size:1.6rem;margin:0 0 6px;letter-spacing:-.4px}
+.auth .sub{margin:0 0 26px;color:var(--pg-text-muted);font-size:.87rem;line-height:1.55}
+.auth label{display:block;font-size:.79rem;color:var(--pg-text-muted);margin:16px 0 6px;font-weight:500}
+.auth label .req{color:var(--pg-sev-high)}
+.auth input[type=text],.auth input[type=password]{
+  width:100%;box-sizing:border-box;padding:11px 13px;border-radius:9px;font-size:.9rem;
+  border:1px solid var(--pg-border-strong);background:var(--pg-surface-alt);color:var(--pg-text)}
+.auth input::placeholder{color:var(--pg-text-muted);opacity:.65}
+.auth input:focus{outline:2px solid var(--pg-brand);outline-offset:0;border-color:transparent}
+.auth button[type=submit]{width:100%;margin-top:22px;padding:11px;border:0;border-radius:9px;
+  background:var(--pg-brand);color:var(--pg-on-brand);font-weight:600;font-size:.9rem;cursor:pointer}
+.auth button[type=submit]:hover{filter:brightness(1.07)}
+.auth button[type=submit]:disabled{opacity:.55;cursor:default}
+.auth .msg{margin-top:14px;font-size:.82rem;min-height:1.2em;line-height:1.5}
+.auth .msg.err{color:var(--pg-bad-fg)}
+.auth .msg.ok{color:var(--pg-ok-fg)}
+.auth .foot{margin-top:24px;font-size:.83rem;color:var(--pg-text-muted);text-align:center}
+.auth .foot a{color:var(--pg-brand)}
+.auth .hintbox{margin-top:18px;padding:11px 13px;border-radius:9px;font-size:.79rem;line-height:1.55;
+  background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border)}
+
+/* Panel de marca. Oculto en pantallas chicas: en un teléfono el formulario es
+   lo único que importa. */
+.auth-brand{display:none}
+@media (min-width:1024px){
+  .auth-brand{display:flex;width:50%;align-items:center;justify-content:center;
+    background:var(--pg-surface-deep);border-left:1px solid var(--pg-border);position:relative;
+    overflow:hidden}
+}
+.auth-brand-inner{text-align:center;padding:40px;position:relative;z-index:1;max-width:420px}
+.auth-brand img{width:132px;height:132px;margin-bottom:22px}
+.auth-brand h2{font-size:1.5rem;margin:0 0 10px;letter-spacing:-.3px}
+.auth-brand h2 b{color:var(--pg-brand)}
+.auth-brand p{color:var(--pg-text-muted);font-size:.87rem;line-height:1.65;margin:0}
+.auth-brand .glow{position:absolute;width:520px;height:520px;border-radius:50%;
+  background:radial-gradient(circle,rgba(118,171,174,.13) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%)}

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Integraciones — Patch Genius</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/tailwind.css">
+<style>
+  body{margin:0;background:var(--pg-bg);color:var(--pg-text);
+       font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.6}
+  .wrap{max-width:900px;margin:0 auto;padding:34px 20px 70px}
+  a.back{color:var(--pg-text-muted);font-size:.84rem;text-decoration:none}
+  a.back:hover{color:var(--pg-brand)}
+  h1{font-size:1.35rem;margin:14px 0 6px}
+  .sub{color:var(--pg-text-muted);font-size:.87rem;margin:0 0 26px}
+  .card{background:var(--pg-surface);border:1px solid var(--pg-border);border-radius:14px;
+        padding:20px 22px;margin-bottom:16px}
+  .head{display:flex;align-items:center;gap:13px}
+  .logo{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+        justify-content:center;background:var(--pg-surface-alt);flex:none;overflow:hidden}
+  .logo img{width:26px;height:26px;object-fit:contain}
+  .logo svg{width:22px;height:22px}
+  .head h2{font-size:.98rem;margin:0}
+  .head p{margin:2px 0 0;font-size:.79rem;color:var(--pg-text-muted)}
+  .head .grow{flex:1}
+  .state{font-size:.74rem;padding:3px 9px;border-radius:999px;font-weight:600;white-space:nowrap}
+  .state.on{background:#17593a44;color:var(--pg-ok-fg)}
+  .state.off{background:var(--pg-surface-alt);color:var(--pg-text-muted)}
+  .toggle{position:relative;width:42px;height:23px;flex:none;cursor:pointer}
+  .toggle input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--pg-border);border-radius:999px;transition:.18s}
+  .slider:before{content:"";position:absolute;width:17px;height:17px;left:3px;top:3px;
+    background:var(--pg-text);border-radius:50%;transition:.18s}
+  .toggle input:checked + .slider{background:var(--pg-brand)}
+  .toggle input:checked + .slider:before{transform:translateX(19px);background:var(--pg-on-brand)}
+  .body{margin-top:16px;padding-top:16px;border-top:1px solid var(--pg-border);display:none}
+  .body.open{display:block}
+  label{display:block;font-size:.77rem;color:var(--pg-text-muted);margin:12px 0 5px}
+  input[type=text],input[type=password],input[type=number],select{
+    width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;font-size:.87rem;
+    border:1px solid var(--pg-border-strong);background:var(--pg-surface-alt);color:var(--pg-text)}
+  input:focus,select:focus{outline:2px solid var(--pg-brand);border-color:transparent}
+  .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:180px}
+  .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.83rem;color:var(--pg-text-soft)}
+  .check input{width:16px;height:16px}
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  button.act{padding:8px 15px;border:0;border-radius:8px;font-weight:600;font-size:.84rem;cursor:pointer}
+  .primary{background:var(--pg-brand);color:var(--pg-on-brand)}
+  .ghost{background:var(--pg-ghost);color:var(--pg-text-soft)}
+  .msg{margin-top:13px;font-size:.82rem;padding:10px 12px;border-radius:8px;display:none;line-height:1.5}
+  .msg.ok{background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border);display:block}
+  .msg.bad{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border);display:block}
+  .hint{font-size:.76rem;color:var(--pg-text-muted);margin:4px 0 0;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; <span data-i18n="nav.back">Volver al panel</span></a>
+  <h1 data-i18n="integr.title">Integraciones</h1>
+  <p class="sub" data-i18n="integr.sub">Avisos y tickets a partir de lo que encuentra Patch Genius.
+    Todas están desactivadas por defecto y sus credenciales se guardan cifradas.</p>
+  <div id="cards"></div>
+</div>
+
+<script src="/static/i18n.js"></script>
+<script>
+const SVG = {
+  smtp: '<svg viewBox="0 0 24 24" fill="none" stroke="#76abae" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>',
+  jira: '<svg viewBox="0 0 24 24" fill="#2684FF"><path d="M11.5 2 3 10.5a1 1 0 0 0 0 1.4l8.5 8.5 3-3-6.5-6.2 6.5-6.2z"/><path d="M12.5 22 21 13.5a1 1 0 0 0 0-1.4L12.5 3.6l-3 3 6.5 6.2-6.5 6.2z" opacity=".6"/></svg>',
+  slack: '<svg viewBox="0 0 24 24" fill="none" stroke="#E01E5A" stroke-width="1.9" stroke-linecap="round"><path d="M9 3v9M15 12v9M3 9h9M12 15h9" /><circle cx="9" cy="3" r="1.6"/><circle cx="15" cy="21" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="21" cy="15" r="1.6"/></svg>',
+  teams: '<svg viewBox="0 0 24 24" fill="none" stroke="#6264A7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M6 9h6M9 9v6"/><circle cx="18.5" cy="7" r="2.2"/><path d="M16 12h5v4a2.5 2.5 0 0 1-2.5 2.5H17"/></svg>',
+};
+
+const DEFS = [
+  { name: 'smtp', title: 'SMTP', desc: 'Recordatorios por correo al responsable de cada CVE',
+    fields: [
+      { k: 'host', l: 'Servidor', ph: 'smtp.tudominio.com' },
+      { k: 'port', l: 'Puerto', type: 'number', ph: '587', half: true },
+      { k: 'username', l: 'Usuario', ph: 'opcional', half: true },
+      { k: 'from_addr', l: 'Remitente', ph: 'patch-genius@tudominio.com' },
+    ],
+    checks: [ { k: 'use_tls', l: 'STARTTLS', def: true }, { k: 'use_ssl', l: 'SSL directo (puerto 465)' } ],
+    secret: 'Contraseña', testField: { k: 'to', l: 'Enviar prueba a', ph: 'vos@tudominio.com' },
+    hint: 'La prueba manda un correo de verdad.' },
+  { name: 'jira', title: 'Jira', desc: 'Abrir un ticket desde un CVE y guardar la clave del issue',
+    fields: [
+      { k: 'url', l: 'URL de Jira', ph: 'https://tuempresa.atlassian.net' },
+      { k: 'email', l: 'E-mail de la cuenta', ph: 'vos@tuempresa.com', half: true },
+      { k: 'project', l: 'Clave del proyecto', ph: 'SEC', half: true },
+      { k: 'issue_type', l: 'Tipo de issue', ph: 'Task', half: true },
+    ],
+    secret: 'API token',
+    hint: 'El token se genera en id.atlassian.com. La prueba solo valida credenciales, no crea nada.' },
+  { name: 'slack', title: 'Slack', desc: 'Avisar cuando aparece un CVE en KEV o vence un SLA',
+    fields: [ { k: 'channel', l: 'Canal (informativo)', ph: '#seguridad' } ],
+    secret: 'URL del webhook entrante',
+    hint: 'La URL del webhook es un secreto: quien la tenga puede publicar en el canal. Va cifrada.' },
+  { name: 'teams', title: 'Microsoft Teams', desc: 'Mismos avisos que Slack, por webhook entrante',
+    fields: [ { k: 'channel', l: 'Canal (informativo)', ph: 'SOC' } ],
+    secret: 'URL del webhook entrante',
+    hint: 'Se configura en el canal: Conectores → Incoming Webhook.' },
+];
+
+let STATE = {};
+
+function field(n, f, v) {
+  return `<div${f.half ? '' : ' style="min-width:100%"'}>
+    <label for="${n}-${f.k}">${f.l}</label>
+    <input id="${n}-${f.k}" type="${f.type || 'text'}" placeholder="${f.ph || ''}"
+           value="${v == null ? '' : String(v).replace(/"/g, '&quot;')}"></div>`;
+}
+
+function render() {
+  document.getElementById('cards').innerHTML = DEFS.map(function (d) {
+    const st = STATE[d.name] || { enabled: false, settings: {}, has_secret: false };
+    const logo = d.name === 'smtp' ? SVG.smtp : SVG[d.name];
+    return `<div class="card" data-n="${d.name}">
+      <div class="head">
+        <span class="logo">${logo}</span>
+        <div><h2>${d.title}</h2><p>${d.desc}</p></div>
+        <span class="grow"></span>
+        <span class="state ${st.enabled ? 'on' : 'off'}">${st.enabled ? 'Activa' : 'Inactiva'}</span>
+        <label class="toggle"><input type="checkbox" id="${d.name}-en" ${st.enabled ? 'checked' : ''}
+               onchange="toggleBody('${d.name}')"><span class="slider"></span></label>
+      </div>
+      <div class="body ${st.enabled ? 'open' : ''}" id="${d.name}-body">
+        <div class="row">${d.fields.map(f => field(d.name, f, st.settings[f.k])).join('')}</div>
+        ${(d.checks || []).map(c => `<label class="check"><input type="checkbox" id="${d.name}-${c.k}"
+             ${st.settings[c.k] ?? c.def ? 'checked' : ''}> ${c.l}</label>`).join('')}
+        <label for="${d.name}-secret">${d.secret}</label>
+        <input id="${d.name}-secret" type="password" autocomplete="new-password"
+               placeholder="${st.has_secret ? '(guardado — dejar vacío para no cambiarlo)' : 'sin configurar'}">
+        ${d.testField ? `<label for="${d.name}-${d.testField.k}">${d.testField.l}</label>
+          <input id="${d.name}-${d.testField.k}" type="text" placeholder="${d.testField.ph}">` : ''}
+        <p class="hint">${d.hint}</p>
+        <div class="actions">
+          <button type="button" class="act ghost" onclick="testOne('${d.name}')">Probar</button>
+          <button type="button" class="act primary" onclick="saveOne('${d.name}')">Guardar</button>
+        </div>
+        <div class="msg" id="${d.name}-msg"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleBody(n) {
+  document.getElementById(n + '-body').classList.toggle('open',
+    document.getElementById(n + '-en').checked);
+}
+
+function collect(n) {
+  const d = DEFS.find(x => x.name === n);
+  const settings = {};
+  d.fields.forEach(f => {
+    const v = document.getElementById(n + '-' + f.k).value.trim();
+    if (v) settings[f.k] = f.type === 'number' ? parseInt(v, 10) : v;
+  });
+  (d.checks || []).forEach(c => { settings[c.k] = document.getElementById(n + '-' + c.k).checked; });
+  const body = { enabled: document.getElementById(n + '-en').checked, settings: settings };
+  const sec = document.getElementById(n + '-secret').value;
+  if (sec) body.secret = sec;               // vacío = conservar el guardado
+  if (d.testField) {
+    const t = document.getElementById(n + '-' + d.testField.k);
+    if (t && t.value.trim()) body[d.testField.k] = t.value.trim();
+  }
+  return body;
+}
+
+function say(n, kind, text) {
+  const m = document.getElementById(n + '-msg');
+  m.className = 'msg ' + kind; m.textContent = text;
+}
+
+async function saveOne(n) {
+  const r = await fetch('/api/integrations/' + n, {
+    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(collect(n))});
+  if (r.ok) { document.getElementById(n + '-secret').value = ''; await load(); say(n, 'ok', 'Guardado.'); }
+  else { const d = await r.json().catch(() => ({})); say(n, 'bad', d.detail || ('Error ' + r.status)); }
+}
+
+async function testOne(n) {
+  say(n, '', 'Probando…');
+  const r = await fetch('/api/integrations/' + n + '/test', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(collect(n))});
+  const d = await r.json().catch(() => ({}));
+  if (r.ok && d.ok) say(n, 'ok', d.detail || ('Conectado' + (d.account ? ' como ' + d.account : '') + '.'));
+  else say(n, 'bad', d.error || d.detail || ('Error ' + r.status));
+}
+
+async function load() {
+  const r = await fetch('/api/integrations');
+  if (r.status === 401) { window.location = '/login'; return; }
+  const d = await r.json();
+  STATE = {};
+  (d.integrations || []).forEach(i => { STATE[i.name] = i; });
+  render();
+}
+load();
+</script>
+</body>
+</html>

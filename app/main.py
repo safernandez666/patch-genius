@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from app.auth import SESSION_COOKIE, AuthError, AuthManager
 from app.config_store import ConfigError, ConfigStore
 from app.ingest import migrate_assignments, run_ingest
+from app.notify import NotifyError, jira_ping, post_webhook, send_email
 from app.scoring import SEV_RANK, sev_rank
 from app.settings import settings
 from app.vuln_store import ASSIGNMENT_STATUSES, VulnStore
@@ -107,6 +108,8 @@ async def version():
 @app.get("/")
 async def index(request: Request):
     if not await current_user(request):
+        if not await request.app.state.auth.has_users():
+            return RedirectResponse("/signup", status_code=302)
         return RedirectResponse("/login", status_code=302)
     return FileResponse("static/index.html")
 
@@ -140,8 +143,53 @@ async def require_admin(request: Request) -> str:
 
 
 @app.get("/login")
-async def login_page():
+async def login_page(request: Request):
+    # Nothing to sign in to yet: send the first operator to set up their account.
+    if not await request.app.state.auth.has_users():
+        return RedirectResponse("/signup", status_code=302)
     return FileResponse("static/login.html")
+
+
+@app.get("/signup")
+async def signup_page(request: Request):
+    """First-run setup. Closes itself once an account exists."""
+    if await request.app.state.auth.has_users():
+        return RedirectResponse("/login", status_code=302)
+    return FileResponse("static/signup.html")
+
+
+@app.get("/api/lang")
+async def api_lang(request: Request):
+    """Idioma de la interfaz. Sin autenticacion: las pantallas de login y de
+    setup tambien se traducen, y el idioma no es informacion sensible."""
+    cfg = await request.app.state.config_store.load_public()
+    return {"lang": cfg.get("lang", "es")}
+
+
+@app.get("/api/setup-state")
+async def api_setup_state(request: Request):
+    """Whether the deployment still needs its first account."""
+    return {"needs_setup": not await request.app.state.auth.has_users()}
+
+
+@app.post("/api/signup")
+async def api_signup(request: Request, response: Response):
+    body = await request.json()
+    try:
+        await request.app.state.auth.create_first_user(
+            str(body.get("username", "")), str(body.get("password", ""))
+        )
+    except AuthError as exc:
+        # "an account already exists" is a 409, not a validation error: the page
+        # was open when someone else finished the setup.
+        code = 409 if "already exists" in str(exc) else 400
+        raise HTTPException(status_code=code, detail=str(exc)) from exc
+    token = request.app.state.auth.issue_session(str(body.get("username", "")).strip())
+    response.set_cookie(
+        SESSION_COOKIE, token, httponly=True, samesite="lax",
+        secure=request.url.scheme == "https", max_age=8 * 60 * 60,
+    )
+    return {"ok": True}
 
 
 @app.post("/api/login")
@@ -223,6 +271,69 @@ async def api_config_test(request: Request, user: str = Depends(require_admin)):
         return {"ok": True, **await client.ping()}
     except WazuhIndexerError as exc:
         return {"ok": False, "error": str(exc)}
+
+
+@app.get("/integraciones")
+async def integrations_page():
+    return FileResponse("static/integraciones.html")
+
+
+@app.get("/api/integrations")
+async def api_integrations(request: Request, user: str = Depends(require_admin)):
+    return {"integrations": await request.app.state.config_store.load_integrations_public()}
+
+
+@app.put("/api/integrations/{name}")
+async def api_integration_save(name: str, request: Request, user: str = Depends(require_admin)):
+    body = await request.json()
+    try:
+        return await request.app.state.config_store.save_integration(
+            name,
+            enabled=bool(body.get("enabled")),
+            settings=body.get("settings") or {},
+            secret=body.get("secret"),
+            updated_by=user,
+        )
+    except ConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/integrations/{name}/test")
+async def api_integration_test(name: str, request: Request, user: str = Depends(require_admin)):
+    """Ejercitar la integracion de verdad: mandar el correo, tocar Jira, publicar
+    en el canal. Un 'guardado' que nunca se probo no dice nada."""
+    body = await request.json()
+    store = request.app.state.config_store
+    try:
+        cfg = await store.load_integration(name)
+    except ConfigError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    # Permitir probar lo que hay en pantalla sin haberlo guardado todavia.
+    if body.get("settings"):
+        cfg["settings"] = {**cfg["settings"], **body["settings"]}
+    if body.get("secret"):
+        cfg["secret"] = body["secret"]
+
+    try:
+        if name == "smtp":
+            to = (body.get("to") or cfg["settings"].get("from_addr") or "").strip()
+            if not to:
+                raise NotifyError("indica una direccion de destino para la prueba")
+            await asyncio.to_thread(
+                send_email, cfg, to,
+                "Patch Genius — prueba de configuracion",
+                "Si estas leyendo esto, el SMTP de Patch Genius quedo bien configurado.",
+            )
+            return {"ok": True, "detail": f"correo enviado a {to}"}
+        if name == "jira":
+            return {"ok": True, **await jira_ping(cfg)}
+        if name in ("slack", "teams"):
+            await post_webhook(cfg, "Patch Genius: prueba de configuracion.", name)
+            return {"ok": True, "detail": "mensaje publicado"}
+    except NotifyError as exc:
+        return {"ok": False, "error": str(exc)}
+    raise HTTPException(status_code=404, detail=f"unknown integration: {name}")
 
 
 @app.post("/api/password")

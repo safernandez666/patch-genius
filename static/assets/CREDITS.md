@@ -18,3 +18,9 @@ Outfit typeface — SIL Open Font License 1.1.
 ## apexcharts.min.js (vendor/)
 
 ApexCharts — MIT License.
+
+## wazuh.webp
+
+Wazuh logo, from the [dashboard-icons](https://github.com/homarr-labs/dashboard-icons)
+collection. Used to identify the Wazuh integration in the UI. Wazuh is a trademark of
+Wazuh Inc.; this project is not affiliated with or endorsed by them.
