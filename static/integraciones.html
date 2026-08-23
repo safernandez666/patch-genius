@@ -268,7 +268,14 @@ function say(n, kind, text) {
 async function saveOne(n) {
   const r = await fetch('/api/integrations/' + n, {
     method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(collect(n))});
-  if (r.ok) { document.getElementById(n + '-secret').value = ''; await load(); say(n, 'ok', 'Saved.'); }
+  if (r.ok) {
+    document.getElementById(n + '-secret').value = '';
+    document.getElementById(n + '-en').checked = true;
+    await load();
+    say(n, 'ok', 'Saved.');
+    // Collapse the card body so the user sees the save happened and the page is tidy.
+    document.getElementById(n + '-body').classList.remove('open');
+  }
   else { const d = await r.json().catch(() => ({})); say(n, 'bad', d.detail || ('Error ' + r.status)); }
 }
 
