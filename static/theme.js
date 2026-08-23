@@ -1,4 +1,4 @@
-/* Selector de tema claro/oscuro — versión recortada para la demo pública
+/* Selector de tema claro/oscuro
  * (el original soporta varios "brands" de cliente; acá solo hay dos temas
  * visuales, sin logos ni paletas de marca).
  *

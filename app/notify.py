@@ -7,6 +7,7 @@ stored encrypted by ConfigStore, never in the repository.
 A webhook URL is itself a credential: anyone holding it can post into the
 channel, so Slack and Teams treat theirs the same way as a password.
 """
+
 from __future__ import annotations
 
 import smtplib
@@ -44,8 +45,9 @@ def send_email(cfg: Dict[str, Any], to: str, subject: str, body: str) -> None:
 
     try:
         if s.get("use_ssl"):
-            server = smtplib.SMTP_SSL(host, port, timeout=TIMEOUT,
-                                      context=ssl.create_default_context())
+            server = smtplib.SMTP_SSL(
+                host, port, timeout=TIMEOUT, context=ssl.create_default_context()
+            )
         else:
             server = smtplib.SMTP(host, port, timeout=TIMEOUT)
         with server:
@@ -77,16 +79,22 @@ async def create_jira_issue(cfg: Dict[str, Any], summary: str, description: str)
             "issuetype": {"name": s.get("issue_type") or "Task"},
             # Jira Cloud expects Atlassian Document Format, not plain text.
             "description": {
-                "type": "doc", "version": 1,
-                "content": [{"type": "paragraph",
-                             "content": [{"type": "text", "text": description[:30000]}]}],
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": description[:30000]}],
+                    }
+                ],
             },
         }
     }
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            r = await client.post(f"{base}/rest/api/3/issue",
-                                  json=payload, auth=(email, cfg.get("secret") or ""))
+            r = await client.post(
+                f"{base}/rest/api/3/issue", json=payload, auth=(email, cfg.get("secret") or "")
+            )
             r.raise_for_status()
     except httpx.HTTPStatusError as exc:
         raise NotifyError(
@@ -108,8 +116,9 @@ async def jira_ping(cfg: Dict[str, Any]) -> Dict[str, Any]:
         raise NotifyError("Jira URL is not configured")
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            r = await client.get(f"{base}/rest/api/3/myself",
-                                 auth=(s.get("email", ""), cfg.get("secret") or ""))
+            r = await client.get(
+                f"{base}/rest/api/3/myself", auth=(s.get("email", ""), cfg.get("secret") or "")
+            )
             r.raise_for_status()
     except httpx.HTTPStatusError as exc:
         raise NotifyError(f"Jira returned {exc.response.status_code}") from exc
@@ -130,10 +139,17 @@ async def post_webhook(cfg: Dict[str, Any], text: str, kind: str) -> None:
     url = cfg.get("secret") or ""
     if not url:
         raise NotifyError(f"{kind} webhook URL is not configured")
-    payload = {"text": text} if kind == "slack" else {
-        "@type": "MessageCard", "@context": "https://schema.org/extensions",
-        "summary": "Patch Genius", "themeColor": "FF5722", "text": text,
-    }
+    payload = (
+        {"text": text}
+        if kind == "slack"
+        else {
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Patch Genius",
+            "themeColor": "FF5722",
+            "text": text,
+        }
+    )
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             r = await client.post(url, json=payload)

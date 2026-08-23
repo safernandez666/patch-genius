@@ -27,6 +27,7 @@ USERS_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS app_users (
     username TEXT PRIMARY KEY,
     password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'admin',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_login TIMESTAMP WITH TIME ZONE
 );
@@ -76,9 +77,10 @@ class AuthManager:
         if len(bootstrap_password) < 12:
             raise AuthError("ADMIN_PASSWORD must be at least 12 characters")
         await self._pool.execute(
-            "INSERT INTO app_users (username, password_hash) VALUES ($1, $2)",
+            "INSERT INTO app_users (username, password_hash, role) VALUES ($1, $2, $3)",
             bootstrap_user,
             hash_password(bootstrap_password),
+            "admin",
         )
         logger.info("auth_bootstrap_user_created", username=bootstrap_user)
 
@@ -119,8 +121,10 @@ class AuthManager:
                 if await conn.fetchval("SELECT 1 FROM app_users LIMIT 1"):
                     raise AuthError("an account already exists")
                 await conn.execute(
-                    "INSERT INTO app_users (username, password_hash) VALUES ($1, $2)",
-                    username, hash_password(password),
+                    "INSERT INTO app_users (username, password_hash, role) VALUES ($1, $2, $3)",
+                    username,
+                    hash_password(password),
+                    "admin",
                 )
         logger.info("auth_first_user_created", username=username)
 
@@ -132,6 +136,18 @@ class AuthManager:
             hash_password(password),
             username,
         )
+
+    async def get_user(self, username: str) -> Optional[Dict[str, Any]]:
+        row = await self._pool.fetchrow(
+            "SELECT username, role FROM app_users WHERE username = $1", username
+        )
+        if row is None:
+            return None
+        return {"username": row["username"], "role": row["role"]}
+
+    async def is_admin(self, username: str) -> bool:
+        user = await self.get_user(username)
+        return user is not None and user.get("role") == "admin"
 
     def issue_session(self, username: str) -> str:
         return self._serializer.dumps({"u": username})

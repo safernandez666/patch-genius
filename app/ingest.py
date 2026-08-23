@@ -46,10 +46,9 @@ CREATE TABLE IF NOT EXISTS vuln_cve_agent_state (
 CREATE INDEX IF NOT EXISTS vuln_cve_agent_state_cve_idx ON vuln_cve_agent_state (cve);
 """
 
-# Existing installs key assignments by CVE alone. Widen to (cve, agent_id) and
-# keep old rows as fleet-wide assignments under the empty agent id.
-ASSIGNMENT_MIGRATION_SQL = """
-ALTER TABLE vuln_assignments ADD COLUMN IF NOT EXISTS agent_id TEXT NOT NULL DEFAULT '';
+# Historical migration: ensure the per-(CVE, agent) lifecycle table exists and
+# has the columns the ingest code expects.
+AGENT_STATE_MIGRATION_SQL = """
 ALTER TABLE vuln_cve_agent_state
   ADD COLUMN IF NOT EXISTS severidad TEXT NOT NULL DEFAULT 'Untriaged';
 ALTER TABLE vuln_cve_agent_state ADD COLUMN IF NOT EXISTS reopened_at DATE;
@@ -57,27 +56,9 @@ ALTER TABLE vuln_cve_agent_state ADD COLUMN IF NOT EXISTS reopened_at DATE;
 
 
 async def migrate_assignments(pool: asyncpg.Pool) -> None:
-    """Widen vuln_assignments to (cve, agent_id) without losing existing rows."""
+    """Create vuln_cve_agent_state and apply minor column migrations."""
     await pool.execute(AGENT_STATE_SQL)
-    await pool.execute(ASSIGNMENT_MIGRATION_SQL)
-    pk = await pool.fetchval(
-        """
-        SELECT constraint_name FROM information_schema.table_constraints
-        WHERE table_name = 'vuln_assignments' AND constraint_type = 'PRIMARY KEY'
-        """
-    )
-    # Only rebuild the key when it is still the single-column original.
-    cols = await pool.fetch(
-        """
-        SELECT column_name FROM information_schema.key_column_usage
-        WHERE constraint_name = $1 AND table_name = 'vuln_assignments'
-        """,
-        pk,
-    )
-    if pk and len(cols) == 1:
-        await pool.execute(f'ALTER TABLE vuln_assignments DROP CONSTRAINT "{pk}"')
-        await pool.execute("ALTER TABLE vuln_assignments ADD PRIMARY KEY (cve, agent_id)")
-        logger.info("vuln_assignments_key_widened")
+    await pool.execute(AGENT_STATE_MIGRATION_SQL)
 
 
 async def collect(config: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:

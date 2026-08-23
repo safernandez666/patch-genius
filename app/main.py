@@ -164,6 +164,8 @@ async def require_admin(request: Request) -> str:
     user = await current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="authentication required")
+    if not await request.app.state.auth.is_admin(user):
+        raise HTTPException(status_code=403, detail="admin role required")
     return user
 
 
@@ -197,6 +199,18 @@ async def api_setup_state(request: Request):
     return {"needs_setup": not await request.app.state.auth.has_users()}
 
 
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    """Return the current session's user and role for the UI sidebar."""
+    user = await current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="authentication required")
+    info = await request.app.state.auth.get_user(user)
+    if info is None:
+        raise HTTPException(status_code=401, detail="authentication required")
+    return {"user": {"username": info["username"], "role": info["role"], "name": info["username"]}}
+
+
 @app.post("/api/signup")
 async def api_signup(request: Request, response: Response):
     body = await request.json()
@@ -211,8 +225,12 @@ async def api_signup(request: Request, response: Response):
         raise HTTPException(status_code=code, detail=str(exc)) from exc
     token = request.app.state.auth.issue_session(str(body.get("username", "")).strip())
     response.set_cookie(
-        SESSION_COOKIE, token, httponly=True, samesite="lax",
-        secure=request.url.scheme == "https", max_age=8 * 60 * 60,
+        SESSION_COOKIE,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https",
+        max_age=8 * 60 * 60,
     )
     return {"ok": True}
 
@@ -235,7 +253,11 @@ async def api_login(request: Request, response: Response):
         secure=request.url.scheme == "https",
         max_age=8 * 60 * 60,
     )
-    return {"ok": True, "user": user}
+    return {
+        "ok": True,
+        "user": user,
+        "role": (await request.app.state.auth.get_user(user) or {}).get("role", "admin"),
+    }
 
 
 @app.post("/api/logout")
@@ -364,7 +386,9 @@ async def api_integration_test(name: str, request: Request, user: str = Depends(
             if not to:
                 raise NotifyError("indica una direccion de destino para la prueba")
             await asyncio.to_thread(
-                send_email, cfg, to,
+                send_email,
+                cfg,
+                to,
                 "Patch Genius — prueba de configuracion",
                 "Si estas leyendo esto, el SMTP de Patch Genius quedo bien configurado.",
             )
@@ -397,12 +421,16 @@ async def _make_brief(app: FastAPI, cfg: Optional[Dict[str, Any]] = None) -> Dic
     app_cfg = await app.state.config_store.load_public()
     snapshot = build_snapshot(state, rows, metrics or {})
     result = await generate_brief(cfg, snapshot, language=app_cfg.get("lang", "en"))
-    await store.save_priority_brief(result["text"], {
-        "provider": result["provider"], "model": result["model"],
-        "input_tokens": result.get("input_tokens"),
-        "output_tokens": result.get("output_tokens"),
-        "cves": [r["cve"] for r in rows[:25]],
-    })
+    await store.save_priority_brief(
+        result["text"],
+        {
+            "provider": result["provider"],
+            "model": result["model"],
+            "input_tokens": result.get("input_tokens"),
+            "output_tokens": result.get("output_tokens"),
+            "cves": [r["cve"] for r in rows[:25]],
+        },
+    )
     logger.info("brief_generated", provider=result["provider"], model=result["model"])
     return result
 

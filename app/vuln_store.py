@@ -1,9 +1,5 @@
 """Persistencia del seguimiento de vulnerabilidades (Postgres).
 
-Adaptado de un sistema SOC productivo para esta demo pública: se sacó la
-auditoría (no tiene sentido un audit trail sin usuarios reales) — el resto
-del esquema y la lógica son los mismos.
-
 Cinco tablas, creadas con ``CREATE TABLE IF NOT EXISTS`` al conectar:
 
 * ``vuln_cve_state`` — ciclo de vida por CVE (first_seen / last_seen / status).
@@ -14,8 +10,7 @@ Cinco tablas, creadas con ``CREATE TABLE IF NOT EXISTS`` al conectar:
   mano desde la pantalla.
 * ``vuln_state_cache`` — fila única con el último estado "enriquecido"
   (CVSS/EPSS/KEV/priority_score). La pantalla lee de acá siempre.
-* ``vuln_priority_brief`` — fila única con un párrafo de "qué priorizar"
-  (no se genera en esta demo — queda vacía salvo que se cargue a mano).
+* ``vuln_priority_brief`` — fila única con un párrafo de "qué priorizar".
 """
 
 from __future__ import annotations

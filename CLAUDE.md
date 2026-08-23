@@ -17,6 +17,7 @@ Docker is the only supported path:
 
 ```bash
 cp .env.example .env
+./scripts/setup-env.sh
 docker compose up --build      # http://localhost:8000
 ```
 
@@ -25,15 +26,14 @@ admin password. Every route requires a login; startup fails deliberately if no a
 exists and `ADMIN_PASSWORD` is unset, because that would lock the deployment out.
 
 **Gotcha:** `postgres_host` defaults to `postgres`, which only resolves inside the compose
-network. Running uvicorn or the seed script on the host needs `POSTGRES_HOST=localhost`
-plus a published Postgres port (compose deliberately does not publish one), or
-`POSTGRES_DSN_OVERRIDE`.
+network. Running uvicorn on the host needs `POSTGRES_HOST=localhost` plus a published
+Postgres port (compose deliberately does not publish one), or `POSTGRES_DSN_OVERRIDE`.
 
 ## Tests, lint, format
 
 ```bash
 pip install -r requirements-dev.txt   # pytest + ruff
-pytest              # tests/ — currently covers app/scoring.py only
+pytest              # tests/
 ruff format .
 ruff check .
 ```
@@ -45,11 +45,10 @@ A PostToolUse hook runs `ruff format` on each Python file you edit.
 
 ## Deliberate design constraints
 
-Do not "fix" these — they were removed on purpose when extracting the demo:
-
-- **No authentication anywhere.** CORS is `allow_origins=["*"]` and `updated_by` is
-  hardcoded to `"visitante-demo"`. Any visitor can create or delete assignments. Do not
-  restore auth, audit trail, live Wazuh/EPSS/CISA polling, or email without being asked.
+- Every route requires authentication. There is no anonymous view.
+- Routes that modify configuration, integrations, passwords, or that trigger an ingest
+  require the `admin` role (`require_admin`). Read-only users are supported at the schema
+  level even though the UI currently creates only admins on first run.
 - `/vulnerabilities/summary` and `/vulnerabilities/cves` must keep sharing the
   `_vuln_rows` / `_apply_vuln_filters` helpers in `app/main.py` so KPIs and the table
   never desync. New filtering logic goes in those helpers, not in one route.

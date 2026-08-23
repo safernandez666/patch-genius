@@ -1,4 +1,5 @@
 """The CVE table must always lead with the highest priority."""
+
 from __future__ import annotations
 
 from app.main import _sort_by_priority
@@ -6,8 +7,11 @@ from app.main import _sort_by_priority
 
 def row(cve, score, sev="High", kev=False, dias=0):
     return {
-        "cve": cve, "priority_score": score, "severidad": sev,
-        "kev": kev, "dias_detectado": dias,
+        "cve": cve,
+        "priority_score": score,
+        "severidad": sev,
+        "kev": kev,
+        "dias_detectado": dias,
     }
 
 

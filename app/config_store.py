@@ -170,7 +170,6 @@ class ConfigStore:
             logger.error("app_config_decrypt_failed")
             return ""
 
-
     # ------------------------------------------------------------------
     # Integraciones
     # ------------------------------------------------------------------
@@ -178,9 +177,7 @@ class ConfigStore:
         """Configuracion de una integracion, con el secreto descifrado."""
         if name not in INTEGRATIONS:
             raise ConfigError(f"unknown integration: {name}")
-        row = await self._pool.fetchrow(
-            "SELECT * FROM app_integrations WHERE name = $1", name
-        )
+        row = await self._pool.fetchrow("SELECT * FROM app_integrations WHERE name = $1", name)
         if row is None:
             return {"name": name, "enabled": False, "settings": {}, "secret": ""}
         import json as _json
@@ -206,8 +203,12 @@ class ConfigStore:
         return out
 
     async def save_integration(
-        self, name: str, enabled: bool, settings: Dict[str, Any],
-        secret: Optional[str], updated_by: str,
+        self,
+        name: str,
+        enabled: bool,
+        settings: Dict[str, Any],
+        secret: Optional[str],
+        updated_by: str,
     ) -> Dict[str, Any]:
         if name not in INTEGRATIONS:
             raise ConfigError(f"unknown integration: {name}")
@@ -226,7 +227,11 @@ class ConfigStore:
                 secret_enc = EXCLUDED.secret_enc, updated_at = NOW(),
                 updated_by = EXCLUDED.updated_by
             """,
-            name, bool(enabled), _json.dumps(settings or {}), enc, updated_by,
+            name,
+            bool(enabled),
+            _json.dumps(settings or {}),
+            enc,
+            updated_by,
         )
         logger.info("integration_saved", name=name, enabled=bool(enabled), by=updated_by)
         item = await self.load_integration(name)

@@ -9,6 +9,7 @@ a hosted model means that inventory leaves the network. Anyone who cannot accept
 that runs a local model instead and nothing leaves. The feature is disabled by
 default and the UI states plainly what is sent.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
@@ -101,8 +102,7 @@ def build_snapshot(
     kev = [r for r in rows if r.get("kev")]
     ransom = [r for r in kev if r.get("kev_ransomware")]
     lines.append(
-        f"\nIn CISA KEV: {len(kev)}, of which {len(ransom)} have a known"
-        " ransomware campaign."
+        f"\nIn CISA KEV: {len(kev)}, of which {len(ransom)} have a known ransomware campaign."
     )
 
     lines.append("\nTop findings by priority score:")
