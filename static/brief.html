@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What to prioritise — Patch Genius</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/tailwind.css">
+<style>
+  body{margin:0;background:var(--pg-bg);color:var(--pg-text);
+       font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.65}
+  .wrap{max-width:900px;margin:0 auto;padding:34px 24px 70px}
+  a.back{color:var(--pg-text-muted);font-size:.84rem;text-decoration:none}
+  a.back:hover{color:var(--pg-brand)}
+  h1{font-size:1.35rem;margin:14px 0 6px;display:flex;align-items:center;gap:11px}
+  h1 .lamp{width:30px;height:30px;flex:none;background-color:var(--pg-brand);
+    -webkit-mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain;
+    mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain}
+  .sub{color:var(--pg-text-muted);font-size:.87rem;margin:0 0 24px}
+  .card{background:var(--pg-surface);border:1px solid var(--pg-border);
+        border-radius:14px;padding:26px 28px}
+  .bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;
+       padding-bottom:16px;border-bottom:1px solid var(--pg-border)}
+  .meta{font-size:.78rem;color:var(--pg-text-muted)}
+  button{padding:8px 15px;border:0;border-radius:8px;font-weight:600;font-size:.84rem;
+         cursor:pointer;background:var(--pg-brand);color:var(--pg-on-brand)}
+  button:disabled{opacity:.55;cursor:default}
+  #body{white-space:pre-wrap;font-size:.95rem;line-height:1.8;color:var(--pg-text-soft)}
+  .empty{color:var(--pg-text-muted);font-size:.88rem;line-height:1.7}
+  .empty a{color:var(--pg-brand)}
+  .warn{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
+        border-radius:9px;padding:12px 14px;font-size:.8rem;line-height:1.55;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; Back to dashboard</a>
+  <h1><span class="lamp" aria-hidden="true"></span>What to prioritise</h1>
+  <p class="sub">What the fleet's current state says you should patch first, written from the
+    same ranking the dashboard shows.</p>
+
+  <div class="card">
+    <div class="bar">
+      <span class="meta" id="meta">…</span>
+      <span style="flex:1"></span>
+      <button type="button" id="btn" onclick="regen()">Regenerate</button>
+    </div>
+    <div id="body"></div>
+  </div>
+
+  <p class="warn">The brief is built from your fleet's real state, hostnames included. With a
+    hosted model that leaves your network; with a local one it does not. Configure it in
+    <a href="/integraciones" style="color:inherit;text-decoration:underline">Integrations</a>.</p>
+</div>
+
+<script src="/static/i18n.js"></script>
+<script>
+function ago(iso) {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  if (min < 1440) return `${Math.round(min / 60)} h ago`;
+  return `${Math.round(min / 1440)} d ago`;
+}
+
+async function load() {
+  const body = document.getElementById('body');
+  const meta = document.getElementById('meta');
+  try {
+    const r = await fetch('/vulnerabilities/priority-brief');
+    if (r.status === 401) { window.location = '/login'; return; }
+    const d = await r.json();
+    if (!d || !d.brief) {
+      meta.textContent = '';
+      body.innerHTML = '<p class="empty">No brief yet. Enable the AI integration in '
+        + '<a href="/integraciones">Integrations</a>, then generate one — it is also '
+        + 'written automatically once a day after the ingest.</p>';
+      return;
+    }
+    body.textContent = d.brief;
+    const refs = d.cve_refs || {};
+    const bits = [`Generated ${ago(d.updated_at)}`];
+    if (refs.model) bits.push(refs.model);
+    if (refs.cves) bits.push(`${refs.cves.length} CVEs considered`);
+    meta.textContent = bits.join(' · ');
+  } catch (e) {
+    meta.textContent = '';
+    body.innerHTML = '<p class="empty">Could not load the brief.</p>';
+  }
+}
+
+async function regen() {
+  const b = document.getElementById('btn'), body = document.getElementById('body');
+  b.disabled = true; const prev = b.textContent; b.textContent = 'Generating…';
+  try {
+    const r = await fetch('/api/brief', { method: 'POST' });
+    if (r.ok) { await load(); }
+    else {
+      const d = await r.json().catch(() => ({}));
+      body.innerHTML = '<p class="empty">Could not generate: '
+        + (d.detail || r.status) + '</p>';
+    }
+  } catch (e) {
+    body.innerHTML = '<p class="empty">Could not generate: ' + e.message + '</p>';
+  }
+  b.disabled = false; b.textContent = prev;
+}
+load();
+</script>
+</body>
+</html>

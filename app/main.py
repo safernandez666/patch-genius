@@ -298,6 +298,11 @@ async def api_config_test(request: Request, user: str = Depends(require_admin)):
         return {"ok": False, "error": str(exc)}
 
 
+@app.get("/brief")
+async def brief_page():
+    return FileResponse("static/brief.html")
+
+
 @app.get("/integraciones")
 async def integrations_page():
     return FileResponse("static/integraciones.html")

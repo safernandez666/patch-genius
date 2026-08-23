@@ -33,7 +33,8 @@
       "signup.taken": "An account already exists. Go to Sign in.",
       "signup.fail": "Could not create the account.",
 
-      "nav.vulns": "Vulnerabilities",
+      "nav.vulns": "Vulnerabilidades",
+      "nav.brief": "IA",
       "nav.config": "Configuration",
       "nav.integrations": "Integrations",
       "nav.help": "Help",

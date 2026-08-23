@@ -191,6 +191,11 @@
 [data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand)}
 [data-theme="dark"] a{color:var(--pg-brand)}
 [data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid var(--pg-brand)}
+/* Silueta usada como mascara: asi hereda el color del enlace y su estado
+   activo, cosa que un <img> externo no puede hacer. */
+.ai-ico{width:20px;height:20px;flex:none;background-color:currentColor;
+  -webkit-mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain;
+  mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain}
 .brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
 .qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
     border:1px solid var(--color-gray-800);background:transparent;color:var(--color-gray-400)}
@@ -252,7 +257,7 @@
 /* Severidad como control segmentado en vez de desplegable (patron de tabs de
    TailAdmin). Son seis opciones fijas: verlas todas y elegir en un clic es mejor
    que abrir una lista, y ademas deja lugar para el conteo de cada una. */
-.sevtabs{display:flex;overflow-x:auto;gap:2px;padding:4px;border-radius:11px;
+.sevtabs{display:flex;justify-content:safe center;overflow-x:auto;gap:2px;padding:4px;border-radius:11px;
   background:var(--pg-surface-alt);margin-bottom:12px}
 .sevtabs::-webkit-scrollbar{height:5px}
 .sevtabs::-webkit-scrollbar-thumb{background:var(--pg-border);border-radius:999px}
@@ -286,6 +291,10 @@
     <a href="/" class="active" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <span data-i18n="nav.vulns">Vulnerabilities</span>
+    </a>
+    <a href="/brief">
+      <span class="ai-ico" aria-hidden="true"></span>
+      <span data-i18n="nav.brief">AI</span>
     </a>
     <a href="/config">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -404,17 +413,6 @@
     <h3 class="card-h">Trend</h3>
     <p class="card-sub">One snapshot per day since the first ingest. Wazuh keeps no history, so the series is built forward.</p>
     <div class="donut-box is-loading" id="chartEvol" style="min-height:240px"></div>
-  </section>
-
-  <section class="section" id="briefCard" style="display:none;margin-bottom:18px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <h3 class="card-h" style="margin:0">What to prioritise</h3>
-      <span class="grow" style="flex:1"></span>
-      <span id="briefMeta" style="font-size:11.5px;color:var(--pg-text-muted)"></span>
-      <button type="button" class="btn-ghost btn-sm" id="briefBtn" onclick="regenBrief()">Regenerate</button>
-    </div>
-    <div id="briefBody" style="margin-top:12px;font-size:13.5px;line-height:1.7;
-         color:var(--pg-text-soft);white-space:pre-wrap"></div>
   </section>
 
   <div class="dist-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:18px">
@@ -636,7 +634,6 @@ async function loadSummary() {
   }
 
   showSetupHint(d);
-  loadBrief();
   renderChips();
   populatePlatformFilter(d.plataformas || []);
   renderSevTabs(d.por_severidad || []);
@@ -970,33 +967,6 @@ const QUICK = {
   untriaged: { label: 'Untriaged', params: { severity: 'untriaged' } },
 };
 const quickOn = {};
-
-async function loadBrief() {
-  const card = document.getElementById('briefCard');
-  try {
-    const r = await fetch('/vulnerabilities/priority-brief');
-    if (!r.ok) { card.style.display = 'none'; return; }
-    const d = await r.json();
-    if (!d || !d.brief) { card.style.display = 'none'; return; }
-    card.style.display = '';
-    document.getElementById('briefBody').textContent = d.brief;
-    const refs = d.cve_refs || {};
-    const model = refs.model ? ` · ${escapeHtml(refs.model)}` : '';
-    document.getElementById('briefMeta').textContent = `Generated ${fmtAgo(d.updated_at)}${model}`;
-  } catch (e) { card.style.display = 'none'; }
-}
-
-async function regenBrief() {
-  const b = document.getElementById('briefBtn');
-  const body = document.getElementById('briefBody');
-  b.disabled = true; const prev = b.textContent; b.textContent = 'Generating…';
-  try {
-    const r = await fetch('/api/brief', { method: 'POST' });
-    if (r.ok) { await loadBrief(); }
-    else { const d = await r.json().catch(() => ({})); body.textContent = 'Could not generate: ' + (d.detail || r.status); }
-  } catch (e) { body.textContent = 'Could not generate: ' + e.message; }
-  b.disabled = false; b.textContent = prev;
-}
 
 function renderSevTabs(porSev) {
   const counts = {};
