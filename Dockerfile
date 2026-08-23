@@ -2,11 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /srv
 
+# Create a non-root user for the application.
+RUN groupadd -r app && useradd -r -g app -d /srv app
+
 COPY requirements-lock.txt .
 RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY app ./app
 COPY static ./static
+
+RUN chown -R app:app /srv
+USER app
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

@@ -77,29 +77,6 @@ async def lifespan(app: FastAPI):
     await pool.close()
 
 
-async def _brief_if_stale(app: FastAPI) -> None:
-    """Regenera el resumen una vez por dia.
-
-    Diario y no por ingesta: son tokens cada vez, y el panorama de un parque no
-    cambia lo suficiente en una hora como para justificar reescribirlo.
-    """
-    try:
-        cfg = await app.state.config_store.load_integration("ai")
-        if not cfg["enabled"]:
-            return
-        current = await app.state.store.load_priority_brief()
-        if current:
-            updated = current["updated_at"][:10]
-            if updated == date.today().isoformat():
-                return
-        await _make_brief(app)
-    except AIError as exc:
-        # Que falle el resumen no puede tumbar el refresco de los datos.
-        logger.warning("brief_skipped", error=str(exc))
-    except Exception as exc:  # noqa: BLE001
-        logger.error("brief_failed", error=str(exc))
-
-
 async def _refresh_loop(app: FastAPI) -> None:
     """Periodically re-ingest from Wazuh once a connection is configured."""
     while True:
@@ -107,7 +84,6 @@ async def _refresh_loop(app: FastAPI) -> None:
             cfg = await app.state.config_store.load()
             if cfg["indexer_url"]:
                 await run_ingest(app.state.pg_pool, cfg, settings)
-                await _brief_if_stale(app)
             await asyncio.sleep(max(5, int(cfg["refresh_minutes"])) * 60)
         except asyncio.CancelledError:
             raise

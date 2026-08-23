@@ -21,14 +21,15 @@ import structlog
 
 from app.feeds import fetch_epss, fetch_kev
 from app.scoring import priority_score
+from app.vuln_store import VulnStore
 from app.wazuh.indexer import WazuhIndexerClient
 from app.wazuh.mapper import aggregate_by_cve
 
 logger = structlog.get_logger(__name__)
 
-# Per-(CVE, agent) lifecycle. The fleet-wide vuln_cve_state table cannot express
-# "patched on DC01, still open on pve01", which is the normal case once more than
-# one host is monitored.
+# Per-(CVE, agent) lifecycle. A fleet-wide CVE table cannot express "patched on
+# DC01, still open on pve01", which is the normal case once more than one host
+# is monitored.
 AGENT_STATE_SQL = """
 CREATE TABLE IF NOT EXISTS vuln_cve_agent_state (
     cve TEXT NOT NULL,
@@ -190,7 +191,8 @@ async def run_ingest(pool: asyncpg.Pool, config: Dict[str, Any], settings: Any) 
     cves = [r["cve"] for r in rows]
 
     epss = await fetch_epss(cves) if config.get("enrich_epss") else {}
-    kev = await fetch_kev() if config.get("enrich_kev") else {}
+    store = VulnStore(settings.postgres_dsn, pool=pool)
+    kev = await fetch_kev(store, ttl_hours=6) if config.get("enrich_kev") else {}
 
     rows = aggregate_by_cve(docs, epss_by_cve=epss, kev_by_cve=kev)
     for row in rows:

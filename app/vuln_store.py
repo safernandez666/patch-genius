@@ -1,9 +1,8 @@
 """Persistencia del seguimiento de vulnerabilidades (Postgres).
 
-Cinco tablas, creadas con ``CREATE TABLE IF NOT EXISTS`` al conectar:
+Tablas principales, creadas con ``CREATE TABLE IF NOT EXISTS`` al conectar:
 
-* ``vuln_cve_state`` — ciclo de vida por CVE (first_seen / last_seen / status).
-  De acá salen el aging y el SLA de críticas.
+* ``vuln_cve_agent_state`` — ciclo de vida por (CVE, agente).
 * ``vuln_snapshots`` — un snapshot por día con los totales; da la serie
   temporal para los gráficos de evolución.
 * ``vuln_assignments`` — owner + estado de remediación por CVE, cargado a
@@ -11,13 +10,14 @@ Cinco tablas, creadas con ``CREATE TABLE IF NOT EXISTS`` al conectar:
 * ``vuln_state_cache`` — fila única con el último estado "enriquecido"
   (CVSS/EPSS/KEV/priority_score). La pantalla lee de acá siempre.
 * ``vuln_priority_brief`` — fila única con un párrafo de "qué priorizar".
+* ``vuln_kev_cache`` — cache local del catálogo CISA KEV.
 """
 
 from __future__ import annotations
 
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import asyncpg
@@ -25,44 +25,13 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-# Un resuelto se conserva este tiempo para detectar reaperturas; después se poda.
-RESOLVED_TTL_DAYS = 180
-
 ASSIGNMENT_STATUSES = ("pendiente", "en_curso", "parcial", "resuelto", "aceptado_riesgo")
-
-ASSIGNMENT_STATUS_LABEL = {
-    "pendiente": "Pendiente",
-    "en_curso": "En curso",
-    "parcial": "Parcial",
-    "resuelto": "Resuelto",
-    "aceptado_riesgo": "Riesgo aceptado",
-}
 
 _WS_RE = re.compile(r"\s+")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
-def next_status(prev: Optional[Dict[str, Any]], today: date) -> str:
-    """Transición de ciclo de vida para un CVE presente en el estado vivo."""
-    if prev is None:
-        return "new"
-    if prev["status"] == "resolved":
-        return "reopened"
-    return "new" if prev["first_seen"] == today else "ongoing"
-
-
 TABLES_SQL = """
-CREATE TABLE IF NOT EXISTS vuln_cve_state (
-    cve TEXT PRIMARY KEY,
-    first_seen DATE NOT NULL,
-    last_seen DATE NOT NULL,
-    status TEXT NOT NULL,
-    resolved_at DATE,
-    reopened_at DATE,
-    severity TEXT,
-    max_cvss DOUBLE PRECISION,
-    detection_count INTEGER NOT NULL DEFAULT 1
-);
 CREATE TABLE IF NOT EXISTS vuln_snapshots (
     fecha DATE PRIMARY KEY,
     total INTEGER NOT NULL,
@@ -79,8 +48,7 @@ CREATE TABLE IF NOT EXISTS vuln_assignments (
     due_date DATE,
     notes TEXT NOT NULL DEFAULT '',
     updated_by TEXT,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    last_reminder_sent DATE
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS vuln_state_cache (
     id SMALLINT PRIMARY KEY DEFAULT 1,
@@ -94,6 +62,11 @@ CREATE TABLE IF NOT EXISTS vuln_priority_brief (
     brief TEXT NOT NULL,
     cve_refs JSONB NOT NULL DEFAULT '[]',
     CHECK (id = 1)
+);
+CREATE TABLE IF NOT EXISTS vuln_kev_cache (
+    cve TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    fetched_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 """
 
@@ -120,18 +93,6 @@ class VulnStore:
             self._pool = None
 
     # ------------------------------------------------------------------
-    # Mantenimiento
-    # ------------------------------------------------------------------
-    async def truncate_all(self) -> None:
-        """Vacía las tablas de seguimiento. Solo para reiniciar una instalación."""
-        if self._pool is None:
-            raise RuntimeError("VulnStore not connected")
-        await self._pool.execute(
-            "TRUNCATE vuln_cve_state, vuln_snapshots, vuln_assignments, "
-            "vuln_state_cache, vuln_priority_brief"
-        )
-
-    # ------------------------------------------------------------------
     # Métricas de patching
     # ------------------------------------------------------------------
     async def patching_metrics(
@@ -139,10 +100,9 @@ class VulnStore:
     ) -> Dict[str, Any]:
         """Aging, SLA de críticas y altas/bajas de los últimos 7 días.
 
-        Se calcula sobre ``vuln_cve_agent_state`` — el par (CVE, agente) — y no
-        sobre ``vuln_cve_state``, que dejó de poblarse cuando la ingesta pasó a
-        llevar el ciclo de vida por agente. Un CVE resuelto en un servidor y
-        abierto en otro cuenta como lo que es: uno de cada.
+        Se calcula sobre ``vuln_cve_agent_state`` — el par (CVE, agente). Un
+        CVE resuelto en un servidor y abierto en otro cuenta como lo que es:
+        uno de cada.
         """
         if self._pool is None:
             return {}
@@ -194,29 +154,31 @@ class VulnStore:
     # Ciclo de vida por CVE (para la tabla de la pantalla)
     # ------------------------------------------------------------------
     async def lifecycle_map(self) -> Dict[str, Dict[str, Any]]:
-        """``{cve: {first_seen, status, ...}}`` para anotar la lista viva."""
+        """``{cve: {first_seen, status, ...}}`` para anotar la lista viva.
+
+        La fuente de verdad es ``vuln_cve_agent_state``: un CVE está resuelto
+        solo cuando todos los agentes lo están.
+        """
         if self._pool is None:
             return {}
         rows = await self._pool.fetch(
-            "SELECT cve, first_seen, status, resolved_at FROM vuln_cve_state"
+            """
+            SELECT
+                cve,
+                MIN(first_seen) AS first_seen,
+                MAX(last_seen) AS last_seen,
+                CASE WHEN COUNT(*) FILTER (WHERE status <> 'resolved') = 0
+                     THEN 'resolved' ELSE 'open' END AS status,
+                MAX(resolved_at) AS resolved_at
+            FROM vuln_cve_agent_state
+            GROUP BY cve
+            """
         )
         return {r["cve"]: dict(r) for r in rows}
 
     # ------------------------------------------------------------------
     # Cache del estado vivo
     # ------------------------------------------------------------------
-    async def save_state_cache(self, state: Dict[str, Any]) -> None:
-        """Guarda el último estado enriquecido — fila única."""
-        if self._pool is None:
-            raise RuntimeError("VulnStore not connected")
-        await self._pool.execute(
-            """INSERT INTO vuln_state_cache (id, updated_at, state)
-               VALUES (1, NOW(), $1)
-               ON CONFLICT (id) DO UPDATE SET
-                   updated_at = EXCLUDED.updated_at,
-                   state = EXCLUDED.state""",
-            json.dumps(state),
-        )
 
     async def load_state_cache(self) -> Optional[Dict[str, Any]]:
         """``{updated_at, state}`` o ``None`` si todavía no se sembró nada."""
@@ -268,6 +230,35 @@ class VulnStore:
         }
 
     # ------------------------------------------------------------------
+    # KEV cache
+    # ------------------------------------------------------------------
+    async def load_kev_cache(self, ttl_hours: int = 6) -> Optional[Dict[str, Dict[str, Any]]]:
+        """Return cached KEV catalog if it is still fresh."""
+        if self._pool is None:
+            return None
+        since = datetime.now(timezone.utc) - timedelta(hours=ttl_hours)
+        rows = await self._pool.fetch(
+            "SELECT cve, data FROM vuln_kev_cache WHERE fetched_at >= $1", since
+        )
+        if not rows:
+            return None
+        return {r["cve"]: dict(r["data"]) for r in rows}
+
+    async def save_kev_cache(self, catalog: Dict[str, Dict[str, Any]]) -> None:
+        """Replace the cached KEV catalog with a fresh download."""
+        if self._pool is None:
+            return
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute("TRUNCATE vuln_kev_cache")
+                for cve, data in catalog.items():
+                    await conn.execute(
+                        "INSERT INTO vuln_kev_cache (cve, data, fetched_at) VALUES ($1, $2, NOW())",
+                        cve,
+                        json.dumps(data),
+                    )
+
+    # ------------------------------------------------------------------
     # Snapshots (serie temporal)
     # ------------------------------------------------------------------
     async def history(self, days: int = 90) -> List[Dict[str, Any]]:
@@ -293,38 +284,8 @@ class VulnStore:
             out.append(d)
         return out
 
-    async def import_snapshots(self, snapshots: List[Dict[str, Any]]) -> int:
-        """Carga masiva de snapshots. Idempotente (ON CONFLICT por fecha)."""
-        if self._pool is None:
-            raise RuntimeError("VulnStore not connected")
-        n = 0
-        for s in snapshots:
-            fecha = s.get("fecha")
-            if not fecha:
-                continue
-            await self._pool.execute(
-                """INSERT INTO vuln_snapshots
-                   (fecha, total, criticas_altas, cves_unicos, por_severidad, por_servidor)
-                   VALUES ($1, $2, $3, $4, $5, $6)
-                   ON CONFLICT (fecha) DO UPDATE SET
-                       total = EXCLUDED.total,
-                       criticas_altas = EXCLUDED.criticas_altas,
-                       cves_unicos = EXCLUDED.cves_unicos,
-                       por_severidad = EXCLUDED.por_severidad,
-                       por_servidor = EXCLUDED.por_servidor""",
-                date.fromisoformat(str(fecha)),
-                int(s.get("total") or 0),
-                int(s.get("criticas_altas") or 0),
-                int(s.get("cves_unicos") or 0),
-                json.dumps(s.get("por_severidad") or {}),
-                json.dumps(s.get("servidores") or s.get("por_servidor") or {}),
-            )
-            n += 1
-        logger.info("vuln_snapshots_imported", count=n)
-        return n
-
     # ------------------------------------------------------------------
-    # Assignments (owner + seguimiento) — sin auditoría en esta demo
+    # Assignments (owner + seguimiento)
     # ------------------------------------------------------------------
     async def assignments(self) -> Dict[str, Dict[str, Any]]:
         """Todos los assignments indexados por CVE."""

@@ -51,8 +51,21 @@ async def fetch_epss(cves: Iterable[str], timeout: float = 30.0) -> Dict[str, fl
     return scores
 
 
-async def fetch_kev(timeout: float = 60.0) -> Dict[str, Dict[str, Any]]:
-    """Map CVE -> KEV entry for every actively-exploited CVE CISA tracks."""
+async def fetch_kev(
+    store: Any = None, ttl_hours: int = 6, timeout: float = 60.0
+) -> Dict[str, Dict[str, Any]]:
+    """Map CVE -> KEV entry for every actively-exploited CVE CISA tracks.
+
+    If a VulnStore is passed, the catalog is cached in Postgres and reused
+    until the TTL expires. This avoids downloading the whole catalog on every
+    ingest.
+    """
+    if store is not None:
+        cached = await store.load_kev_cache(ttl_hours=ttl_hours)
+        if cached:
+            logger.info("kev_cache_hit", entries=len(cached), ttl_hours=ttl_hours)
+            return cached
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(KEV_URL)
@@ -60,6 +73,11 @@ async def fetch_kev(timeout: float = 60.0) -> Dict[str, Dict[str, Any]]:
             payload = resp.json()
     except (httpx.HTTPError, ValueError) as exc:
         logger.warning("kev_fetch_failed", error=str(exc))
+        if store is not None:
+            stale = await store.load_kev_cache(ttl_hours=24 * 365)
+            if stale:
+                logger.warning("kev_using_stale_cache", entries=len(stale))
+                return stale
         return {}
 
     catalog: Dict[str, Dict[str, Any]] = {}
@@ -74,4 +92,6 @@ async def fetch_kev(timeout: float = 60.0) -> Dict[str, Dict[str, Any]]:
             "nombre": item.get("vulnerabilityName", ""),
         }
     logger.info("kev_fetched", entries=len(catalog))
+    if store is not None:
+        await store.save_kev_cache(catalog)
     return catalog

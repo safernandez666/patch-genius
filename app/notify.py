@@ -64,50 +64,6 @@ def send_email(cfg: Dict[str, Any], to: str, subject: str, body: str) -> None:
 # ---------------------------------------------------------------------------
 # Jira
 # ---------------------------------------------------------------------------
-async def create_jira_issue(cfg: Dict[str, Any], summary: str, description: str) -> Dict[str, Any]:
-    """Create an issue and return its key and URL."""
-    s = cfg.get("settings") or {}
-    base = (s.get("url") or "").rstrip("/")
-    project, email = s.get("project", ""), s.get("email", "")
-    if not (base and project and email):
-        raise NotifyError("Jira needs a URL, a project key and an account e-mail")
-
-    payload = {
-        "fields": {
-            "project": {"key": project},
-            "summary": summary[:250],
-            "issuetype": {"name": s.get("issue_type") or "Task"},
-            # Jira Cloud expects Atlassian Document Format, not plain text.
-            "description": {
-                "type": "doc",
-                "version": 1,
-                "content": [
-                    {
-                        "type": "paragraph",
-                        "content": [{"type": "text", "text": description[:30000]}],
-                    }
-                ],
-            },
-        }
-    }
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            r = await client.post(
-                f"{base}/rest/api/3/issue", json=payload, auth=(email, cfg.get("secret") or "")
-            )
-            r.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        raise NotifyError(
-            f"Jira returned {exc.response.status_code}: {exc.response.text[:200]}"
-        ) from exc
-    except httpx.HTTPError as exc:
-        raise NotifyError(f"cannot reach Jira: {exc}") from exc
-
-    data = r.json()
-    key = data.get("key", "")
-    return {"key": key, "url": f"{base}/browse/{key}" if key else ""}
-
-
 async def jira_ping(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """Verify credentials without creating anything."""
     s = cfg.get("settings") or {}
