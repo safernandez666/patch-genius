@@ -142,7 +142,13 @@ class VulnStore:
     async def patching_metrics(
         self, today: Optional[date] = None, sla_days: int = 15
     ) -> Dict[str, Any]:
-        """Aging, SLA de críticas y altas/bajas de los últimos 7 días."""
+        """Aging, SLA de críticas y altas/bajas de los últimos 7 días.
+
+        Se calcula sobre ``vuln_cve_agent_state`` — el par (CVE, agente) — y no
+        sobre ``vuln_cve_state``, que dejó de poblarse cuando la ingesta pasó a
+        llevar el ciclo de vida por agente. Un CVE resuelto en un servidor y
+        abierto en otro cuenta como lo que es: uno de cada.
+        """
         if self._pool is None:
             return {}
         today = today or date.today()
@@ -157,21 +163,21 @@ class VulnStore:
               COUNT(*) FILTER (WHERE reopened_at >= $1 AND status <> 'resolved') AS reabiertas_7d,
               COUNT(*) FILTER (WHERE status <> 'resolved') AS activas,
               COUNT(*) FILTER (
-                  WHERE status <> 'resolved' AND severity = 'Critical' AND first_seen <= $2
+                  WHERE status <> 'resolved' AND severidad = 'Critical' AND first_seen <= $2
               ) AS criticas_vencen_sla,
               COUNT(*) FILTER (
-                  WHERE status <> 'resolved' AND severity = 'Critical'
+                  WHERE status <> 'resolved' AND severidad = 'Critical'
               ) AS criticas_activas,
               COALESCE(AVG($3::date - first_seen)
                        FILTER (WHERE status <> 'resolved'), 0) AS aging_promedio_dias,
               COUNT(*) FILTER (
-                  WHERE status = 'resolved' AND severity = 'Critical'
+                  WHERE status = 'resolved' AND severidad = 'Critical'
               ) AS criticas_resueltas,
               COUNT(*) FILTER (
-                  WHERE status = 'resolved' AND severity = 'Critical'
+                  WHERE status = 'resolved' AND severidad = 'Critical'
                         AND resolved_at - first_seen <= $4
               ) AS criticas_resueltas_en_sla
-            FROM vuln_cve_state
+            FROM vuln_cve_agent_state
             """,
             week_ago,
             sla_cutoff,
@@ -234,6 +240,21 @@ class VulnStore:
     # ------------------------------------------------------------------
     # Brief de priorización (queda vacío en esta demo salvo carga manual)
     # ------------------------------------------------------------------
+    async def save_priority_brief(self, brief: str, meta: Dict[str, Any]) -> None:
+        """Guarda el resumen generado. Fila unica: solo interesa el ultimo."""
+        if self._pool is None:
+            raise RuntimeError("VulnStore not connected")
+        await self._pool.execute(
+            """
+            INSERT INTO vuln_priority_brief (id, updated_at, brief, cve_refs)
+            VALUES (1, NOW(), $1, $2)
+            ON CONFLICT (id) DO UPDATE SET
+                updated_at = NOW(), brief = EXCLUDED.brief, cve_refs = EXCLUDED.cve_refs
+            """,
+            brief,
+            json.dumps(meta),
+        )
+
     async def load_priority_brief(self) -> Optional[Dict[str, Any]]:
         if self._pool is None:
             return None

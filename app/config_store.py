@@ -30,11 +30,13 @@ CREATE TABLE IF NOT EXISTS app_integrations (
 );
 """
 
+# `ai` es la que genera el resumen de prioridades; su secreto es la API key del
+# proveedor (vacia cuando el modelo corre local).
 # Cada integracion guarda su parte no sensible en `settings` y exactamente un
 # secreto cifrado: contrasena SMTP, token de Jira, URL de webhook de Slack o de
 # Teams. La URL de un webhook es un secreto en si misma — quien la tenga puede
 # publicar en el canal — asi que va cifrada como cualquier contrasena.
-INTEGRATIONS = ("smtp", "jira", "slack", "teams")
+INTEGRATIONS = ("ai", "smtp", "jira", "slack", "teams")
 
 CONFIG_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS app_config (

@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.ai import AIError, build_snapshot, generate_brief
 from app.auth import SESSION_COOKIE, AuthError, AuthManager
 from app.config_store import ConfigError, ConfigStore
 from app.ingest import migrate_assignments, run_ingest
@@ -60,6 +61,29 @@ async def lifespan(app: FastAPI):
     await pool.close()
 
 
+async def _brief_if_stale(app: FastAPI) -> None:
+    """Regenera el resumen una vez por dia.
+
+    Diario y no por ingesta: son tokens cada vez, y el panorama de un parque no
+    cambia lo suficiente en una hora como para justificar reescribirlo.
+    """
+    try:
+        cfg = await app.state.config_store.load_integration("ai")
+        if not cfg["enabled"]:
+            return
+        current = await app.state.store.load_priority_brief()
+        if current:
+            updated = current["updated_at"][:10]
+            if updated == date.today().isoformat():
+                return
+        await _make_brief(app)
+    except AIError as exc:
+        # Que falle el resumen no puede tumbar el refresco de los datos.
+        logger.warning("brief_skipped", error=str(exc))
+    except Exception as exc:  # noqa: BLE001
+        logger.error("brief_failed", error=str(exc))
+
+
 async def _refresh_loop(app: FastAPI) -> None:
     """Periodically re-ingest from Wazuh once a connection is configured."""
     while True:
@@ -67,6 +91,7 @@ async def _refresh_loop(app: FastAPI) -> None:
             cfg = await app.state.config_store.load()
             if cfg["indexer_url"]:
                 await run_ingest(app.state.pg_pool, cfg, settings)
+                await _brief_if_stale(app)
             await asyncio.sleep(max(5, int(cfg["refresh_minutes"])) * 60)
         except asyncio.CancelledError:
             raise
@@ -314,8 +339,21 @@ async def api_integration_test(name: str, request: Request, user: str = Depends(
         cfg["settings"] = {**cfg["settings"], **body["settings"]}
     if body.get("secret"):
         cfg["secret"] = body["secret"]
+    if name == "ai":
+        # _make_brief relee de la base, asi que para probar sin guardar hay que
+        # dejarle ver lo que el usuario acaba de escribir.
+        cfg["enabled"] = True
 
     try:
+        if name == "ai":
+            # Probar de verdad es generar el resumen: una comprobacion de
+            # credenciales no dice si el modelo entiende el snapshot.
+            result = await _make_brief(request.app, cfg)
+            return {
+                "ok": True,
+                "detail": f"resumen generado con {result['model']}",
+                "preview": result["text"][:280],
+            }
         if name == "smtp":
             to = (body.get("to") or cfg["settings"].get("from_addr") or "").strip()
             if not to:
@@ -331,9 +369,47 @@ async def api_integration_test(name: str, request: Request, user: str = Depends(
         if name in ("slack", "teams"):
             await post_webhook(cfg, "Patch Genius: prueba de configuracion.", name)
             return {"ok": True, "detail": "mensaje publicado"}
-    except NotifyError as exc:
+    except (NotifyError, AIError) as exc:
         return {"ok": False, "error": str(exc)}
     raise HTTPException(status_code=404, detail=f"unknown integration: {name}")
+
+
+async def _make_brief(app: FastAPI, cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Construye el snapshot y pide el resumen. Lanza AIError si algo falla.
+
+    `cfg` permite probar lo que el usuario tiene en pantalla sin haberlo guardado.
+    """
+    if cfg is None:
+        cfg = await app.state.config_store.load_integration("ai")
+    if not cfg["enabled"]:
+        raise AIError("la integracion de IA esta desactivada")
+    store = app.state.store
+    state, _ = await _load_state(store)
+    lifecycle = await store.lifecycle_map()
+    assigns = await store.assignments()
+    rows = _sort_by_priority(_vuln_rows(state, lifecycle, assigns))
+    metrics = await store.patching_metrics(sla_days=settings.vuln_sla_critical_days)
+    app_cfg = await app.state.config_store.load_public()
+    snapshot = build_snapshot(state, rows, metrics or {})
+    result = await generate_brief(cfg, snapshot, language=app_cfg.get("lang", "es"))
+    await store.save_priority_brief(result["text"], {
+        "provider": result["provider"], "model": result["model"],
+        "input_tokens": result.get("input_tokens"),
+        "output_tokens": result.get("output_tokens"),
+        "cves": [r["cve"] for r in rows[:25]],
+    })
+    logger.info("brief_generated", provider=result["provider"], model=result["model"])
+    return result
+
+
+@app.post("/api/brief")
+async def api_brief(request: Request, user: str = Depends(require_user)):
+    """Genera el resumen ahora. El boton del panel llega por aca."""
+    try:
+        result = await _make_brief(request.app)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, "provider": result["provider"], "model": result["model"]}
 
 
 @app.post("/api/password")

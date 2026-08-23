@@ -61,6 +61,8 @@
   .facts dd{margin:0;font-size:.85rem;color:var(--pg-text);font-weight:600;
     overflow-wrap:anywhere}
   a.act{text-decoration:none;display:inline-block;line-height:1.35}
+  .warnbox{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
+    border-radius:9px;padding:11px 13px;font-size:.79rem;line-height:1.55;margin:0 0 14px}
   .hint{font-size:.76rem;color:var(--pg-text-muted);margin:4px 0 0;line-height:1.5}
 </style>
 </head>
@@ -116,6 +118,7 @@
 <script src="/static/i18n.js"></script>
 <script>
 const LOGO = {
+  ai: '<svg viewBox="0 0 24 24" fill="none" stroke="#76abae" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>',
   wazuh: '<img src="/static/assets/wazuh.webp" alt="">',
   jira:  '<img src="/static/assets/jira.svg" alt="">',
   slack: '<img src="/static/assets/slack.svg" alt="">',
@@ -124,6 +127,15 @@ const LOGO = {
 };
 
 const DEFS = [
+  { name: 'ai', title: 'Resumen con IA', desc: 'Un brief de prioridades escrito por un modelo, una vez por día',
+    fields: [
+      { k: 'provider', l: 'Proveedor', select: [['anthropic','Claude (Anthropic)'],['openai','OpenAI'],['local','Local / compatible OpenAI']], half: true },
+      { k: 'model', l: 'Modelo', ph: 'claude-opus-5', half: true },
+      { k: 'base_url', l: 'URL base (solo para local o proxy)', ph: 'http://localhost:11434/v1' },
+    ],
+    secret: 'API key', optionalSecret: true,
+    warn: 'El resumen se arma con el estado real del parque — <b>incluidos los nombres de tus servidores</b> y qué CVEs tiene cada uno. Con Claude u OpenAI eso sale de tu red hacia un tercero. Con un modelo local no sale nada.',
+    hint: 'Se genera una vez por día tras la ingesta, y a pedido desde el panel.' },
   { name: 'smtp', title: 'SMTP', desc: 'Recordatorios por correo al responsable de cada CVE',
     fields: [
       { k: 'host', l: 'Servidor', ph: 'smtp.tudominio.com' },
@@ -156,10 +168,13 @@ const DEFS = [
 let STATE = {};
 
 function field(n, f, v) {
+  const inner = f.select
+    ? `<select id="${n}-${f.k}">` + f.select.map(o =>
+        `<option value="${o[0]}"${v === o[0] ? ' selected' : ''}>${o[1]}</option>`).join('') + '</select>'
+    : `<input id="${n}-${f.k}" type="${f.type || 'text'}" placeholder="${f.ph || ''}"
+         value="${v == null ? '' : String(v).replace(/"/g, '&quot;')}">`;
   return `<div${f.half ? '' : ' style="min-width:100%"'}>
-    <label for="${n}-${f.k}">${f.l}</label>
-    <input id="${n}-${f.k}" type="${f.type || 'text'}" placeholder="${f.ph || ''}"
-           value="${v == null ? '' : String(v).replace(/"/g, '&quot;')}"></div>`;
+    <label for="${n}-${f.k}">${f.l}</label>${inner}</div>`;
 }
 
 function render() {
@@ -176,6 +191,7 @@ function render() {
                onchange="toggleBody('${d.name}')"><span class="slider"></span></label>
       </div>
       <div class="body ${st.enabled ? 'open' : ''}" id="${d.name}-body">
+        ${d.warn ? `<p class="warnbox">${d.warn}</p>` : ''}
         <div class="row">${d.fields.map(f => field(d.name, f, st.settings[f.k])).join('')}</div>
         ${(d.checks || []).map(c => `<label class="check"><input type="checkbox" id="${d.name}-${c.k}"
              ${st.settings[c.k] ?? c.def ? 'checked' : ''}> ${c.l}</label>`).join('')}
