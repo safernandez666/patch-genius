@@ -127,15 +127,20 @@ const LOGO = {
 };
 
 const DEFS = [
-  { name: 'ai', title: 'AI brief', desc: 'A daily prioritisation brief written by a model',
+  { name: 'ai', title: 'AI brief', desc: 'A prioritisation brief written by a model',
     fields: [
       { k: 'provider', l: 'Provider', select: [['anthropic','Claude (Anthropic)'],['openai','OpenAI'],['local','Local / OpenAI-compatible']], half: true },
       { k: 'model', l: 'Model', ph: 'claude-opus-5', half: true },
-      { k: 'base_url', l: 'Base URL (local or proxy only)', ph: 'http://localhost:11434/v1' },
+      { k: 'base_url', l: 'Base URL (local or proxy only)', ph: 'http://host.docker.internal:11434/v1' },
     ],
+    defaults: {
+      anthropic: { model: 'claude-opus-5', base_url: '' },
+      openai:    { model: 'gpt-4o', base_url: '' },
+      local:     { model: 'llama3.1', base_url: 'http://host.docker.internal:11434/v1' },
+    },
     secret: 'API key', optionalSecret: true,
     warn: 'The brief is built from your fleet\'s real state — <b>including your server names</b> and which CVEs each one carries. With Claude or OpenAI that leaves your network. With a local model nothing does.',
-    hint: 'Generated once a day after the ingest, and on demand from the dashboard.' },
+    hint: 'Generated on demand from the dashboard. For Ollama on the Docker host, use http://host.docker.internal:11434/v1.' },
   { name: 'smtp', title: 'SMTP', desc: 'E-mail reminders to the owner of each CVE',
     fields: [
       { k: 'host', l: 'Server', ph: 'smtp.yourdomain.com' },
@@ -209,11 +214,32 @@ function render() {
       </div>
     </div>`;
   }).join('');
+  DEFS.forEach(d => { if (d.defaults) wireProviderDefaults(d.name); });
 }
 
 function toggleBody(n) {
   document.getElementById(n + '-body').classList.toggle('open',
     document.getElementById(n + '-en').checked);
+}
+
+function applyProviderDefaults(n) {
+  const d = DEFS.find(x => x.name === n);
+  if (!d || !d.defaults) return;
+  const prov = document.getElementById(n + '-provider').value;
+  const defs = d.defaults[prov];
+  if (!defs) return;
+  const model = document.getElementById(n + '-model');
+  const base = document.getElementById(n + '-base_url');
+  // Only pre-fill empty fields so a user who typed a custom value is not surprised.
+  if (model && !model.value.trim()) model.value = defs.model || '';
+  if (base && !base.value.trim()) base.value = defs.base_url || '';
+}
+
+function wireProviderDefaults(n) {
+  const d = DEFS.find(x => x.name === n);
+  if (!d || !d.defaults) return;
+  const sel = document.getElementById(n + '-provider');
+  if (sel) sel.addEventListener('change', () => applyProviderDefaults(n));
 }
 
 function collect(n) {
