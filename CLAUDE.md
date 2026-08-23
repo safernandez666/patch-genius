@@ -38,6 +38,18 @@ ruff format .
 ruff check .
 ```
 
+The runtime dependencies are pinned in `requirements-lock.txt`. To regenerate it
+after changing `requirements.txt`:
+
+```bash
+python -m venv /tmp/lock-env
+/tmp/lock-env/bin/pip install -r requirements.txt
+/tmp/lock-env/bin/pip freeze > requirements-lock.txt
+rm -rf /tmp/lock-env
+```
+
+Docker builds use `requirements-lock.txt`.
+
 ruff is configured in `pyproject.toml`: line-length 100, target py311, rules `E,F,I,B`.
 The `UP` (pyupgrade) rules are deliberately off — this codebase uses `Optional[X]` and
 `typing.Dict` style, and modernizing it is not in scope. Keep matching that style.

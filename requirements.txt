@@ -10,3 +10,4 @@ cryptography>=42.0.0
 argon2-cffi>=23.1.0
 itsdangerous>=2.2.0
 anthropic>=1.0.0
+slowapi>=0.1.10

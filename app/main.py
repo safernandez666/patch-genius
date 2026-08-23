@@ -19,6 +19,9 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.ai import AIError, build_snapshot, generate_brief
 from app.auth import SESSION_COOKIE, AuthError, AuthManager
@@ -35,6 +38,19 @@ logger = structlog.get_logger(__name__)
 # Tope de filas por pagina. Existe para que un `limit` disparatado no vuelva a
 # serializar el parque entero, que es justamente lo que el paginado evita.
 MAX_PAGE_SIZE = 500
+
+# Rate limiter keyed by client IP. In-memory storage is sufficient for the
+# single-worker Docker deployment; scale out would need RedisStorage.
+limiter = Limiter(key_func=get_remote_address)
+
+
+async def _rate_limit_error(request: Request, exc: RateLimitExceeded) -> Response:
+    """Return 429 with a JSON body instead of the default plain text."""
+    return Response(
+        content='{"detail":"too many requests"}',
+        status_code=429,
+        media_type="application/json",
+    )
 
 
 @asynccontextmanager
@@ -103,6 +119,8 @@ async def _refresh_loop(app: FastAPI) -> None:
 
 
 app = FastAPI(title="Vulnerability & Patch Tracking", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_error)
 app.add_middleware(
     CORSMiddleware,
     # This serves a live vulnerability inventory, so a deployment should name its
@@ -212,6 +230,7 @@ async def auth_me(request: Request):
 
 
 @app.post("/api/signup")
+@limiter.limit("5/minute")
 async def api_signup(request: Request, response: Response):
     body = await request.json()
     try:
@@ -236,6 +255,7 @@ async def api_signup(request: Request, response: Response):
 
 
 @app.post("/api/login")
+@limiter.limit("10/minute")
 async def api_login(request: Request, response: Response):
     body = await request.json()
     user = await request.app.state.auth.authenticate(
