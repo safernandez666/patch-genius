@@ -350,8 +350,6 @@
     <select class="select" id="filter-plat" aria-label="Filtrar por plataforma" onchange="reloadCves()">
       <option value="">Todas las plataformas</option>
     </select>
-    <label class="check"><input type="checkbox" id="filter-kev" onchange="reloadCves()"> Solo CISA KEV (explotación activa)</label>
-    <label class="check"><input type="checkbox" id="filter-ransom" onchange="reloadCves()"> Con ransomware conocido</label>
     <label class="visually-hidden" for="filter-owner">Filtrar por responsable</label>
     <select class="select" id="filter-owner" aria-label="Filtrar por responsable" onchange="reloadCves()">
       <option value="">Todos los responsables</option>
@@ -933,8 +931,6 @@ function filters() {
   const agent = document.getElementById('filter-agent').value;
   const q = document.getElementById('filter-q').value.trim();
   if (sev) qs.set('severity', sev);
-  if (document.getElementById('filter-kev').checked) qs.set('kev', '1');
-  if (document.getElementById('filter-ransom').checked) qs.set('ransomware', '1');
   if (owner) qs.set('owner', owner);
   if (estado) qs.set('status', estado);
   if (agent) qs.set('agent', agent);
@@ -995,8 +991,6 @@ function renderChips() {
     value: SEV_LABEL[SEV_KEY[sevFilter]] || sevFilter });
   const q = document.getElementById('filter-q').value.trim();
   if (q) chips.push({ key: 'filter-q', label: 'Busca', value: q });
-  if (document.getElementById('filter-kev').checked) chips.push({ key: 'filter-kev', label: 'Solo KEV' });
-  if (document.getElementById('filter-ransom').checked) chips.push({ key: 'filter-ransom', label: 'Ransomware' });
 
   if (!chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'flex';
@@ -1024,8 +1018,6 @@ function clearAllFilters() {
     document.getElementById(id).value = '';
   });
   document.getElementById('filter-q').value = '';
-  document.getElementById('filter-kev').checked = false;
-  document.getElementById('filter-ransom').checked = false;
   reloadCves();
 }
 

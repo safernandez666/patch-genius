@@ -61,40 +61,10 @@ Everything the dashboard shows about time is therefore derived here, not read fr
 
 ## How it works
 
-```mermaid
-flowchart LR
-    subgraph infra["Your infrastructure"]
-        AL["Linux agents<br/>deb / rpm"]
-        AW["Windows agents<br/>programs + KB"]
-        MGR["Wazuh Manager"]
-        IDX[("Wazuh Indexer<br/>wazuh-states-<br/>vulnerabilities-*")]
-        AL --> MGR
-        AW --> MGR
-        MGR -->|Vulnerability Detector| IDX
-    end
+[![Architecture](docs/img/arquitectura.png)](docs/diagrams/architecture.html)
 
-    subgraph pg["Patch Genius"]
-        COL["Collector<br/>PIT + search_after"]
-        MAP["Mapper<br/>group by CVE"]
-        SCORE["Scoring<br/>CVSS + EPSS + KEV"]
-        LIFE["Lifecycle<br/>per CVE and agent"]
-        API["FastAPI + Auth"]
-        COL --> MAP --> SCORE --> LIFE --> API
-    end
-
-    subgraph feeds["Public feeds"]
-        EPSS["EPSS<br/>FIRST.org"]
-        KEV["CISA KEV"]
-    end
-
-    DB[("Postgres<br/>state · lifecycle · snapshots<br/>assignments · encrypted config")]
-
-    IDX -->|"HTTPS 9200, read only"| COL
-    EPSS -.->|"CVE id only"| SCORE
-    KEV -.->|"CVE id only"| SCORE
-    LIFE <--> DB
-    API --> UI["Web dashboard"]
-```
+<sub>Open [`docs/diagrams/architecture.html`](docs/diagrams/architecture.html) for the
+interactive version — guided views, relationship tracing, light/dark and export.</sub>
 
 > [!NOTE]
 > The public feeds are queried **by CVE identifier only** — nothing about your
@@ -103,32 +73,9 @@ flowchart LR
 
 A single ingest:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant S as Scheduler
-    participant I as Ingest
-    participant W as Wazuh Indexer
-    participant F as EPSS / CISA KEV
-    participant P as Postgres
+[![One ingest run](docs/img/ingesta.png)](docs/diagrams/ingest.html)
 
-    S->>I: every N minutes
-    I->>W: open point-in-time
-    Note over I,W: The scanner deletes rows the moment<br/>a package is patched. Without a PIT the<br/>view shifts under the cursor, and a<br/>skipped record reads as "resolved".
-    loop paginated with search_after
-        I->>W: search (size 1000)
-        W-->>I: records
-    end
-    I->>W: close point-in-time
-    I->>I: group by CVE
-    I->>F: request EPSS and KEV by CVE id
-    F-->>I: probabilities and catalog
-    I->>I: score = CVSS·w + EPSS·w + KEV bonus
-    I->>P: mark (CVE, agent) pairs present
-    P-->>I: own first-seen dates
-    I->>P: close the absent ones as resolved
-    I->>P: save state + daily snapshot
-```
+<sub>Interactive: [`docs/diagrams/ingest.html`](docs/diagrams/ingest.html)</sub>
 
 ## Get started
 
@@ -159,6 +106,14 @@ Wazuh, SMTP, Jira, Slack and Microsoft Teams are configured from one page.
 posts to the channel — because a saved setting that was never tried tells you nothing.
 Credentials are encrypted at rest and never returned to the browser; a webhook URL counts
 as one, since anyone holding it can post into your channel.
+
+### Configuration
+
+Everything that is about this installation rather than a connection: how often the indexer
+is re-read, which language the interface uses, whether the public feeds are enabled, and
+the password.
+
+![Configuration](docs/img/configuracion.png)
 
 > [!WARNING]
 > A default Wazuh install binds the Indexer to `127.0.0.1` only. If Patch Genius runs on a
