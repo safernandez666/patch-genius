@@ -65,6 +65,10 @@ class AuthManager:
         password someone has already rotated.
         """
         await self._pool.execute(USERS_TABLE_SQL)
+        # Migration for existing installs created before the role column existed.
+        await self._pool.execute(
+            "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'admin'"
+        )
         count = await self._pool.fetchval("SELECT COUNT(*) FROM app_users")
         if count:
             return

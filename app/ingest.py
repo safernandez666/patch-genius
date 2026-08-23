@@ -59,6 +59,36 @@ async def migrate_assignments(pool: asyncpg.Pool) -> None:
     """Create vuln_cve_agent_state and apply minor column migrations."""
     await pool.execute(AGENT_STATE_SQL)
     await pool.execute(AGENT_STATE_MIGRATION_SQL)
+    # Migration for existing installs that were widened to (cve, agent_id).
+    # The UI operates per CVE, so we collapse back to a single CVE row.
+    agent_id_col = await pool.fetchval(
+        """
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'vuln_assignments' AND column_name = 'agent_id'
+        """
+    )
+    if agent_id_col:
+        pk = await pool.fetchval(
+            """
+            SELECT constraint_name FROM information_schema.table_constraints
+            WHERE table_name = 'vuln_assignments' AND constraint_type = 'PRIMARY KEY'
+            """
+        )
+        if pk:
+            await pool.execute(f'ALTER TABLE vuln_assignments DROP CONSTRAINT "{pk}"')
+        await pool.execute(
+            """
+            DELETE FROM vuln_assignments a
+            WHERE ctid NOT IN (
+                SELECT MAX(ctid)
+                FROM vuln_assignments b
+                WHERE b.cve = a.cve
+            )
+            """
+        )
+        await pool.execute("ALTER TABLE vuln_assignments DROP COLUMN agent_id")
+        await pool.execute("ALTER TABLE vuln_assignments ADD PRIMARY KEY (cve)")
+        logger.info("vuln_assignments_key_collapsed_to_cve")
 
 
 async def collect(config: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
