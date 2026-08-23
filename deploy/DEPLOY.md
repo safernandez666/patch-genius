@@ -13,7 +13,7 @@ al VPS antes de pedir el certificado.
 2. **Levantar los containers**
    ```bash
    docker compose up -d --build
-   curl -s localhost:8000/api/setup-state   # debe devolver {"needs_setup":false} tras el primer login
+   curl -s localhost:8000/healthz   # debe devolver {"status":"ok"}
    ```
 
 3. **nginx + certbot** (el VPS ya debe tener nginx instalado)
