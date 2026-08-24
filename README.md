@@ -124,6 +124,50 @@ It stops the containers, deletes the Postgres Docker volume, rebuilds the API im
 brings everything back up. Use `./scripts/reset-db.sh --yes` to skip the confirmation
 prompt — useful in CI or fresh installs.
 
+### Connect Wazuh
+
+Patch Genius reads vulnerability state from your Wazuh Indexer. After the stack is up,
+open the **Configuration** tab and fill in the Indexer connection.
+
+#### 1. Make the Indexer reachable
+
+| Topology | What you need |
+|---|---|
+| Patch Genius on the same host as Wazuh | Nothing. Use `https://127.0.0.1:9200`. |
+| Patch Genius on a different host | Expose port `9200` on the Wazuh host (see firewall note below). |
+| You prefer not to expose 9200 | Use an SSH tunnel: `ssh -N -L 9200:127.0.0.1:9200 root@<wazuh-host>` and point the app at `https://127.0.0.1:9200`. |
+
+A default Wazuh install binds the Indexer to `127.0.0.1`, so other hosts cannot reach it.
+Binding to `0.0.0.0` switches OpenSearch to production mode and requires bootstrap checks
+(`vm.max_map_count >= 262144`, file descriptors, etc.). If you go this route, firewall port
+`9200` to the app host only — it holds your whole vulnerability inventory.
+
+#### 2. Create a read-only Indexer user
+
+Do **not** use the Wazuh `admin` account. In the Wazuh dashboard, create an internal user
+and role with:
+
+- Cluster permissions: `cluster_composite_ops_ro`
+- Index patterns: `wazuh-states-vulnerabilities-*` and `wazuh-states-inventory-*`
+- Index permissions: `read`
+
+#### 3. Save the connection in the app
+
+In **Configuration → Wazuh**:
+
+| Field | Example | Notes |
+|---|---|---|
+| Indexer URL | `https://wazuh.example.com:9200` | Use `127.0.0.1` for same-host or tunnel setups |
+| Username / password | read-only user from Step 2 | Stored encrypted; never written to the repo |
+| Verify TLS | off for default install | Wazuh ships self-signed certs |
+| Manager API URL / user / password | `https://<wazuh-host>:55000` | Optional — only for the **Force rescan** button |
+
+Press **Test connection**. A green result means the app can see the cluster and the
+vulnerability documents. Save, then run the first ingest from the dashboard.
+
+> For the full checklist — bootstrap checks, rollback steps, TLS details, and the manager
+> API role for Force rescan — see [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
+
 ![Sign in](docs/img/login.png)
 
 ### Integrations
