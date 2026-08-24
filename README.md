@@ -55,11 +55,20 @@ Everything the dashboard shows about time is therefore derived here, not read fr
 - **Ownership per CVE and per agent** — the same CVE can be resolved on one host and open
   on another, so owner, status and due date are tracked at that granularity.
 - **A brief that says what to do** — an LLM turns the ranking into a paragraph naming the
-  hosts and packages to patch first. Claude, OpenAI, or a local model: the brief carries
-  hostnames, so anyone who cannot send those out points it at their own endpoint and
-  nothing leaves.
+  packages to patch first, written on demand. Claude, OpenAI, or a local model: hostnames
+  are included by default because that is what makes it actionable, and a single switch
+  strips them. Anyone who cannot send that inventory out points it at their own endpoint
+  and nothing leaves.
 - **Onboarding in the app** — the Wazuh connection is configured from a tab, tested before
   it is saved, and stored encrypted. Nothing is baked into the image.
+- **Proof that the patching is working** — a Health check screen that only looks backwards:
+  what closed, on which server, how long each CVE had been open, and when each patch landed.
+  Reopened CVEs are called out separately, because a closure that comes back is the one
+  thing a "resolved" counter will never tell you.
+- **Check a patch without waiting for the next cycle** — *Refresh now* re-reads the indexer
+  on the spot, and *Force rescan* restarts the agents you pick so Wazuh re-inventories them
+  and the CVEs you just closed drop off. The second one is optional and needs the manager
+  API; without it the app never writes to Wazuh.
 - **English or Spanish** — set once for the installation, since a SOC screen is read by the
   whole team.
 - **No build step** — clone, `docker compose up`. No Node, no CDN, no external asset
@@ -74,8 +83,10 @@ interactive version — guided views, relationship tracing, light/dark and expor
 
 > [!NOTE]
 > The public feeds are queried **by CVE identifier only** — nothing about your
-> infrastructure leaves the network. On an air-gapped host, turn them off and scoring
-> degrades to CVSS alone.
+> infrastructure leaves the network. The KEV catalog is cached in Postgres for six hours,
+> so a normal ingest does not call CISA at all, and a fetch that fails falls back to the
+> last catalog it held. On an air-gapped host, turn the feeds off and scoring degrades to
+> CVSS alone.
 
 A single ingest:
 
@@ -100,6 +111,19 @@ and prints the credentials. Skip it and the sign-up screen creates the first acc
 instead — it answers only while no account exists and closes itself the moment one does, so
 it never becomes an open registration form.
 
+### Reset the database
+
+The first time you start the stack the database is already blank. If you ever want to wipe
+local data and start over:
+
+```bash
+./scripts/reset-db.sh
+```
+
+It stops the containers, deletes the Postgres Docker volume, rebuilds the API image, and
+brings everything back up. Use `./scripts/reset-db.sh --yes` to skip the confirmation
+prompt — useful in CI or fresh installs.
+
 ![Sign in](docs/img/login.png)
 
 ### Integrations
@@ -113,17 +137,62 @@ posts to the channel — because a saved setting that was never tried tells you 
 Credentials are encrypted at rest and never returned to the browser; a webhook URL counts
 as one, since anyone holding it can post into your channel.
 
+### After you patch
+
+The dashboard re-reads the indexer on a schedule, so a machine you patched five minutes ago
+still shows its old CVEs. Two buttons sit above the KPIs for that:
+
+- **Refresh now** re-runs the ingest against the Indexer immediately. Enough when Wazuh has
+  already re-scanned the host.
+- **Force rescan** picks agents and restarts them through the manager API. Wazuh 4.8+ has
+  no on-demand vulnerability scan — detection is event-driven — so restarting the agent is
+  the supported trigger: it re-runs syscollector on start, ships a fresh package list, and
+  the manager re-evaluates it. The ingest that reads the result is scheduled a few minutes
+  out (`WAZUH_RESCAN_DELAY_SECONDS`, default 180) and the page updates itself when it
+  lands.
+
+> [!WARNING]
+> Force rescan restarts the Wazuh agent on real machines. It is the only place this app
+> writes to Wazuh, it is admin-only, agents are always named explicitly (never "all"),
+> agent `000` — the manager — is refused, and a single request is capped at
+> `WAZUH_RESCAN_MAX_AGENTS` (default 25). Leave the manager API unconfigured and the
+> feature stays off; everything else keeps working read-only.
+
+The manager account needs `agent:restart` on the agents you intend to rescan — not `admin`.
+
+### Did it actually get fixed
+
+`/health` in the sidebar. Every other screen answers "what is open"; this one answers whether
+the fleet is getting better, and it is the only view built from the lifecycle table rather than
+the live state — Wazuh deletes a record the moment the package is patched, so a closure exists
+nowhere else.
+
+- **Indicators** for the window you pick (7/30/90/180 days): closures, unique CVEs, servers,
+  median time to patch, share of criticals closed inside the SLA, and reopened count.
+- **Patching activity** — closures per day, by the severity the CVE carried when it closed.
+- **When each patch landed** — one bar per batch, meaning everything a server closed on the
+  same day. It runs from the oldest CVE in the batch to the day it closed, so the length is the
+  debt the host was carrying and the right edge is the patch window. A bar per CVE was the first
+  attempt and it is unreadable: a Windows box closes hundreds on the same day.
+- **By server** — closed against what the host still carries. A server that closes a lot and
+  still holds hundreds is not healthy, and a leaderboard of closures alone would rank it first.
+
+Everything is counted per (CVE, server) pair, like the rest of the lifecycle metrics: closing a
+CVE on one of five hosts is one fifth of the work, not all of it.
+
 ### What to prioritise
 
 The ranking answers "which CVE is worst". This answers "what do I do on Monday" — written
-once a day after the ingest, or on demand.
+on demand, from the dashboard or from this page.
 
 ![What to prioritise](docs/img/brief.png)
 
 > [!WARNING]
 > The brief is built from the fleet's real state, hostnames included — that is what makes
 > it specific enough to act on. With a hosted model that inventory leaves your network.
-> Point it at a local OpenAI-compatible endpoint and nothing does. It ships disabled.
+> Turn off **Include server hostnames** and the model sees host counts instead of names, or
+> point it at a local OpenAI-compatible endpoint and nothing leaves at all. It ships
+> disabled.
 
 ### Configuration
 
@@ -154,6 +223,14 @@ configuration holds Wazuh credentials. Both are treated accordingly.
   reaches the database or the repository. They are never returned to the browser.
 - **Use a read-only Indexer account**, not `admin`. ONBOARDING walks through creating one
   scoped to `wazuh-states-*` with `cluster_composite_ops_ro`.
+- **Configuration is admin-only.** Integrations, the password, the app settings, the manual
+  ingest and the forced rescan all require the `admin` role, not merely a session.
+- **The only write to Wazuh is an agent restart**, it is opt-in (leave the manager API
+  blank and it does not exist), rate limited to 6 requests a minute, and never applies to
+  the manager itself.
+- **Sign-in is rate limited** — 10 attempts a minute per IP, 5 for the first-run sign-up.
+- **The container runs as an unprivileged user** and declares a healthcheck; runtime
+  dependencies are pinned in `requirements-lock.txt`, which is what the image installs.
 - **Change the bootstrap password** from the configuration tab after signing in.
 
 ## FAQ
@@ -174,8 +251,9 @@ record shape, so adding another source means writing one collector.
 **Does anything of mine reach the model?**
 Only if you enable the brief and choose a hosted provider. It sends the fleet snapshot —
 severity counts, platform split, patching metrics, and the top 25 CVEs with their hosts and
-packages. A local endpoint keeps all of it inside your network. EPSS and CISA KEV are
-separate and only ever see CVE identifiers.
+packages. Turning off **Include server hostnames** replaces the names with a count; a local
+endpoint keeps all of it inside your network. EPSS and CISA KEV are separate and only ever
+see CVE identifiers.
 
 **Where do I change the scoring weights?**
 Environment variables — `VULN_CVSS_WEIGHT`, `VULN_EPSS_WEIGHT`, `VULN_KEV_WEIGHT`,

@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS app_config (
     indexer_url TEXT NOT NULL DEFAULT '',
     indexer_user TEXT NOT NULL DEFAULT '',
     indexer_password_enc BYTEA,
+    manager_url TEXT NOT NULL DEFAULT '',
+    manager_user TEXT NOT NULL DEFAULT '',
+    manager_password_enc BYTEA,
     verify_tls BOOLEAN NOT NULL DEFAULT FALSE,
     enrich_epss BOOLEAN NOT NULL DEFAULT TRUE,
     enrich_kev BOOLEAN NOT NULL DEFAULT TRUE,
@@ -63,6 +66,10 @@ DEFAULTS: Dict[str, Any] = {
     "lang": "en",
     "indexer_url": "",
     "indexer_user": "",
+    # Optional: only needed to force a rescan (restart an agent). Reading
+    # vulnerabilities never touches the manager API.
+    "manager_url": "",
+    "manager_user": "",
     "verify_tls": False,
     "enrich_epss": True,
     "enrich_kev": True,
@@ -94,6 +101,12 @@ class ConfigStore:
         await self._pool.execute(
             "ALTER TABLE app_config ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'en'"
         )
+        for column in (
+            "manager_url TEXT NOT NULL DEFAULT ''",
+            "manager_user TEXT NOT NULL DEFAULT ''",
+            "manager_password_enc BYTEA",
+        ):
+            await self._pool.execute(f"ALTER TABLE app_config ADD COLUMN IF NOT EXISTS {column}")
         await self._pool.execute(
             "INSERT INTO app_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING"
         )
@@ -103,9 +116,10 @@ class ConfigStore:
         """Config with the password decrypted. Never send this to the browser."""
         row = await self._pool.fetchrow("SELECT * FROM app_config WHERE id = 1")
         if row is None:
-            return {**DEFAULTS, "indexer_password": ""}
+            return {**DEFAULTS, "indexer_password": "", "manager_password": ""}
         cfg = {k: row[k] for k in DEFAULTS}
         cfg["indexer_password"] = self._decrypt(row["indexer_password_enc"])
+        cfg["manager_password"] = self._decrypt(row["manager_password_enc"])
         cfg["updated_at"] = row["updated_at"]
         cfg["updated_by"] = row["updated_by"]
         return cfg
@@ -114,7 +128,9 @@ class ConfigStore:
         """Config safe to render in the UI: the password is replaced by a flag."""
         cfg = await self.load()
         password = cfg.pop("indexer_password", "")
+        manager_password = cfg.pop("manager_password", "")
         cfg["has_password"] = bool(password)
+        cfg["has_manager_password"] = bool(manager_password)
         return cfg
 
     async def save(self, updates: Dict[str, Any], updated_by: str) -> Dict[str, Any]:
@@ -132,6 +148,12 @@ class ConfigStore:
         # current value, so it cannot echo it back on save.
         password = updates.get("indexer_password")
         enc = self._encrypt(password) if password else self._encrypt(current["indexer_password"])
+        manager_password = updates.get("manager_password")
+        manager_enc = (
+            self._encrypt(manager_password)
+            if manager_password
+            else self._encrypt(current["manager_password"])
+        )
 
         await self._pool.execute(
             """
@@ -139,6 +161,7 @@ class ConfigStore:
                 indexer_url = $1, indexer_user = $2,
                 indexer_password_enc = $3, verify_tls = $4, enrich_epss = $5,
                 enrich_kev = $6, refresh_minutes = $7, lang = $8,
+                manager_url = $10, manager_user = $11, manager_password_enc = $12,
                 updated_at = NOW(), updated_by = $9
             WHERE id = 1
             """,
@@ -151,6 +174,9 @@ class ConfigStore:
             refresh,
             lang,
             updated_by,
+            (updates.get("manager_url", current["manager_url"]) or "").strip().rstrip("/"),
+            (updates.get("manager_user", current["manager_user"]) or "").strip(),
+            manager_enc,
         )
         logger.info("app_config_updated", by=updated_by)
         return await self.load_public()

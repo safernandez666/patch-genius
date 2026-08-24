@@ -35,6 +35,7 @@
 
       "nav.vulns": "Vulnerabilidades",
       "nav.brief": "IA",
+      "nav.health": "Sanidad",
       "nav.config": "Configuration",
       "nav.integrations": "Integrations",
       "nav.help": "Help",

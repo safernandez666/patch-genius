@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import asyncpg
@@ -32,6 +32,7 @@ from app.scoring import SEV_RANK, sev_rank
 from app.settings import settings
 from app.vuln_store import ASSIGNMENT_STATUSES, VulnStore
 from app.wazuh.indexer import WazuhIndexerClient, WazuhIndexerError
+from app.wazuh.manager import MANAGER_AGENT_ID, WazuhManagerClient, WazuhManagerError
 
 logger = structlog.get_logger(__name__)
 
@@ -53,9 +54,34 @@ async def _rate_limit_error(request: Request, exc: RateLimitExceeded) -> Respons
     )
 
 
+async def _create_pg_pool(dsn: str, retries: int = 10, base_delay: float = 1.0):
+    """Try to connect to Postgres with exponential backoff.
+
+    Docker Compose can start the API container right after Postgres is marked
+    healthy, but the internal DNS name may not resolve immediately. A short
+    retry loop prevents a transient name-resolution failure from crashing the
+    container on the first start.
+    """
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            return await asyncpg.create_pool(dsn, min_size=1, max_size=5)
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            logger.warning(
+                "postgres_connect_failed",
+                attempt=attempt,
+                retries=retries,
+                error=str(exc),
+            )
+            if attempt < retries:
+                await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
+    raise last_error or RuntimeError("could not connect to Postgres")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pool = await asyncpg.create_pool(settings.postgres_dsn, min_size=1, max_size=5)
+    pool = await _create_pg_pool(settings.postgres_dsn)
     store = VulnStore(settings.postgres_dsn, pool=pool)
     await store.connect()
     await migrate_assignments(pool)
@@ -70,11 +96,65 @@ async def lifespan(app: FastAPI):
     app.state.config_store = config_store
     app.state.auth = auth
 
+    app.state.rescan = _rescan_idle()
+    app.state.rescan_task = None
+
     app.state.refresh_task = asyncio.create_task(_refresh_loop(app))
 
     yield
     app.state.refresh_task.cancel()
+    if app.state.rescan_task is not None:
+        app.state.rescan_task.cancel()
     await pool.close()
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _rescan_idle() -> Dict[str, Any]:
+    """Initial (and post-failure) shape of the in-memory rescan state.
+
+    In memory on purpose: it describes one operator action in flight, it is
+    worthless after a restart, and the deployment runs a single worker. Scaling
+    out would have to move it next to the cache in Postgres.
+    """
+    return {
+        "status": "idle",
+        "agents": [],
+        "failed": [],
+        "requested_at": None,
+        "ready_at": None,
+        "finished_at": None,
+        "error": None,
+        "result": None,
+    }
+
+
+async def _rescan_then_ingest(app: FastAPI, delay: int) -> None:
+    """Wait for the restarted agents to report, then re-ingest.
+
+    The restart already happened in the route. This only exists because the new
+    inventory is not in the index yet: syscollector runs on agent start, ships
+    its packages, and the manager scores them against the CTI feed. Ingesting
+    immediately would re-read exactly the state the operator is trying to change.
+    """
+    state = app.state.rescan
+    try:
+        await asyncio.sleep(delay)
+        state["status"] = "ingesting"
+        cfg = await app.state.config_store.load()
+        state["result"] = await run_ingest(app.state.pg_pool, cfg, settings)
+        state["status"] = "done"
+        state["finished_at"] = _now_iso()
+    except asyncio.CancelledError:
+        state["status"] = "idle"
+        raise
+    except Exception as exc:  # noqa: BLE001
+        state["status"] = "error"
+        state["error"] = str(exc)
+        state["finished_at"] = _now_iso()
+        logger.error("rescan_ingest_failed", error=str(exc))
 
 
 async def _refresh_loop(app: FastAPI) -> None:
@@ -316,9 +396,149 @@ async def api_config_test(request: Request, user: str = Depends(require_admin)):
         return {"ok": False, "error": str(exc)}
 
 
+def _manager_client(
+    cfg: Dict[str, Any],
+    body: Optional[Dict[str, Any]] = None,
+    timeout: float = 20.0,
+) -> WazuhManagerClient:
+    """Build a manager client from the stored config, overridden by `body`.
+
+    The override is what lets the Integrations tab test credentials before they
+    are saved, exactly like /api/config/test does for the indexer.
+    """
+    body = body or {}
+    url = (body.get("manager_url") or cfg.get("manager_url") or "").strip().rstrip("/")
+    if not url:
+        raise HTTPException(
+            status_code=400,
+            detail="the Wazuh manager API is not configured — add it in Integrations",
+        )
+    return WazuhManagerClient(
+        base_url=url,
+        username=body.get("manager_user") or cfg.get("manager_user", ""),
+        password=body.get("manager_password") or cfg.get("manager_password", ""),
+        verify_tls=bool(body.get("verify_tls", cfg.get("verify_tls", False))),
+        timeout=timeout,
+    )
+
+
+@app.post("/api/config/test-manager")
+async def api_config_test_manager(request: Request, user: str = Depends(require_admin)):
+    """Probe the Wazuh manager API with the submitted settings without saving them."""
+    body = await request.json()
+    stored = await request.app.state.config_store.load()
+    client = _manager_client(stored, body, timeout=15.0)
+    try:
+        return {"ok": True, **await client.ping()}
+    except WazuhManagerError as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+@app.get("/api/wazuh/agents")
+async def api_wazuh_agents(request: Request, user: str = Depends(require_admin)):
+    """Agents the manager knows about — the list the rescan dialog picks from."""
+    cfg = await request.app.state.config_store.load()
+    client = _manager_client(cfg)
+    try:
+        return {"agents": await client.list_agents()}
+    except WazuhManagerError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/wazuh/rescan")
+async def api_wazuh_rescan_status(request: Request, user: str = Depends(require_admin)):
+    """State of the rescan in flight, so the dashboard can show its progress."""
+    state = getattr(request.app.state, "rescan", None) or _rescan_idle()
+    return {**state, "delay_seconds": settings.wazuh_rescan_delay_seconds}
+
+
+@app.post("/api/wazuh/rescan")
+@limiter.limit("6/minute")
+async def api_wazuh_rescan(request: Request, user: str = Depends(require_admin)):
+    """Restart the named agents so Wazuh re-inventories them, then re-ingest.
+
+    Wazuh 4.8+ has no on-demand vulnerability scan; restarting the agent is the
+    only supported trigger (see app/wazuh/manager.py). The agents are always
+    named explicitly — this reboots real machines' agents — and the ingest that
+    reads the result is scheduled, not run inline.
+    """
+    app_state = request.app.state
+    task = getattr(app_state, "rescan_task", None)
+    if task is not None and not task.done():
+        raise HTTPException(status_code=409, detail="a rescan is already in progress")
+
+    body = await request.json()
+    requested = [str(a).strip() for a in (body.get("agents") or []) if str(a).strip()]
+    requested = list(dict.fromkeys(requested))
+    if not requested:
+        raise HTTPException(status_code=400, detail="name at least one agent to rescan")
+    if MANAGER_AGENT_ID in requested:
+        # Agent 000 is the manager: restarting it restarts the server.
+        raise HTTPException(
+            status_code=400, detail="agent 000 is the manager and cannot be rescanned"
+        )
+    if len(requested) > settings.wazuh_rescan_max_agents:
+        raise HTTPException(
+            status_code=400,
+            detail=f"at most {settings.wazuh_rescan_max_agents} agents per rescan",
+        )
+
+    cfg = await app_state.config_store.load()
+    client = _manager_client(cfg)
+    try:
+        known = {a["id"]: a for a in await client.list_agents()}
+        unknown = [a for a in requested if a not in known]
+        if unknown:
+            raise HTTPException(status_code=400, detail=f"unknown agents: {', '.join(unknown)}")
+        outcome = await client.restart_agents(requested)
+    except WazuhManagerError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    restarted = [{"id": a, "name": known[a]["name"]} for a in outcome["restarted"] if a in known]
+    failed = [
+        {
+            "id": f["id"],
+            "name": (known.get(f["id"]) or {}).get("name", f["id"]),
+            "error": f["error"],
+        }
+        for f in outcome["failed"]
+    ]
+    if not restarted:
+        # Nothing was restarted, so nothing will change: do not schedule an
+        # ingest that would only re-read the state the operator just saw.
+        return {"restarted": [], "failed": failed, "scheduled": False}
+
+    delay = settings.wazuh_rescan_delay_seconds
+    now = datetime.now(timezone.utc)
+    app_state.rescan = {
+        **_rescan_idle(),
+        "status": "waiting",
+        "agents": restarted,
+        "failed": failed,
+        "requested_at": now.isoformat(),
+        # When the scheduled ingest fires. The dashboard counts down to it, so
+        # the operator knows the wait is expected rather than a hung request.
+        "ready_at": (now + timedelta(seconds=delay)).isoformat(),
+    }
+    app_state.rescan_task = asyncio.create_task(_rescan_then_ingest(request.app, delay))
+    logger.info("wazuh_rescan_requested", agents=len(restarted), by=user, delay=delay)
+    return {
+        "restarted": restarted,
+        "failed": failed,
+        "scheduled": True,
+        "delay_seconds": delay,
+    }
+
+
 @app.get("/brief")
 async def brief_page():
     return FileResponse("static/brief.html")
+
+
+@app.get("/health")
+async def health_page():
+    """Remediation health screen. Not to be confused with /healthz (liveness)."""
+    return FileResponse("static/health.html")
 
 
 @app.get("/integraciones")
@@ -803,6 +1023,25 @@ async def vuln_cves(
 async def vuln_history(request: Request, days: int = 90, user: str = Depends(require_user)):
     days = max(7, min(int(days), 365))
     return {"snapshots": await _store(request).history(days)}
+
+
+@app.get("/vulnerabilities/health")
+async def vuln_health(
+    request: Request,
+    days: int = 7,
+    limit: int = 15,
+    user: str = Depends(require_user),
+):
+    """Remediation health — what the fleet closed, and what came back.
+
+    Deliberately not filtered by the dashboard's filters: those run over the
+    cached live state, and a closure is precisely what is no longer in it.
+    """
+    days = max(1, min(int(days), 365))
+    limit = max(1, min(int(limit), 200))
+    return await _store(request).remediation_health(
+        days=days, limit=limit, sla_days=settings.vuln_sla_critical_days
+    )
 
 
 @app.get("/vulnerabilities/priority-brief")

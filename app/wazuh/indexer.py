@@ -49,6 +49,16 @@ class WazuhIndexerError(RuntimeError):
     """Raised when the indexer is unreachable or rejects the request."""
 
 
+def transport_reason(exc: Exception) -> str:
+    """Readable cause for a transport error.
+
+    httpx timeouts stringify to the empty string, which reached the operator as
+    "search failed: " — a message that says nothing. Fall back to the exception
+    class, which at least distinguishes a timeout from a refused connection.
+    """
+    return str(exc) or type(exc).__name__
+
+
 class WazuhIndexerClient:
     """Minimal async client — search and count over the vulnerability index.
 
@@ -92,7 +102,7 @@ class WazuhIndexerClient:
                     f"indexer returned {exc.response.status_code}: {exc.response.text[:200]}"
                 ) from exc
             except httpx.HTTPError as exc:
-                raise WazuhIndexerError(f"cannot reach indexer: {exc}") from exc
+                raise WazuhIndexerError(f"cannot reach indexer: {transport_reason(exc)}") from exc
         h = health.json()
         return {
             "cluster_name": h.get("cluster_name", ""),
@@ -149,7 +159,7 @@ class WazuhIndexerClient:
                             f"search failed ({exc.response.status_code}): {exc.response.text[:200]}"
                         ) from exc
                     except httpx.HTTPError as exc:
-                        raise WazuhIndexerError(f"search failed: {exc}") from exc
+                        raise WazuhIndexerError(f"search failed: {transport_reason(exc)}") from exc
 
                     payload = resp.json()
                     # A PIT search returns a refreshed id that must be carried forward.

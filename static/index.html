@@ -131,6 +131,8 @@
 .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:var(--radius-lg)}
 .btn-ghost{border:1px solid var(--color-gray-200);background:transparent;color:var(--color-gray-700);cursor:pointer;font-family:inherit}
 .btn-ghost:hover{background:var(--color-gray-50)}
+.btn-ghost:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost:disabled:hover{background:transparent}
 [data-theme="dark"] .btn-ghost{border-color:var(--color-gray-700);color:var(--color-gray-200)}
 [data-theme="dark"] .btn-ghost:hover{background:#ffffff0a}
 
@@ -157,6 +159,28 @@
 [data-theme="dark"] .modal{background:var(--color-gray-dark);border:1px solid var(--color-gray-800)}
 [data-theme="dark"] .modal h3{color:var(--color-white)}
 [data-theme="dark"] .modal textarea{background:var(--color-gray-dark);border-color:var(--color-gray-800);color:var(--color-gray-200)}
+/* Barra de refresco: "Updated hace X" + acciones de re-ingesta y rescan */
+.refresh-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-14px 0 20px}
+.refresh-bar .cache-age{margin:0}
+.refresh-msg{font-size:12px;border-radius:9px;padding:9px 12px;margin:-10px 0 18px;line-height:1.5}
+.refresh-msg.is-info{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border)}
+.refresh-msg.is-ok{background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border)}
+.refresh-msg.is-bad{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border)}
+.agent-list{max-height:300px;overflow-y:auto;border:1px solid var(--color-gray-200);border-radius:var(--radius-lg);
+  padding:6px;font-size:12.5px}
+[data-theme="dark"] .agent-list{border-color:var(--color-gray-800)}
+.agent-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px}
+.agent-row:hover{background:var(--color-gray-50)}
+[data-theme="dark"] .agent-row:hover{background:#ffffff0a}
+.agent-row input{margin:0;flex:none}
+.agent-row .a-name{font-weight:600;color:var(--color-gray-800)}
+[data-theme="dark"] .agent-row .a-name{color:var(--color-gray-200)}
+.agent-row .a-meta{color:var(--color-gray-500);font-size:11.5px}
+.agent-row.is-off{opacity:.55}
+.agent-tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:2px 7px;
+  border:1px solid currentColor}
+.agent-tag.on{color:#15803d}
+.agent-tag.off{color:#b42318}
 
 .footer{margin-top:26px;padding:18px 0;color:var(--color-gray-400);font-size:12px;text-align:center}
 .footer a{color:inherit}
@@ -296,6 +320,10 @@
       <span class="ai-ico" aria-hidden="true"></span>
       <span data-i18n="nav.brief">AI</span>
     </a>
+    <a href="/health">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>
+      <span data-i18n="nav.health">Health</span>
+    </a>
     <a href="/config">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span data-i18n="nav.config">Configuration</span>
@@ -380,7 +408,15 @@
     <input class="input" id="filter-q" type="search" placeholder="Search CVE / package…" oninput="debouncedReload()">
     <span id="events-count" class="events-count" aria-live="polite"></span>
   </div>
-  <p class="cache-age" id="cache-age" style="margin:-14px 0 20px"></p>
+  <div class="refresh-bar">
+    <p class="cache-age" id="cache-age"></p>
+    <span style="flex:1"></span>
+    <button type="button" class="btn-ghost btn-sm" id="btn-refresh" onclick="refreshNow()"
+      title="Re-read the Wazuh indexer now instead of waiting for the next scheduled refresh">Refresh now</button>
+    <button type="button" class="btn-ghost btn-sm" id="btn-rescan" onclick="openRescan()"
+      title="Restart an agent so Wazuh re-inventories it — use it after applying patches">Force rescan…</button>
+  </div>
+  <div class="refresh-msg is-info" id="refresh-msg" hidden></div>
 
   <section class="stat-grid stat-grid-hero" aria-label="Priority indicators">
     <div class="stat-card stat-hero" id="card-kev"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="label">In CISA KEV</div><div class="value is-muted" id="stat-kev">…</div><div class="hint">confirmed active exploitation</div></div>
@@ -512,6 +548,28 @@
       <button type="button" class="btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
       <button type="button" class="btn-ghost btn-sm" style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)" onclick="saveAssignment()">Save</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal de rescan: reinicia agentes para que Wazuh vuelva a inventariarlos -->
+<div class="modal-backdrop" id="rescanModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rescan-title">
+    <h3 id="rescan-title">Force a Wazuh rescan</h3>
+    <p class="modal-sub">Wazuh has no on-demand vulnerability scan. Restarting an agent makes it
+      re-run its inventory, which is what re-evaluates the patches you just applied. The dashboard
+      refreshes on its own about <span id="rescan-eta">3</span> minutes later.</p>
+    <div class="agent-list" id="rescan-list">Loading agents…</div>
+    <div class="modal-actions">
+      <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-gray-500);margin:0">
+        <input type="checkbox" id="rescan-all" onchange="toggleAllAgents(this.checked)"> Select all connected
+      </label>
+      <span style="flex:1"></span>
+      <button type="button" class="btn-ghost btn-sm" onclick="closeRescan()">Cancel</button>
+      <button type="button" class="btn-ghost btn-sm" id="rescan-go"
+        style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)"
+        onclick="runRescan()">Restart &amp; rescan</button>
+    </div>
+    <p class="refresh-msg is-bad" id="rescan-msg" hidden style="margin:14px 0 0"></p>
   </div>
 </div>
 
@@ -1266,6 +1324,217 @@ document.getElementById('modal').addEventListener('click', e => {
   if (e.target.id === 'modal') closeModal();
 });
 
+// --- Refresco manual y rescan forzado ---
+// Dos cosas distintas: "Refresh now" vuelve a leer el indexer (barato, inmediato)
+// y "Force rescan" reinicia agentes en Wazuh para que rehagan su inventario, que
+// es lo unico que hace que un parche recien aplicado desaparezca del panel. El
+// segundo tarda minutos, asi que el backend agenda la ingesta y aca se sondea.
+let rescanTimer = null;
+let rescanDelay = 180;
+
+function refreshMsg(kind, text) {
+  const el = document.getElementById('refresh-msg');
+  if (!text) { el.hidden = true; el.textContent = ''; return; }
+  el.className = 'refresh-msg is-' + kind;
+  el.textContent = text;
+  el.hidden = false;
+}
+
+function rescanMsg(text) {
+  const el = document.getElementById('rescan-msg');
+  el.textContent = text || '';
+  el.hidden = !text;
+}
+
+function ingestLine(d) {
+  return `${fmtNum.format(d.cves || 0)} CVEs from ${fmtNum.format(d.documentos || 0)} records`
+    + ` · ${fmtNum.format(d.nuevos || 0)} new · ${fmtNum.format(d.resueltos || 0)} resolved.`;
+}
+
+async function reloadEverything() {
+  await Promise.all([loadSummary(), loadCves()]);
+  loadHistory();
+}
+
+async function refreshNow() {
+  const btn = document.getElementById('btn-refresh');
+  btn.disabled = true;
+  btn.textContent = 'Refreshing…';
+  refreshMsg('info', 'Re-reading the Wazuh indexer…');
+  try {
+    const res = await fetch('/api/ingest', { method: 'POST' });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+    await reloadEverything();
+    refreshMsg('ok', 'Data refreshed — ' + ingestLine(d));
+  } catch (e) {
+    refreshMsg('bad', 'Could not refresh: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Refresh now';
+  }
+}
+
+async function openRescan() {
+  document.getElementById('rescanModal').hidden = false;
+  document.getElementById('rescan-all').checked = false;
+  document.getElementById('rescan-go').disabled = true;
+  document.getElementById('rescan-all').disabled = true;
+  document.getElementById('rescan-eta').textContent = Math.round(rescanDelay / 60);
+  rescanMsg('');
+  const list = document.getElementById('rescan-list');
+  list.textContent = 'Loading agents…';
+  try {
+    const res = await fetch('/api/wazuh/agents');
+    const d = await res.json().catch(() => ({}));
+    if (res.status === 400) {
+      // Sin manager API configurada no hay forma de disparar un rescan.
+      list.innerHTML = 'The Wazuh manager API is not configured. Add it under Wazuh in '
+        + '<a href="/integraciones">Integrations</a> to enable rescans.';
+      syncRescanControls();
+      return;
+    }
+    if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+    const agents = d.agents || [];
+    if (!agents.length) {
+      list.textContent = 'The manager reports no enrolled agents.';
+      syncRescanControls();
+      return;
+    }
+    list.innerHTML = agents.map(a => {
+      // Un agente desconectado no se puede reiniciar: se muestra, deshabilitado,
+      // porque "no aparece" seria peor que ver por que no se puede elegir.
+      const on = a.status === 'active';
+      return `<label class="agent-row${on ? '' : ' is-off'}">
+        <input type="checkbox" value="${escapeHtml(a.id)}"${on ? '' : ' disabled'}>
+        <span style="flex:1;min-width:0">
+          <span class="a-name">${escapeHtml(a.name)}</span>
+          <span class="a-meta"> · ${escapeHtml(a.os || 'unknown OS')} · id ${escapeHtml(a.id)}</span>
+        </span>
+        <span class="agent-tag ${on ? 'on' : 'off'}">${escapeHtml(a.status)}</span>
+      </label>`;
+    }).join('');
+    syncRescanControls();
+  } catch (e) {
+    list.textContent = 'Could not list the agents: ' + e.message;
+    syncRescanControls();
+  }
+}
+
+function closeRescan() {
+  document.getElementById('rescanModal').hidden = true;
+}
+
+function toggleAllAgents(on) {
+  document.querySelectorAll('#rescan-list input[type=checkbox]:not(:disabled)')
+    .forEach(cb => { cb.checked = on; });
+  syncRescanControls();
+}
+
+// Confirmar no tiene sentido sin nada elegido — ni con la lista vacia porque la
+// manager API no esta configurada, que es el caso mas comun la primera vez.
+function syncRescanControls() {
+  const boxes = [...document.querySelectorAll('#rescan-list input[type=checkbox]:not(:disabled)')];
+  document.getElementById('rescan-all').disabled = !boxes.length;
+  document.getElementById('rescan-go').disabled = !boxes.some(cb => cb.checked);
+}
+
+async function runRescan() {
+  const ids = [...document.querySelectorAll('#rescan-list input[type=checkbox]:checked')]
+    .map(cb => cb.value);
+  if (!ids.length) { rescanMsg('Pick at least one agent.'); return; }
+  const btn = document.getElementById('rescan-go');
+  btn.disabled = true;
+  btn.textContent = 'Restarting…';
+  try {
+    const res = await fetch('/api/wazuh/rescan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agents: ids }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+    const failed = (d.failed || []).map(f => `${f.name} (${f.error})`).join(', ');
+    if (!d.scheduled) {
+      rescanMsg('No agent could be restarted' + (failed ? ': ' + failed : '.'));
+      return;
+    }
+    rescanDelay = d.delay_seconds || rescanDelay;
+    closeRescan();
+    if (failed) refreshMsg('bad', 'Could not restart ' + failed);
+    startRescanPolling();
+    await pollRescan();
+  } catch (e) {
+    rescanMsg(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Restart & rescan';
+  }
+}
+
+function startRescanPolling() {
+  clearInterval(rescanTimer);
+  rescanTimer = setInterval(pollRescan, 15000);
+}
+
+function stopRescanPolling() {
+  clearInterval(rescanTimer);
+  rescanTimer = null;
+}
+
+async function pollRescan() {
+  let d;
+  try {
+    const res = await fetch('/api/wazuh/rescan');
+    if (!res.ok) { stopRescanPolling(); return null; }
+    d = await res.json();
+  } catch (e) {
+    return null;   // un fallo de red suelto no cancela el seguimiento
+  }
+  rescanDelay = d.delay_seconds || rescanDelay;
+  const names = (d.agents || []).map(a => a.name).join(', ');
+  if (d.status === 'waiting') {
+    const mins = d.ready_at ? Math.ceil((new Date(d.ready_at) - Date.now()) / 60000) : 0;
+    refreshMsg('info', `Rescanning ${names} — the agent is restarting and reporting its `
+      + 'inventory again. New data in '
+      + (mins > 0 ? `about ${mins} min.` : 'a moment.'));
+  } else if (d.status === 'ingesting') {
+    refreshMsg('info', `Reading the new state for ${names}…`);
+  } else if (d.status === 'done') {
+    stopRescanPolling();
+    await reloadEverything();
+    refreshMsg('ok', `Rescan of ${names} finished — ` + ingestLine(d.result || {}));
+  } else if (d.status === 'error') {
+    stopRescanPolling();
+    refreshMsg('bad', 'The rescan finished but the ingest failed: ' + (d.error || 'unknown error'));
+  }
+  return d;
+}
+
+// Al cargar la pagina: si el usuario no es admin las dos acciones no existen para
+// el, y si dejo un rescan en vuelo (F5, otra pestaña) se retoma el seguimiento.
+async function initRefreshBar() {
+  let res;
+  try { res = await fetch('/api/wazuh/rescan'); } catch (e) { return; }
+  if (res.status === 403) {
+    document.getElementById('btn-refresh').hidden = true;
+    document.getElementById('btn-rescan').hidden = true;
+    return;
+  }
+  if (!res.ok) return;
+  const d = await res.json().catch(() => ({}));
+  rescanDelay = d.delay_seconds || rescanDelay;
+  if (d.status === 'waiting' || d.status === 'ingesting') {
+    await pollRescan();
+    startRescanPolling();
+  }
+}
+
+document.getElementById('rescanModal').addEventListener('click', e => {
+  if (e.target.id === 'rescanModal') closeRescan();
+});
+document.getElementById('rescan-list').addEventListener('change', syncRescanControls);
+
 // --- Theme hook ---
 window.__onThemeChange = function () {
   if (donutChart || evolChart) { loadSummary(); loadHistory(); }
@@ -1278,6 +1547,7 @@ async function init() {
     return;
   }
   loadHistory();
+  initRefreshBar();
   const cveParam = new URLSearchParams(location.search).get('cve');
   if (cveParam) document.getElementById('filter-q').value = cveParam;
   await loadCves();

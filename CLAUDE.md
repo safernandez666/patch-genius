@@ -67,6 +67,10 @@ A PostToolUse hook runs `ruff format` on each Python file you edit.
 - Filtering and aggregation happen in Python over the cached JSONB state in
   `vuln_state_cache` (a single row, `CHECK (id = 1)`) — not in SQL. Only the
   lifecycle/SLA metrics (`patching_metrics`) are real queries.
+- `app/wazuh/manager.py` is the **only** code that writes to Wazuh, and it does exactly one
+  thing: restart named agents so they re-inventory themselves (Wazuh 4.8+ has no on-demand
+  vulnerability scan). It is optional — with no manager API configured the app is strictly
+  read-only — admin-only, never accepts "all agents", and always refuses agent `000`.
 - Schema lives in `app/vuln_store.py:TABLES_SQL` as `CREATE TABLE IF NOT EXISTS`; there
   are no migrations. `connect()` swallows table-creation failures with a
   `vuln_tables_init_failed` warning, so schema errors surface as empty data, not crashes.
