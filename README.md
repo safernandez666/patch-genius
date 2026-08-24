@@ -111,6 +111,19 @@ and prints the credentials. Skip it and the sign-up screen creates the first acc
 instead — it answers only while no account exists and closes itself the moment one does, so
 it never becomes an open registration form.
 
+### Reset the database
+
+The first time you start the stack the database is already blank. If you ever want to wipe
+local data and start over:
+
+```bash
+./scripts/reset-db.sh
+```
+
+It stops the containers, deletes the Postgres Docker volume, rebuilds the API image, and
+brings everything back up. Use `./scripts/reset-db.sh --yes` to skip the confirmation
+prompt — useful in CI or fresh installs.
+
 ![Sign in](docs/img/login.png)
 
 ### Integrations
