@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     vuln_priority_critical_threshold: float = Field(default=80.0)
     vuln_sla_critical_days: int = Field(default=15)
 
+    # Seconds to wait after restarting an agent before re-ingesting. The agent
+    # has to come back up, run syscollector, ship the inventory and let the
+    # manager score it; three minutes covers that on a normal link. Ingesting
+    # sooner just re-reads the old state.
+    wazuh_rescan_delay_seconds: int = Field(default=180, ge=30, le=1800)
+    # Ceiling on a single rescan request. Restarting agents is disruptive, so a
+    # fat-fingered "select all" on a large fleet is refused rather than executed.
+    wazuh_rescan_max_agents: int = Field(default=25, ge=1, le=200)
+
     # Fernet key protecting the Wazuh credentials stored in app_config. Generated
     # on first start and written to .env when absent; rotating it makes the stored
     # password unreadable and it has to be re-entered in the Configuration tab.

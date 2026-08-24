@@ -61,6 +61,14 @@ Everything the dashboard shows about time is therefore derived here, not read fr
   and nothing leaves.
 - **Onboarding in the app** — the Wazuh connection is configured from a tab, tested before
   it is saved, and stored encrypted. Nothing is baked into the image.
+- **Proof that the patching is working** — a Health check screen that only looks backwards:
+  what closed, on which server, how long each CVE had been open, and when each patch landed.
+  Reopened CVEs are called out separately, because a closure that comes back is the one
+  thing a "resolved" counter will never tell you.
+- **Check a patch without waiting for the next cycle** — *Refresh now* re-reads the indexer
+  on the spot, and *Force rescan* restarts the agents you pick so Wazuh re-inventories them
+  and the CVEs you just closed drop off. The second one is optional and needs the manager
+  API; without it the app never writes to Wazuh.
 - **English or Spanish** — set once for the installation, since a SOC screen is read by the
   whole team.
 - **No build step** — clone, `docker compose up`. No Node, no CDN, no external asset
@@ -116,6 +124,49 @@ posts to the channel — because a saved setting that was never tried tells you 
 Credentials are encrypted at rest and never returned to the browser; a webhook URL counts
 as one, since anyone holding it can post into your channel.
 
+### After you patch
+
+The dashboard re-reads the indexer on a schedule, so a machine you patched five minutes ago
+still shows its old CVEs. Two buttons sit above the KPIs for that:
+
+- **Refresh now** re-runs the ingest against the Indexer immediately. Enough when Wazuh has
+  already re-scanned the host.
+- **Force rescan** picks agents and restarts them through the manager API. Wazuh 4.8+ has
+  no on-demand vulnerability scan — detection is event-driven — so restarting the agent is
+  the supported trigger: it re-runs syscollector on start, ships a fresh package list, and
+  the manager re-evaluates it. The ingest that reads the result is scheduled a few minutes
+  out (`WAZUH_RESCAN_DELAY_SECONDS`, default 180) and the page updates itself when it
+  lands.
+
+> [!WARNING]
+> Force rescan restarts the Wazuh agent on real machines. It is the only place this app
+> writes to Wazuh, it is admin-only, agents are always named explicitly (never "all"),
+> agent `000` — the manager — is refused, and a single request is capped at
+> `WAZUH_RESCAN_MAX_AGENTS` (default 25). Leave the manager API unconfigured and the
+> feature stays off; everything else keeps working read-only.
+
+The manager account needs `agent:restart` on the agents you intend to rescan — not `admin`.
+
+### Did it actually get fixed
+
+`/health` in the sidebar. Every other screen answers "what is open"; this one answers whether
+the fleet is getting better, and it is the only view built from the lifecycle table rather than
+the live state — Wazuh deletes a record the moment the package is patched, so a closure exists
+nowhere else.
+
+- **Indicators** for the window you pick (7/30/90/180 days): closures, unique CVEs, servers,
+  median time to patch, share of criticals closed inside the SLA, and reopened count.
+- **Patching activity** — closures per day, by the severity the CVE carried when it closed.
+- **When each patch landed** — one bar per batch, meaning everything a server closed on the
+  same day. It runs from the oldest CVE in the batch to the day it closed, so the length is the
+  debt the host was carrying and the right edge is the patch window. A bar per CVE was the first
+  attempt and it is unreadable: a Windows box closes hundreds on the same day.
+- **By server** — closed against what the host still carries. A server that closes a lot and
+  still holds hundreds is not healthy, and a leaderboard of closures alone would rank it first.
+
+Everything is counted per (CVE, server) pair, like the rest of the lifecycle metrics: closing a
+CVE on one of five hosts is one fifth of the work, not all of it.
+
 ### What to prioritise
 
 The ranking answers "which CVE is worst". This answers "what do I do on Monday" — written
@@ -159,8 +210,11 @@ configuration holds Wazuh credentials. Both are treated accordingly.
   reaches the database or the repository. They are never returned to the browser.
 - **Use a read-only Indexer account**, not `admin`. ONBOARDING walks through creating one
   scoped to `wazuh-states-*` with `cluster_composite_ops_ro`.
-- **Configuration is admin-only.** Integrations, the password, the app settings and the
-  manual ingest all require the `admin` role, not merely a session.
+- **Configuration is admin-only.** Integrations, the password, the app settings, the manual
+  ingest and the forced rescan all require the `admin` role, not merely a session.
+- **The only write to Wazuh is an agent restart**, it is opt-in (leave the manager API
+  blank and it does not exist), rate limited to 6 requests a minute, and never applies to
+  the manager itself.
 - **Sign-in is rate limited** — 10 attempts a minute per IP, 5 for the first-run sign-up.
 - **The container runs as an unprivileged user** and declares a healthcheck; runtime
   dependencies are pinned in `requirements-lock.txt`, which is what the image installs.

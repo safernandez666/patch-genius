@@ -103,10 +103,32 @@
       </div>
       <label class="check"><input type="checkbox" id="wz-tls"> Verify TLS certificate
         <span style="color:var(--pg-text-muted)">— turn off for Wazuh's self-signed cert</span></label>
+
+      <p class="hint" style="margin-top:18px;padding-top:15px;border-top:1px solid var(--pg-border)">
+        <b>Manager API — optional, port 55000.</b> Only used by <em>Force rescan</em> on the dashboard.
+        Wazuh 4.8+ has no on-demand vulnerability scan: a rescan restarts the agent, which makes it
+        re-run its inventory so the manager re-evaluates the packages you just patched. Leave these
+        empty and the app stays strictly read-only.</p>
+      <label for="wz-mgr-url">Manager API URL</label>
+      <input type="text" id="wz-mgr-url" placeholder="https://wazuh.example.com:55000">
+      <div class="row">
+        <div>
+          <label for="wz-mgr-user">Username</label>
+          <input type="text" id="wz-mgr-user" autocomplete="off" placeholder="wazuh-wui">
+        </div>
+        <div>
+          <label for="wz-mgr-pass">Password</label>
+          <input type="password" id="wz-mgr-pass" autocomplete="new-password">
+        </div>
+      </div>
+      <p class="hint">The account needs <code>agent:restart</code>; TLS verification follows the
+        checkbox above.</p>
+
       <div class="actions">
         <button type="button" class="act ghost" onclick="wzTest()">Test connection</button>
         <button type="button" class="act primary" onclick="wzSave()">Save</button>
         <button type="button" class="act ghost" onclick="wzIngest()">Refresh now</button>
+        <button type="button" class="act ghost" onclick="wzTestManager()">Test manager API</button>
       </div>
       <div class="msg" id="wz-msg"></div>
     </div>
@@ -293,10 +315,14 @@ function wzBody() {
   const b = {
     indexer_url: document.getElementById('wz-url').value.trim(),
     indexer_user: document.getElementById('wz-user').value.trim(),
+    manager_url: document.getElementById('wz-mgr-url').value.trim(),
+    manager_user: document.getElementById('wz-mgr-user').value.trim(),
     verify_tls: document.getElementById('wz-tls').checked,
   };
   const pw = document.getElementById('wz-pass').value;
   if (pw) b.indexer_password = pw;     // vacío = conservar la guardada
+  const mpw = document.getElementById('wz-mgr-pass').value;
+  if (mpw) b.manager_password = mpw;
   return b;
 }
 
@@ -315,10 +341,24 @@ async function wzTest() {
   else wzSay('bad', 'Not connected: ' + d.error);
 }
 
+async function wzTestManager() {
+  wzSay('', 'Testing the manager API…');
+  const r = await fetch('/api/config/test-manager', {method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(wzBody())});
+  const d = await r.json().catch(() => ({}));
+  if (r.ok && d.ok) wzSay('ok', `Manager API ${d.api_version || ''} on ${d.hostname || 'the server'} — `
+    + `${Number(d.agents || 0).toLocaleString('en')} agents. Force rescan is available.`);
+  else wzSay('bad', 'Manager API not reachable: ' + (d.error || d.detail || ('Error ' + r.status)));
+}
+
 async function wzSave() {
   const r = await fetch('/api/config', {method: 'PUT',
     headers: {'Content-Type': 'application/json'}, body: JSON.stringify(wzBody())});
-  if (r.ok) { document.getElementById('wz-pass').value = ''; await loadWazuh(); wzSay('ok', 'Saved.'); }
+  if (r.ok) {
+    document.getElementById('wz-pass').value = '';
+    document.getElementById('wz-mgr-pass').value = '';
+    await loadWazuh(); wzSay('ok', 'Saved.');
+  }
   else { const d = await r.json().catch(() => ({})); wzSay('bad', d.detail || ('Error ' + r.status)); }
 }
 
@@ -347,8 +387,12 @@ async function loadWazuh() {
     document.getElementById('wz-url').value = c.indexer_url || '';
     document.getElementById('wz-user').value = c.indexer_user || '';
     document.getElementById('wz-tls').checked = !!c.verify_tls;
+    document.getElementById('wz-mgr-url').value = c.manager_url || '';
+    document.getElementById('wz-mgr-user').value = c.manager_user || '';
     document.getElementById('wz-pass').placeholder =
       c.has_password ? '(saved — leave empty to keep it)' : 'not configured';
+    document.getElementById('wz-mgr-pass').placeholder =
+      c.has_manager_password ? '(saved — leave empty to keep it)' : 'not configured';
     if (!c.indexer_url) {
       st.className = 'state off'; st.textContent = 'Not configured';
       show([]); warn('No Wazuh is connected yet, so the dashboard has no data.');
@@ -363,7 +407,8 @@ async function loadWazuh() {
       warn('');
       show([['Cluster', `${d.cluster_name} · ${d.status}`],
             ['Documents', Number(d.vulnerability_docs).toLocaleString('en')],
-            ['Refreshes every', `${c.refresh_minutes} min`]]);
+            ['Refreshes every', `${c.refresh_minutes} min`],
+            ['Force rescan', c.manager_url ? 'Manager API configured' : 'Manager API not set']]);
     } else {
       st.className = 'state off'; st.textContent = 'Error';
       show([]); warn('Not responding: ' + d.error);

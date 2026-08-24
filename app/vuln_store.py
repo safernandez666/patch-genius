@@ -150,6 +150,237 @@ class VulnStore:
         out["sla_dias"] = sla_days
         return out
 
+    async def remediation_health(
+        self,
+        days: int = 7,
+        limit: int = 15,
+        sla_days: int = 15,
+        today: Optional[date] = None,
+    ) -> Dict[str, Any]:
+        """What the fleet actually closed in the last `days`.
+
+        The rest of the dashboard answers "what is open". This answers "is the
+        patching working", which is only visible in the lifecycle table: Wazuh
+        deletes a record when the package is patched, so a closure exists here
+        and nowhere else.
+
+        Counted per (CVE, agent) like every other lifecycle metric — closing a
+        CVE on one of five hosts is one fifth of the work, not all of it.
+        """
+        if self._pool is None:
+            return {}
+        today = today or date.today()
+        since = today - timedelta(days=days)
+
+        row = await self._pool.fetchrow(
+            """
+            SELECT
+              COUNT(*) FILTER (WHERE resolved_at >= $1) AS cierres,
+              COUNT(DISTINCT cve) FILTER (WHERE resolved_at >= $1) AS cves,
+              COUNT(DISTINCT agent_id) FILTER (WHERE resolved_at >= $1) AS servidores,
+              -- Una reapertura es lo contrario de sanidad: el CVE volvio a
+              -- aparecer despues de haberse dado por cerrado.
+              COUNT(*) FILTER (WHERE reopened_at >= $1 AND status <> 'resolved') AS reaperturas,
+              PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (resolved_at - first_seen))
+                  FILTER (WHERE resolved_at >= $1) AS mediana_dias,
+              COUNT(*) FILTER (
+                  WHERE resolved_at >= $1 AND severidad = 'Critical'
+              ) AS criticas,
+              COUNT(*) FILTER (
+                  WHERE resolved_at >= $1 AND severidad = 'Critical'
+                        AND resolved_at - first_seen <= $2
+              ) AS criticas_en_sla
+            FROM vuln_cve_agent_state
+            """,
+            since,
+            sla_days,
+        )
+        head = dict(row) if row else {}
+        mediana = head.get("mediana_dias")
+        head["mediana_dias"] = round(float(mediana), 1) if mediana is not None else None
+        criticas = head.get("criticas") or 0
+        head["sla_criticas_pct"] = (
+            round(100.0 * (head.get("criticas_en_sla") or 0) / criticas, 1) if criticas else None
+        )
+
+        cierres = await self._pool.fetch(
+            """
+            SELECT cve, severidad, agent_name, plataforma, resolved_at, first_seen,
+                   (resolved_at - first_seen) AS dias_abierto
+            FROM vuln_cve_agent_state
+            WHERE status = 'resolved' AND resolved_at >= $1
+            -- Dentro de un mismo dia manda la severidad: cerrar una critica es
+            -- la noticia, y ordenar por CVE dejaba arriba bloques de untriaged
+            -- consecutivos del mismo host.
+            ORDER BY resolved_at DESC,
+                     CASE severidad
+                         WHEN 'Critical' THEN 4 WHEN 'High' THEN 3
+                         WHEN 'Medium' THEN 2 WHEN 'Low' THEN 1 ELSE 0 END DESC,
+                     (resolved_at - first_seen) DESC, cve
+            LIMIT $2
+            """,
+            since,
+            limit,
+        )
+        # Las reaperturas se listan aparte: son pocas y cada una merece mirarse.
+        reaperturas = await self._pool.fetch(
+            """
+            SELECT cve, severidad, agent_name, reopened_at
+            FROM vuln_cve_agent_state
+            WHERE reopened_at >= $1 AND status <> 'resolved'
+            ORDER BY reopened_at DESC, cve
+            LIMIT 10
+            """,
+            since,
+        )
+        # Una fila por dia y severidad; el hueco de un dia sin cierres se rellena
+        # abajo para que el grafico tenga eje continuo y no invente actividad.
+        serie_rows = await self._pool.fetch(
+            """
+            SELECT resolved_at AS fecha, severidad, COUNT(*) AS n
+            FROM vuln_cve_agent_state
+            WHERE status = 'resolved' AND resolved_at >= $1
+            GROUP BY resolved_at, severidad
+            """,
+            since,
+        )
+        buckets: Dict[str, Dict[str, int]] = {}
+        for r in serie_rows:
+            day = r["fecha"].isoformat()
+            bucket = buckets.setdefault(
+                day,
+                {"critical": 0, "high": 0, "medium": 0, "low": 0, "untriaged": 0, "total": 0},
+            )
+            key = (r["severidad"] or "untriaged").lower()
+            if key in bucket:
+                bucket[key] += int(r["n"])
+            bucket["total"] += int(r["n"])
+        serie = []
+        for offset in range(days + 1):
+            day = (since + timedelta(days=offset)).isoformat()
+            serie.append(
+                {
+                    "fecha": day,
+                    **buckets.get(
+                        day,
+                        {
+                            "critical": 0,
+                            "high": 0,
+                            "medium": 0,
+                            "low": 0,
+                            "untriaged": 0,
+                            "total": 0,
+                        },
+                    ),
+                }
+            )
+
+        # Por servidor se mezclan las dos caras: lo que cerro en la ventana y lo
+        # que todavia arrastra. Un host que cierra mucho y sigue con 300 abiertas
+        # no esta sano, y una tabla de solo cierres lo mostraria como el mejor.
+        servidores = await self._pool.fetch(
+            """
+            SELECT agent_name AS agente,
+                   MAX(plataforma) AS plataforma,
+                   COUNT(*) FILTER (
+                       WHERE status = 'resolved' AND resolved_at >= $1
+                   ) AS cerrados,
+                   COUNT(*) FILTER (WHERE status <> 'resolved') AS abiertos,
+                   COUNT(*) FILTER (
+                       WHERE status <> 'resolved' AND severidad IN ('Critical', 'High')
+                   ) AS abiertos_criticos,
+                   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (resolved_at - first_seen))
+                       FILTER (WHERE status = 'resolved' AND resolved_at >= $1) AS mediana_dias,
+                   MAX(resolved_at) FILTER (WHERE status = 'resolved') AS ultimo_cierre
+            FROM vuln_cve_agent_state
+            GROUP BY agent_name
+            ORDER BY cerrados DESC, abiertos DESC, agente
+            """,
+            since,
+        )
+
+        # Ventanas de parcheo: un lote por (servidor, dia de cierre). Dibujar una
+        # barra por CVE no se sostiene — un Windows cierra cientos el mismo dia y
+        # el grafico queda un bloque solido. El lote conserva lo que importa:
+        # cuando aterrizo el parche, cuanto arrastraba lo mas viejo, y cuanto cerro.
+        ventanas = await self._pool.fetch(
+            """
+            SELECT agent_name AS agente,
+                   resolved_at AS cerrado_el,
+                   MIN(first_seen) AS desde,
+                   COUNT(*) AS n,
+                   MAX(resolved_at - first_seen) AS max_dias,
+                   MAX(CASE severidad
+                           WHEN 'Critical' THEN 4 WHEN 'High' THEN 3
+                           WHEN 'Medium' THEN 2 WHEN 'Low' THEN 1 ELSE 0 END) AS sev_rank
+            FROM vuln_cve_agent_state
+            WHERE status = 'resolved' AND resolved_at >= $1
+            GROUP BY agent_name, resolved_at
+            ORDER BY resolved_at
+            """,
+            since,
+        )
+        sev_by_rank = {4: "Critical", 3: "High", 2: "Medium", 1: "Low", 0: "Untriaged"}
+
+        return {
+            **head,
+            "ventanas": [
+                {
+                    "agente": r["agente"] or "(unknown)",
+                    "cerrado_el": r["cerrado_el"].isoformat() if r["cerrado_el"] else None,
+                    "desde": r["desde"].isoformat() if r["desde"] else None,
+                    "cves": int(r["n"] or 0),
+                    "max_dias": int(r["max_dias"] or 0),
+                    "severidad_max": sev_by_rank.get(int(r["sev_rank"] or 0), "Untriaged"),
+                }
+                for r in ventanas
+            ],
+            "dias": days,
+            "sla_dias": sla_days,
+            "desde": since.isoformat(),
+            "hasta": today.isoformat(),
+            "serie": serie,
+            "por_servidor": [
+                {
+                    "agente": r["agente"] or "(unknown)",
+                    "plataforma": r["plataforma"] or "",
+                    "cerrados": int(r["cerrados"] or 0),
+                    "abiertos": int(r["abiertos"] or 0),
+                    "abiertos_criticos": int(r["abiertos_criticos"] or 0),
+                    "mediana_dias": (
+                        round(float(r["mediana_dias"]), 1)
+                        if r["mediana_dias"] is not None
+                        else None
+                    ),
+                    "ultimo_cierre": (
+                        r["ultimo_cierre"].isoformat() if r["ultimo_cierre"] else None
+                    ),
+                }
+                for r in servidores
+            ],
+            "cierres_detalle": [
+                {
+                    "cve": r["cve"],
+                    "severidad": r["severidad"],
+                    "agente": r["agent_name"],
+                    "plataforma": r["plataforma"],
+                    "resuelto_el": r["resolved_at"].isoformat() if r["resolved_at"] else None,
+                    "abierto_desde": r["first_seen"].isoformat() if r["first_seen"] else None,
+                    "dias_abierto": int(r["dias_abierto"] or 0),
+                }
+                for r in cierres
+            ],
+            "reaperturas_detalle": [
+                {
+                    "cve": r["cve"],
+                    "severidad": r["severidad"],
+                    "agente": r["agent_name"],
+                    "reabierto_el": r["reopened_at"].isoformat() if r["reopened_at"] else None,
+                }
+                for r in reaperturas
+            ],
+        }
+
     # ------------------------------------------------------------------
     # Ciclo de vida por CVE (para la tabla de la pantalla)
     # ------------------------------------------------------------------

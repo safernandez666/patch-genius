@@ -150,11 +150,34 @@ Bring the app up, log in, and open the **Configuration** tab. Fill in:
 | Indexer URL | `https://wazuh.example.com:9200` | Or `https://127.0.0.1:9200` for topology A/C |
 | Username / password | the read-only user from Step 4 | Stored encrypted; never written to the repo |
 | Verify TLS | off for a default install | Wazuh ships self-signed certs whose CN will not match your address |
-| Manager API URL | `https://<wazuh-host>:55000` | Optional. On 4.13+ leave it empty: agent IP and Windows hotfixes are read from `wazuh-states-inventory-*` on the same connection |
+| Manager API URL / user / password | `https://<wazuh-host>:55000` | Optional — only for **Force rescan** (Step 6). Leave empty and the app never writes to Wazuh |
 
 Press **Test connection**. It reports the cluster status, the Wazuh version and how many
 vulnerability documents it can see. A green result means you can save the configuration
 and run the first ingest.
+
+## Step 6 — optional: enable Force rescan
+
+Skip this unless you want the dashboard's **Force rescan** button. Everything else works
+without it, and leaving it unconfigured keeps the app read-only.
+
+Wazuh 4.8+ has no "scan this host now" API — vulnerability detection is event-driven, the
+manager re-evaluates a host when syscollector reports a new inventory. So a forced rescan
+is a **restart of the agent**: on start it re-runs syscollector, ships a fresh package list,
+and the manager scores it. That is why the app waits a few minutes before re-ingesting
+(`WAZUH_RESCAN_DELAY_SECONDS`, default 180).
+
+Create a manager API user scoped to that one action — not `wazuh-wui`, not the admin. In
+*Security → Roles*, a role with the `agent:restart` action over the agents you intend to
+rescan, mapped to a dedicated user:
+
+```
+{"actions": ["agent:restart"], "resources": ["agent:id:*"], "effect": "allow"}
+```
+
+Fill the Manager API fields in **Integrations → Wazuh** and press **Test manager API**; it
+reports the API version and how many agents it can see. Restarting an agent briefly drops
+its connection to the manager, so treat the button as an operational action, not a refresh.
 
 ## Notes
 
@@ -174,6 +197,10 @@ and run the first ingest.
   *suppress* CVEs: when a KB that fixes a CVE is installed, the record is deleted rather
   than marked resolved. Installed KBs are listed in `wazuh-states-inventory-hotfixes-*`
   (Wazuh 4.13+), or via `GET /syscollector/{agent_id}/hotfixes` on older versions.
+- **A patched host keeps showing its CVEs until Wazuh re-inventories it.** The app cannot
+  fix that by re-reading the index — the old records are still there. Either wait for the
+  agent's next syscollector cycle, or use **Force rescan** (Step 6) to restart the agent
+  and shortcut it.
 - **EPSS and CISA KEV** are fetched from public feeds (FIRST.org, CISA). They are queried
   by CVE identifier only — no information about your infrastructure leaves your network.
   On an air-gapped host, disable them: scoring degrades to CVSS-only automatically.

@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Health check — Patch Genius</title>
+<link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/tailwind.css">
+<style>
+  body{margin:0;background:var(--pg-bg);color:var(--pg-text);
+       font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.65}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 24px 70px}
+  a.back{color:var(--pg-text-muted);font-size:.84rem;text-decoration:none}
+  a.back:hover{color:var(--pg-brand)}
+  h1{font-size:1.35rem;margin:14px 0 6px;display:flex;align-items:center;gap:11px}
+  h1 .ico{width:32px;height:32px;flex:none;border-radius:10px;display:flex;align-items:center;
+    justify-content:center;background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border)}
+  h1 .ico svg{width:19px;height:19px}
+  .sub{color:var(--pg-text-muted);font-size:.87rem;margin:0 0 22px;max-width:76ch}
+  .card{background:var(--pg-surface);border:1px solid var(--pg-border);
+        border-radius:14px;padding:22px 24px;margin-bottom:18px}
+  .card h2{font-size:.98rem;margin:0 0 3px;font-weight:600}
+  .card .card-sub{font-size:.78rem;color:var(--pg-text-muted);margin:0 0 16px;line-height:1.55}
+
+  .range{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+  .range button{font-size:.78rem;padding:5px 13px;border-radius:999px;cursor:pointer;
+    background:transparent;border:1px solid var(--pg-border-strong);color:var(--pg-text-muted);
+    font-family:inherit}
+  .range button:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
+  .range button.on{background:var(--pg-brand);border-color:var(--pg-brand);
+    color:var(--pg-on-brand);font-weight:600}
+
+  .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+    background:var(--pg-border);border:1px solid var(--pg-border);border-radius:14px;
+    overflow:hidden;margin-bottom:18px}
+  .fig{background:var(--pg-surface);padding:16px 18px}
+  .fig .value{font-size:1.6rem;font-weight:600;line-height:1.25}
+  .fig .label{font-size:.72rem;color:var(--pg-text-muted);text-transform:uppercase;letter-spacing:.04em}
+  .fig .hint{font-size:.72rem;color:var(--pg-text-muted);margin-top:2px}
+  .fig.is-bad .value{color:var(--pg-sev-critical)}
+  .fig.is-good .value{color:var(--pg-ok-fg)}
+
+  .note{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);
+    border-radius:9px;padding:11px 13px;font-size:.79rem;line-height:1.55;margin:0 0 18px}
+  .empty{color:var(--pg-text-muted);font-size:.85rem;line-height:1.7;padding:18px 0}
+  .loading{color:var(--pg-text-muted);font-size:.83rem;text-align:center;padding:26px 0}
+  .err{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border);
+    border-radius:9px;padding:11px 13px;font-size:.8rem}
+
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  /* tailwind.css pinta un fondo claro en th; esta pantalla es oscura siempre. */
+  thead th{text-align:left;padding:9px 11px;font-size:.68rem;font-weight:600;text-transform:uppercase;
+    letter-spacing:.04em;color:var(--pg-text-muted);border-bottom:1px solid var(--pg-border);
+    white-space:nowrap;background:transparent}
+  tbody td{padding:9px 11px;border-bottom:1px solid var(--pg-border);color:var(--pg-text-soft);vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  .table-wrap{overflow-x:auto}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;color:var(--pg-brand-soft);
+    text-decoration:none}
+  .mono:hover{text-decoration:underline}
+  .muted{color:var(--pg-text-muted);font-size:.72rem}
+
+  .sev{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:600;
+    border:1px solid currentColor;white-space:nowrap}
+  .sev-Critical{color:var(--pg-sev-critical)}
+  .sev-High{color:var(--pg-sev-high)}
+  .sev-Medium{color:var(--pg-sev-medium)}
+  .sev-Low{color:var(--pg-sev-low)}
+  .sev-Untriaged{color:var(--pg-sev-untriaged)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; <span data-i18n="nav.back">Back to dashboard</span></a>
+  <h1>
+    <span class="ico" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>
+      </svg>
+    </span>
+    Health check
+  </h1>
+  <p class="sub">What the fleet has actually closed. The dashboard answers "what is open"; this answers
+    whether the patching is working — read from the lifecycle table, because Wazuh deletes a record the
+    moment the package is patched, so a closure exists nowhere else. Counted per CVE and server: closing
+    a CVE on one of five hosts is one fifth of the work.</p>
+
+  <div class="range" id="range" role="group" aria-label="Window">
+    <button type="button" class="on" data-days="7">7 days</button>
+    <button type="button" data-days="30">30 days</button>
+    <button type="button" data-days="90">90 days</button>
+    <button type="button" data-days="180">180 days</button>
+  </div>
+
+  <div id="figs"><div class="loading">Loading remediation history…</div></div>
+  <div id="note"></div>
+
+  <div class="card">
+    <h2>Patching activity</h2>
+    <p class="card-sub">Closures per day, by the severity the CVE carried when it closed.</p>
+    <div id="chartDaily" style="min-height:260px"></div>
+  </div>
+
+  <div class="card">
+    <h2>When each patch landed</h2>
+    <p class="card-sub">One bar per batch — everything a server closed on the same day. It runs from the
+      oldest CVE in the batch to the day it closed, so the length is the debt the host was carrying and the
+      right edge is when the patch landed. The number is how many CVEs went with it.</p>
+    <div id="chartTimeline" style="min-height:320px"></div>
+  </div>
+
+  <div class="card">
+    <h2>By server</h2>
+    <p class="card-sub">Closed in the window against what the host still carries — a server that closes a
+      lot and still holds hundreds is not healthy, and a leaderboard of closures alone would rank it first.</p>
+    <div class="table-wrap" id="servers"><div class="loading">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent closures</h2>
+    <p class="card-sub">Most recent first, criticals ahead of the rest within the same day.</p>
+    <div class="table-wrap" id="closures"><div class="loading">Loading…</div></div>
+  </div>
+</div>
+
+<script src="/static/vendor/apexcharts.min.js"></script>
+<script src="/static/i18n.js"></script>
+<script>
+const SEV_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Untriaged'];
+const SEV_KEY = { Critical: 'critical', High: 'high', Medium: 'medium', Low: 'low', Untriaged: 'untriaged' };
+const cssVar = (name, fallback) =>
+  (getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim() || fallback;
+const SEV_HEX = {
+  Critical:  cssVar('--pg-sev-critical',  '#f04438'),
+  High:      cssVar('--pg-sev-high',      '#ff5722'),
+  Medium:    cssVar('--pg-sev-medium',    '#eab308'),
+  Low:       cssVar('--pg-sev-low',       '#22c55e'),
+  Untriaged: cssVar('--pg-sev-untriaged', '#94a3b8'),
+};
+const fmtNum = new Intl.NumberFormat('en');
+const FORE = cssVar('--pg-text-muted', '#a8b3bd');
+const GRID = cssVar('--pg-border', '#4a5561');
+
+let days = 7;
+let dailyChart = null;
+let timelineChart = null;
+
+function esc(t) {
+  if (t === null || t === undefined) return '';
+  return String(t).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function load() {
+  try {
+    const res = await fetch(`/vulnerabilities/health?days=${days}&limit=25`);
+    if (res.status === 401) { window.location = '/login'; return; }
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || `HTTP ${res.status}`);
+    }
+    render(await res.json());
+  } catch (e) {
+    document.getElementById('figs').innerHTML =
+      `<div class="err">Could not load the remediation history: ${esc(e.message)}</div>`;
+  }
+}
+
+function render(d) {
+  renderFigs(d);
+  renderDaily(d);
+  renderTimeline(d);
+  renderServers(d);
+  renderClosures(d);
+}
+
+function renderFigs(d) {
+  const reab = d.reaperturas || 0;
+  const figs = [
+    { label: 'Closed', value: fmtNum.format(d.cierres || 0), hint: 'CVE · server pairs' },
+    { label: 'Unique CVEs', value: fmtNum.format(d.cves || 0) },
+    { label: 'Servers', value: fmtNum.format(d.servidores || 0), hint: 'with at least one closure' },
+    { label: 'Median time to patch', value: d.mediana_dias != null ? `${d.mediana_dias} d` : '—',
+      hint: 'from first seen to closed' },
+    { label: 'Criticals within SLA', value: d.sla_criticas_pct != null ? `${d.sla_criticas_pct}%` : '—',
+      hint: `closed in ${d.sla_dias} days or less`,
+      good: d.sla_criticas_pct != null && d.sla_criticas_pct >= 90 },
+    { label: 'Reopened', value: fmtNum.format(reab), hint: 'closed, then back', bad: reab > 0 },
+  ];
+  document.getElementById('figs').innerHTML = '<div class="figs">' + figs.map(f =>
+    `<div class="fig${f.bad ? ' is-bad' : ''}${f.good ? ' is-good' : ''}">
+       <div class="value">${f.value}</div>
+       <div class="label">${esc(f.label)}</div>
+       ${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ''}
+     </div>`).join('') + '</div>';
+
+  // Una reapertura es lo contrario de sanidad: el CVE volvio despues de darse
+  // por cerrado — parche revertido, imagen vieja restaurada, host reconstruido.
+  document.getElementById('note').innerHTML = (d.reaperturas_detalle || []).length
+    ? `<p class="note"><b>${fmtNum.format(d.reaperturas || 0)} reopened.</b> These were closed and came
+       back — a rolled-back patch, a restored image or a rebuilt host:
+       ${(d.reaperturas_detalle || []).map(r => `${esc(r.cve)} on ${esc(r.agente || '—')}`).join(' · ')}</p>`
+    : '';
+}
+
+function renderDaily(d) {
+  const serie = d.serie || [];
+  const series = SEV_ORDER.map(sev => ({
+    name: sev,
+    data: serie.map(p => ({ x: p.fecha, y: p[SEV_KEY[sev]] || 0 })),
+  })).filter(s => s.data.some(p => p.y > 0));
+
+  const el = document.getElementById('chartDaily');
+  if (dailyChart) { dailyChart.destroy(); dailyChart = null; }
+  if (!series.length) {
+    el.innerHTML = `<p class="empty">No closures in this window. Closures are derived by comparing
+      consecutive ingests, so this fills in from your first one — and a patched host only drops off
+      once Wazuh re-inventories it.</p>`;
+    return;
+  }
+  el.innerHTML = '';
+  dailyChart = new ApexCharts(el, {
+    chart: { type: 'bar', height: 260, stacked: true, toolbar: { show: false }, fontFamily: 'inherit' },
+    series,
+    colors: series.map(s => SEV_HEX[s.name]),
+    plotOptions: { bar: { columnWidth: serie.length > 60 ? '90%' : '55%', borderRadius: 2 } },
+    dataLabels: { enabled: false },
+    xaxis: { type: 'datetime', labels: { style: { colors: FORE } }, axisBorder: { color: GRID },
+             axisTicks: { color: GRID } },
+    yaxis: { labels: { style: { colors: FORE }, formatter: v => fmtNum.format(Math.round(v)) } },
+    grid: { borderColor: GRID, strokeDashArray: 3 },
+    legend: { labels: { colors: FORE }, markers: { radius: 3 } },
+    tooltip: { theme: 'dark', x: { format: 'dd MMM yyyy' } },
+    noData: { text: '' },
+  });
+  dailyChart.render();
+}
+
+function renderTimeline(d) {
+  const ventanas = d.ventanas || [];
+  const el = document.getElementById('chartTimeline');
+  if (timelineChart) { timelineChart.destroy(); timelineChart = null; }
+  if (!ventanas.length) {
+    el.innerHTML = '<p class="empty">Nothing closed in this window, so there is no patch window to draw.</p>';
+    return;
+  }
+  // Cada barra es un lote: todo lo que un servidor cerro el mismo dia. Va desde
+  // el CVE mas viejo del lote hasta el dia del cierre, asi que el largo es la
+  // deuda que arrastraba y el borde derecho el momento en que aterrizo el parche.
+  // El color es la peor severidad del lote.
+  const bySev = {};
+  ventanas.forEach(v => {
+    const sev = SEV_ORDER.includes(v.severidad_max) ? v.severidad_max : 'Untriaged';
+    const from = new Date(v.desde || v.cerrado_el).getTime();
+    let to = new Date(v.cerrado_el).getTime();
+    // Detectado y cerrado el mismo dia: sin este dia de ancho la barra no se ve.
+    if (!(to > from)) to = from + 86400000;
+    (bySev[sev] = bySev[sev] || []).push({
+      x: v.agente,
+      y: [from, to],
+      cves: v.cves,
+      maxDias: v.max_dias,
+      cerrado: v.cerrado_el,
+    });
+  });
+  const rows = new Set(ventanas.map(v => v.agente)).size;
+  // El eje va en dias, no en milisegundos: en un eje datetime Apex ignora
+  // tickAmount y, cuando todo cae en una jornada, etiqueta horas (23:00, 01:00…)
+  // sobre datos que solo tienen fecha. En numerico el tick es un dia entero.
+  const bounds = Object.values(bySev).flat().map(p => p.y);
+  const origin = Math.min(...bounds.map(b => b[0]));
+  const spanDays = Math.max(1, Math.round((Math.max(...bounds.map(b => b[1])) - origin) / 86400000));
+  const toDay = (ts) => Math.round((ts - origin) / 86400000);
+  // Las fechas son ISO sin hora: Date las lee como medianoche UTC, asi que
+  // formatearlas en hora local restaria un dia al oeste de Greenwich.
+  const dayLabel = new Intl.DateTimeFormat('en', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+  Object.values(bySev).forEach(list => list.forEach(p => { p.y = [toDay(p.y[0]), toDay(p.y[1])]; }));
+  const series = SEV_ORDER.filter(s => bySev[s]).map(s => ({ name: s, data: bySev[s] }));
+
+  el.innerHTML = '';
+  timelineChart = new ApexCharts(el, {
+    chart: { type: 'rangeBar', height: Math.max(260, 54 * rows + 90), toolbar: { show: false },
+             fontFamily: 'inherit' },
+    series,
+    colors: series.map(s => SEV_HEX[s.name]),
+    plotOptions: { bar: { horizontal: true, barHeight: '55%', rangeBarGroupRows: true } },
+    dataLabels: {
+      enabled: true,
+      formatter: (val, opts) => {
+        const p = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+        return fmtNum.format(p.cves);
+      },
+      style: { fontSize: '11px', colors: [cssVar('--pg-bg', '#303841')] },
+    },
+    xaxis: { type: 'numeric', min: 0, max: spanDays,
+             tickAmount: Math.min(spanDays, 8), decimalsInFloat: 0,
+             labels: {
+               style: { colors: FORE },
+               formatter: (v) => dayLabel.format(new Date(origin + Math.round(v) * 86400000)),
+             },
+             axisBorder: { color: GRID }, axisTicks: { color: GRID } },
+    yaxis: { labels: { style: { colors: FORE } } },
+    grid: { borderColor: GRID, strokeDashArray: 3 },
+    legend: { labels: { colors: FORE }, markers: { radius: 3 } },
+    tooltip: {
+      theme: 'dark',
+      custom: ({ seriesIndex, dataPointIndex, w }) => {
+        const p = w.config.series[seriesIndex].data[dataPointIndex];
+        return `<div style="padding:8px 11px;font-size:12px">
+            <b>${esc(p.x)}</b> · patched ${esc(p.cerrado)}<br>
+            ${fmtNum.format(p.cves)} CVE(s) closed · oldest had been open ${p.maxDias} d<br>
+            worst severity in the batch: ${esc(w.config.series[seriesIndex].name)}
+          </div>`;
+      },
+    },
+  });
+  timelineChart.render();
+}
+
+function renderServers(d) {
+  const rows = d.por_servidor || [];
+  const el = document.getElementById('servers');
+  if (!rows.length) { el.innerHTML = '<p class="empty">No servers in the lifecycle table yet.</p>'; return; }
+  el.innerHTML = `<table>
+    <thead><tr><th>Servidor</th><th>Plataforma</th><th>Cerrados</th><th>Aún abiertos</th>
+      <th>Críticas/altas abiertas</th><th>Mediana a parche</th><th>Último cierre</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td>${esc(r.agente)}</td>
+      <td class="muted">${esc(r.plataforma || '—')}</td>
+      <td>${fmtNum.format(r.cerrados)}</td>
+      <td>${fmtNum.format(r.abiertos)}</td>
+      <td${r.abiertos_criticos ? ' style="color:var(--pg-sev-high)"' : ''}>${fmtNum.format(r.abiertos_criticos)}</td>
+      <td>${r.mediana_dias != null ? r.mediana_dias + ' d' : '—'}</td>
+      <td class="muted">${esc(r.ultimo_cierre || 'never')}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function renderClosures(d) {
+  const rows = d.cierres_detalle || [];
+  const el = document.getElementById('closures');
+  if (!rows.length) { el.innerHTML = '<p class="empty">Nothing closed in this window.</p>'; return; }
+  const more = (d.cierres || 0) > rows.length
+    ? `<p class="card-sub" style="margin:12px 0 0">Showing the ${rows.length} most recent of
+       ${fmtNum.format(d.cierres)} closures.</p>` : '';
+  el.innerHTML = `<table>
+    <thead><tr><th>CVE</th><th>Severidad</th><th>Servidor</th><th>Estuvo abierto</th><th>Cerrado</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td><a class="mono" href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(r.cve)}"
+             target="_blank" rel="noopener">${esc(r.cve)}</a></td>
+      <td><span class="sev sev-${esc(SEV_ORDER.includes(r.severidad) ? r.severidad : 'Untriaged')}">${esc(r.severidad || '—')}</span></td>
+      <td>${esc(r.agente || '—')}<br><span class="muted">${esc(r.plataforma || '')}</span></td>
+      <td>${r.dias_abierto} d</td>
+      <td class="muted">${esc(r.resuelto_el || '—')}</td>
+    </tr>`).join('')}</tbody></table>${more}`;
+}
+
+document.getElementById('range').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-days]');
+  if (!btn) return;
+  days = Number(btn.dataset.days);
+  [...e.currentTarget.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b === btn));
+  document.getElementById('figs').innerHTML = '<div class="loading">Loading remediation history…</div>';
+  load();
+});
+
+load();
+</script>
+</body>
+</html>
