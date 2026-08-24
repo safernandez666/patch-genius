@@ -113,8 +113,12 @@ it never becomes an open registration form.
 
 ### Reset the database
 
-The first time you start the stack the database is already blank. If you ever want to wipe
-local data and start over:
+The first time you start the stack the database is already blank — you do **not** need to
+run this script on a fresh clone.
+
+Use it only when you want to wipe local data and start over, or when you changed
+`POSTGRES_PASSWORD` in `.env` after the Postgres volume was already created (Postgres keeps
+the original password in the volume, so the API will fail to authenticate until you reset):
 
 ```bash
 ./scripts/reset-db.sh
