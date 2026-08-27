@@ -5,16 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>What to prioritise — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
-<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/sidebar.css">
 <script src="/static/theme-preload.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);
        font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.65}
   .wrap{max-width:900px;margin:0 auto;padding:34px 24px 70px}
-  a.back{color:var(--pg-text-muted);font-size:.84rem;text-decoration:none}
-  a.back:hover{color:var(--pg-brand)}
   h1{font-size:1.35rem;margin:14px 0 6px;display:flex;align-items:center;gap:11px}
   h1 .lamp{width:30px;height:30px;flex:none;background-color:var(--pg-brand);
     -webkit-mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain;
@@ -46,8 +45,10 @@
 </style>
 </head>
 <body>
+<div class="app-shell">
+<!--sidebar-->
+<div class="app-main">
 <div class="wrap">
-  <a class="back" href="/">&larr; Back to dashboard</a>
   <h1><span class="lamp" aria-hidden="true"></span>What to prioritise</h1>
   <p class="sub">What the fleet's current state says you should patch first, written from the
     same ranking the dashboard shows.</p>
@@ -164,5 +165,8 @@ async function regen() {
 }
 load();
 </script>
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

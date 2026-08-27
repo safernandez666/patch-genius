@@ -200,6 +200,16 @@
       .catch(function () { /* el panel funciona igual sin esto */ });
   }
 
+  /* Salir. Estaba en el JS inline de index.html, asi que el boton del pie
+     funcionaba en el dashboard y era un no-op en las demas pantallas — que
+     hasta ahora no tenian menu, y ahora si. */
+  function doLogout() {
+    fetch("/api/logout", { method: "POST", credentials: "same-origin" })
+      .catch(function () { /* igual salimos */ })
+      .then(function () { window.location = "/login"; });
+  }
+  window.doLogout = doLogout;
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { init(); marcarPerfil(); });
   } else {

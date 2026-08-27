@@ -159,3 +159,42 @@
   --pg-focus-ring:    #76abae40;
   --pg-shadow-sm:     #00000040;
 }
+
+/* ---------------------------------------------------------------------------
+   Puente hacia tailwind.css.
+
+   tailwind.css es un build congelado de otra marca — azul sobre :root, lima
+   bajo [data-theme=dark] — y no hay fuente para regenerarlo en este repo. En
+   vez de tocarlo, se reasignan sus tokens a los de arriba. Por eso este archivo
+   se carga DESPUES de tailwind.css: `:root` y `[data-theme=dark]` tienen la
+   misma especificidad y decide el orden.
+
+   El mapeo es semantico y no una rampa fija a proposito: tailwind trata a
+   brand-500 como "el acento que se lee sobre el fondo actual", y los dos temas
+   recorren el teal en sentidos opuestos. Fijar los escalones literales dejaria
+   el 600 mas claro que el 500 en el tema claro.
+   --------------------------------------------------------------------------- */
+:root {
+  --color-brand-50:  var(--pg-brand-bg);
+  --color-brand-100: var(--pg-brand-bg-2);
+  --color-brand-200: var(--pg-brand-border);
+  --color-brand-300: var(--pg-brand-pale);
+  --color-brand-400: var(--pg-brand-soft);
+  --color-brand-500: var(--pg-brand);
+  --color-brand-600: var(--pg-brand-hover);
+  --color-brand-700: var(--pg-brand-strong);
+}
+
+[data-theme="dark"] {
+  --color-gray-dark: var(--pg-surface);       /* superficie de tarjetas */
+  --color-gray-900:  var(--pg-bg);            /* fondo de pagina */
+  --color-gray-950:  var(--pg-surface-deep);
+  --color-gray-800:  var(--pg-border);        /* bordes */
+  --color-gray-700:  #5a6672;
+  --color-gray-400:  var(--pg-text-muted);
+  --color-gray-300:  #c9d1d9;
+  --color-white:     var(--pg-text);
+}
+
+[data-theme="dark"] body { background: var(--pg-bg); color: var(--pg-text); }
+[data-theme="dark"] a { color: var(--pg-brand); }

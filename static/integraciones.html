@@ -5,16 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Integrations — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
-<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/sidebar.css">
 <script src="/static/theme-preload.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);
        font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.6}
   .wrap{max-width:900px;margin:0 auto;padding:34px 20px 70px}
-  a.back{color:var(--pg-text-muted);font-size:.84rem;text-decoration:none}
-  a.back:hover{color:var(--pg-brand)}
   h1{font-size:1.35rem;margin:14px 0 6px}
   .sub{color:var(--pg-text-muted);font-size:.87rem;margin:0 0 26px}
   .card{background:var(--pg-surface);border:1px solid var(--pg-border);border-radius:14px;
@@ -70,8 +69,10 @@
 </style>
 </head>
 <body>
+<div class="app-shell">
+<!--sidebar-->
+<div class="app-main">
 <div class="wrap">
-  <a class="back" href="/">&larr; <span data-i18n="nav.back">Back to dashboard</span></a>
   <h1 data-i18n="integr.title">Integrations</h1>
   <p class="sub" data-i18n="integr.sub">Alerts and tickets from what Patch Genius finds. All are disabled by default and their
     credentials are stored encrypted.</p>
@@ -433,5 +434,8 @@ async function load() {
 load();
 loadWazuh();
 </script>
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>
