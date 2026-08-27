@@ -85,6 +85,14 @@ A PostToolUse hook runs `ruff format` on each Python file you edit.
   utility class that isn't already in it.** New styling goes in `index.html`'s inline
   `<style>` or `sidebar.css`.
 - ApexCharts and the Outfit fonts are vendored on purpose. No CDN references, ever.
+- The side menu lives in `static/_sidebar.html` — one copy for the whole panel. `app/pages.py`
+  splices it into any page containing `<!--sidebar-->`, so the page routes return
+  `HTMLResponse(render_page(...))`, not `FileResponse`. `login`/`signup` carry no marker and
+  stay bare. **Menu styling goes in `sidebar.css`**, never in a page's inline `<style>`: that
+  is how the menu came out lime and icon-less on every screen but the dashboard.
+- Stylesheet order is `tailwind.css` *then* `theme.css`. theme.css reassigns tailwind's
+  `--color-*` tokens and only wins by source order — swapping the two links puts the frozen
+  build's blue-and-lime brand back.
 - `theme.css` carries both themes: `:root` is light, `[data-theme="dark"]` is dark. A new
   `--pg-*` token needs a value in **both** blocks — one defined on a single side silently
   inherits the other theme's value, which is how the light theme ended up rendering dark

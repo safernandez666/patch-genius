@@ -1,4 +1,5 @@
-/* Aplica el tema antes del primer paint para que la página no parpadee.
+/* Restaura el tema y el estado del menú antes del primer paint, para que la
+ * página no parpadee.
  *
  * Tiene que ser un <script> clásico en el <head> (sin defer ni async): así
  * corre mientras el parser está bloqueado, antes de que se pinte nada. Un
@@ -13,6 +14,15 @@
  * lo único que necesita el CSS.
  */
 (function () {
+  try {
+    /* El menú colapsado es el mismo problema: si se restaura después del paint
+       se ve la barra abrirse y cerrarse sola en cada navegación. */
+    if (localStorage.getItem("soc.navCollapsed") === "1") {
+      document.documentElement.classList.add("nav-collapsed");
+    }
+  } catch (e) {
+    /* sin persistencia el menú arranca abierto, que es el default */
+  }
   try {
     var t = localStorage.getItem("soc.theme");
     if (t !== "soc" && t !== "light") t = "soc";

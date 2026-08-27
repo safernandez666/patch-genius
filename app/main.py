@@ -17,7 +17,7 @@ import asyncpg
 import structlog
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -28,6 +28,7 @@ from app.auth import SESSION_COOKIE, AuthError, AuthManager
 from app.config_store import ConfigError, ConfigStore
 from app.ingest import migrate_assignments, run_ingest
 from app.notify import NotifyError, jira_ping, post_webhook, send_email
+from app.pages import render as render_page
 from app.scoring import SEV_RANK, sev_rank
 from app.settings import settings
 from app.vuln_store import ASSIGNMENT_STATUSES, VulnStore
@@ -210,7 +211,7 @@ async def index(request: Request):
         if not await request.app.state.auth.has_users():
             return RedirectResponse("/signup", status_code=302)
         return RedirectResponse("/login", status_code=302)
-    return FileResponse("static/index.html")
+    return HTMLResponse(render_page("index.html", active="/"))
 
 
 # ---------------------------------------------------------------------------
@@ -352,12 +353,12 @@ async def api_session(request: Request):
 # ---------------------------------------------------------------------------
 @app.get("/ayuda")
 async def help_page():
-    return FileResponse("static/ayuda.html")
+    return HTMLResponse(render_page("ayuda.html", active="/ayuda"))
 
 
 @app.get("/config")
 async def config_page():
-    return FileResponse("static/config.html")
+    return HTMLResponse(render_page("config.html", active="/config"))
 
 
 @app.get("/api/config")
@@ -532,18 +533,18 @@ async def api_wazuh_rescan(request: Request, user: str = Depends(require_admin))
 
 @app.get("/brief")
 async def brief_page():
-    return FileResponse("static/brief.html")
+    return HTMLResponse(render_page("brief.html", active="/brief"))
 
 
 @app.get("/health")
 async def health_page():
     """Remediation health screen. Not to be confused with /healthz (liveness)."""
-    return FileResponse("static/health.html")
+    return HTMLResponse(render_page("health.html", active="/health"))
 
 
 @app.get("/integraciones")
 async def integrations_page():
-    return FileResponse("static/integraciones.html")
+    return HTMLResponse(render_page("integraciones.html", active="/integraciones"))
 
 
 @app.get("/api/integrations")

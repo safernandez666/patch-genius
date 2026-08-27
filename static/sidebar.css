@@ -1,7 +1,8 @@
 /* Colapso del sidebar — permite "estirar" el contenido a todo el ancho.
-   El estado se guarda en localStorage (soc.navCollapsed) y se restaura en el
-   <head> de cada página (clase nav-collapsed sobre <html>) para evitar parpadeo.
-   Los botones los inyecta sidebar.js. */
+   El estado se guarda en localStorage (soc.navCollapsed) y lo restaura
+   theme-preload.js (clase nav-collapsed sobre <html>) antes del primer paint.
+   El menú lo inserta el servidor desde static/_sidebar.html; los botones de
+   colapsar y el panel deslizante los inyecta sidebar.js. */
 
 .sidebar { position: relative; }
 
@@ -131,8 +132,10 @@ html.nav-collapsed .nav-reopen svg { width: 20px; height: 20px; }
   .app-main { width: 100%; min-width: 0; }
   /* px-8 (32px por lado) se come un cuarto de la pantalla en un teléfono. */
   .container { padding-left: 16px; padding-right: 16px; }
-  /* Espacio para el botón flotante, que si no tapa el título de la página. */
+  /* Espacio para el botón flotante, que si no tapa el título de la página.
+     .wrap es el contenedor de las pantallas que no son el dashboard. */
   .app-main > .container { padding-top: 60px; }
+  .app-main > .wrap { padding-top: 60px; padding-left: 16px; padding-right: 16px; }
   .app-main > .header { padding-left: 64px; }
 
   /* El botón de menú se ve siempre, no sólo cuando el sidebar está colapsado. */
@@ -261,3 +264,25 @@ html.role-readonly [data-requires-admin] { display: none !important; }
 /* Colapsado el sidebar es una tira de iconos: queda sólo el avatar. */
 html.nav-collapsed .user-box { justify-content: center; padding-inline: 0; }
 html.nav-collapsed .user-datos { display: none; }
+
+/* Tema oscuro del menú. Vivía en el <style> de index.html, que era la única
+   página con menú; ahora lo tienen todas y las reglas tienen que viajar con él.
+   Sin esto el menú se pinta con el tema oscuro que trae tailwind.css, que es de
+   otra marca: el ítem activo salía verde lima. */
+[data-theme="dark"] .sidebar { background: var(--pg-surface-deep); border-right: 1px solid var(--pg-border); }
+[data-theme="dark"] .brand-platform { color: var(--pg-text); }
+[data-theme="dark"] .side-nav a { color: var(--pg-text-muted); }
+[data-theme="dark"] .side-nav a:hover { background: var(--pg-surface); color: var(--pg-text); }
+[data-theme="dark"] .side-nav a.active { background: #3d4d50; color: var(--pg-brand); }
+
+/* Silueta usada como máscara: así hereda el color del enlace y su estado
+   activo, cosa que un <img> externo no puede hacer. */
+.ai-ico {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: url(/static/assets/genie-lamp.svg) no-repeat center/contain;
+  mask: url(/static/assets/genie-lamp.svg) no-repeat center/contain;
+}
+.brand-platform .shield { width: 26px; height: 26px; object-fit: contain; flex: none; }
