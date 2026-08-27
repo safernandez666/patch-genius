@@ -400,9 +400,9 @@
     </div>
   </section>
 
-  <section class="section" aria-label="Vulnerabilidades por servidor" style="margin-bottom:18px;">
+  <section class="section" aria-label="Vulnerabilities by server" style="margin-bottom:18px;">
     <h3 class="card-h">By server</h3>
-    <p class="card-sub">Top 12 servidores con más críticas/altas · se ajusta a los filtros activos · clic en una barra filtra por ese servidor (elegí "Todos los servidores" arriba para volver a la vista global)</p>
+    <p class="card-sub">The 12 servers carrying the most criticals and highs · follows the active filters · clicking a bar filters by that server (pick "All servers" above to go back to the whole fleet)</p>
     <div id="chartSrv" class="is-loading" style="min-height:320px"></div>
   </section>
 
@@ -552,20 +552,23 @@ const SEV_HEX = {
 // lo util es el maximo, en un nombre es la A.
 const COLS = [
   { label: 'CVE',                  sort: 'cve',      dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
-  { label: 'Severidad',            sort: 'severity', dir: 'desc', order: 'most severe first', rorder: 'least severe first' },
+  { label: 'Severity',             sort: 'severity', dir: 'desc', order: 'most severe first', rorder: 'least severe first' },
   { label: 'CVSS',                 sort: 'cvss',     dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
   { label: 'EPSS',                 sort: 'epss',     dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
-  { label: 'Prioridad',            sort: 'priority', dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
-  { label: 'Paquetes / Servidores' },
-  { label: 'Detectado hace',       sort: 'aging',    dir: 'desc', num: true, order: 'oldest first', rorder: 'newest first' },
-  { label: 'Responsable',          sort: 'owner',    dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
-  { label: 'Estado',               sort: 'status',   dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
+  { label: 'Priority',             sort: 'priority', dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
+  { label: 'Packages / Servers' },
+  { label: 'Detected',             sort: 'aging',    dir: 'desc', num: true, order: 'oldest first', rorder: 'newest first' },
+  { label: 'Owner',                sort: 'owner',    dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
+  { label: 'Status',               sort: 'status',   dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
   { label: '' },
 ];
 
+// Las claves son los valores que guarda la base y viajan por la API
+// (`pendiente`, `en_curso`, ...): son contrato de datos y no se traducen. Lo que
+// se traduce es como se muestran.
 const ESTADO_LABEL = {
-  pendiente: 'Pendiente', en_curso: 'En curso', parcial: 'Parcial',
-  resuelto: 'Resuelto', aceptado_riesgo: 'Riesgo aceptado',
+  pendiente: 'Pending', en_curso: 'In progress', parcial: 'Partial',
+  resuelto: 'Resolved', aceptado_riesgo: 'Risk accepted',
 };
 
 function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
@@ -1193,8 +1196,8 @@ function renderTable() {
     const sevCls = SEV_CLASS[c.severidad] || 'p-unknown';
     const sevLab = SEV_LABEL[c.severidad] || c.severidad || '—';
     const kevTitle = c.kev
-      ? (c.kev_vencimiento ? 'Plazo CISA: ' + c.kev_vencimiento : 'En CISA KEV')
-        + (c.kev_ransomware ? ' · campaña de ransomware conocida' : '')
+      ? (c.kev_vencimiento ? 'CISA due date: ' + c.kev_vencimiento : 'In CISA KEV')
+        + (c.kev_ransomware ? ' · known ransomware campaign' : '')
       : '';
     const kev = c.kev
       ? `<span class="kev-badge" title="${escapeHtml(kevTitle)}">
@@ -1206,19 +1209,19 @@ function renderTable() {
       : '';
     const epss = c.epss != null ? `${Math.round(c.epss * 100)}%` : '—';
     const sla = (c.severidad === 'Critical' && (c.dias_detectado ?? 0) > SLA_DIAS)
-      ? `<span class="sla-badge">SLA vencido</span>` : '';
+      ? `<span class="sla-badge">Past SLA</span>` : '';
     const flags = (kev || ransom || sla) ? `<div class="cve-flags">${kev}${ransom}${sla}</div>` : '';
     const estado = c.estado
       ? `<span class="sbadge s-${escapeHtml(c.estado)}">${escapeHtml(ESTADO_LABEL[c.estado] || c.estado)}</span>`
       : '—';
     const ownerMail = c.owner_email
-      ? ` <span title="Seguimiento por correo (deshabilitado en la demo): ${escapeHtml(c.owner_email)}">✉️</span>` : '';
+      ? ` <span title="Reminders go to ${escapeHtml(c.owner_email)} when the SMTP integration is on">✉️</span>` : '';
     const owner = c.owner ? `<span class="mono">${escapeHtml(c.owner)}</span>${ownerMail}` : '—';
     const dias = c.dias_detectado != null ? `${c.dias_detectado} d` : '—';
     const agentesAll = c.agentes || [];
     const agentesShown = agentesAll.slice(0, 3).map(escapeHtml).join(', ');
     const agentesMore = agentesAll.length > 3
-      ? ` <span class="agent-more" title="${escapeHtml(agentesAll.join(', '))}">+${agentesAll.length - 3} más</span>` : '';
+      ? ` <span class="agent-more" title="${escapeHtml(agentesAll.join(', '))}">+${agentesAll.length - 3} more</span>` : '';
     const paquetesAll = c.paquetes || [];
     const paquetes = paquetesAll.slice(0, 3).map(escapeHtml).join(', ')
       + (paquetesAll.length > 3 ? ` <span class="agent-more" title="${escapeHtml(paquetesAll.join(', '))}">+${paquetesAll.length - 3}</span>` : '');
@@ -1231,7 +1234,7 @@ function renderTable() {
       <td title="${escapeHtml(c.descripcion || '')}">${paquetes || '—'}<br><span style="font-size:11px;color:var(--color-gray-400)">${agentesShown}${agentesMore}</span></td>
       <td class="is-num">${dias}</td>
       <td>${owner}</td>
-      <td>${estado}${c.due_date ? `<br><span style="font-size:11px;color:var(--color-gray-400)">objetivo: ${escapeHtml(c.due_date)}</span>` : ''}</td>
+      <td>${estado}${c.due_date ? `<br><span style="font-size:11px;color:var(--color-gray-400)">due ${escapeHtml(c.due_date)}</span>` : ''}</td>
       <td><button type="button" class="btn-ghost btn-sm" onclick="openModal('${escapeHtml(c.cve)}')">Track</button></td>
     </tr>`;
   }).join('');
@@ -1434,7 +1437,7 @@ async function saveAssignment() {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    alert(err.detail || `Error al guardar (HTTP ${res.status})`);
+    alert(err.detail || `Could not save (HTTP ${res.status})`);
     return;
   }
   closeModal();
@@ -1442,11 +1445,11 @@ async function saveAssignment() {
 }
 async function deleteAssignment() {
   if (!modalCve) return;
-  if (!confirm(`¿Quitar el seguimiento de ${modalCve}?`)) return;
+  if (!confirm(`Stop tracking ${modalCve}?`)) return;
   const res = await fetch(`/vulnerabilities/assignments/${encodeURIComponent(modalCve)}`, { method: 'DELETE' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    alert(err.detail || `Error al borrar (HTTP ${res.status})`);
+    alert(err.detail || `Could not remove the tracking (HTTP ${res.status})`);
     return;
   }
   closeModal();
@@ -1676,7 +1679,7 @@ async function init() {
   readUrl();
   try { await loadSummary(); } catch (e) {
     document.getElementById('cves-body').innerHTML =
-      `<div class="alert alert-err">No se pudo cargar el estado de vulnerabilidades: ${escapeHtml(e.message)}</div>`;
+      `<div class="alert alert-err">Could not load the vulnerability state: ${escapeHtml(e.message)}</div>`;
     return;
   }
   // Un filtro que venia en la URL y ya no existe en el parque se descarto al

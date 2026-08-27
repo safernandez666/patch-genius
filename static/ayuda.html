@@ -103,9 +103,9 @@
     <p>Aging counts <b>from the first time Patch Genius saw the CVE</b>, not from the date Wazuh
       reports.</p>
     <div class="note">
-      Wazuh reescribe <code>vulnerability.detected_at</code> cada vez que reindexa un registro,
-      cosa que pasa por motivos internos. Un SLA construido sobre ese campo se reinicia solo
-      y nunca vence: mostraría todo en verde para siempre. Por eso guardamos fecha propia.
+      Wazuh rewrites <code>vulnerability.detected_at</code> every time it reindexes a record,
+      which it does for reasons of its own. An SLA built on that field resets itself and never
+      comes due: it would show everything green forever. That is why we keep our own date.
     </div>
     <p>The practical consequence: <b>on day one everything shows 0 days</b>. Aging and the SLA
       only mean something after the app has been running a while. Same for the trend charts —

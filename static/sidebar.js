@@ -49,8 +49,8 @@
       var collapseBtn = document.createElement("button");
       collapseBtn.type = "button";
       collapseBtn.className = "nav-collapse-btn";
-      collapseBtn.title = "Colapsar menú";
-      collapseBtn.setAttribute("aria-label", "Colapsar menú");
+      collapseBtn.title = "Collapse menu";
+      collapseBtn.setAttribute("aria-label", "Collapse menu");
       collapseBtn.innerHTML = COLLAPSE_ICON;
       collapseBtn.addEventListener("click", toggleNav);
       sidebar.appendChild(collapseBtn);
@@ -60,8 +60,8 @@
       var reopenBtn = document.createElement("button");
       reopenBtn.type = "button";
       reopenBtn.className = "nav-reopen";
-      reopenBtn.title = "Mostrar menú";
-      reopenBtn.setAttribute("aria-label", "Mostrar menú");
+      reopenBtn.title = "Show menu";
+      reopenBtn.setAttribute("aria-label", "Show menu");
       reopenBtn.innerHTML = REOPEN_ICON;
       reopenBtn.addEventListener("click", toggleNav);
       document.body.appendChild(reopenBtn);
@@ -74,9 +74,9 @@
       var footBtn = document.createElement("button");
       footBtn.type = "button";
       footBtn.className = "nav-collapse-foot";
-      footBtn.title = "Colapsar menú";
-      footBtn.setAttribute("aria-label", "Colapsar menú");
-      footBtn.innerHTML = COLLAPSE_ICON + "<span>Colapsar</span>";
+      footBtn.title = "Collapse menu";
+      footBtn.setAttribute("aria-label", "Collapse menu");
+      footBtn.innerHTML = COLLAPSE_ICON + "<span>Collapse</span>";
       footBtn.addEventListener("click", toggleNav);
       if (foot) sidebar.insertBefore(footBtn, foot);
       else sidebar.appendChild(footBtn);
@@ -88,8 +88,8 @@
       var reopenBottom = document.createElement("button");
       reopenBottom.type = "button";
       reopenBottom.className = "nav-reopen nav-reopen-bottom";
-      reopenBottom.title = "Mostrar menú";
-      reopenBottom.setAttribute("aria-label", "Mostrar menú");
+      reopenBottom.title = "Show menu";
+      reopenBottom.setAttribute("aria-label", "Show menu");
       reopenBottom.innerHTML = REOPEN_ICON;
       reopenBottom.addEventListener("click", toggleNav);
       document.body.appendChild(reopenBottom);
@@ -135,12 +135,12 @@
    * elemento con [data-requires-admin] desaparece por CSS. */
   var ROLES = {
     admin: {
-      texto: "Administrador",
-      ayuda: "Podés aprobar acciones y cambiar la configuración.",
+      texto: "Administrator",
+      ayuda: "You can approve actions and change the configuration.",
     },
     readonly: {
-      texto: "Solo lectura",
-      ayuda: "Podés ver todo el panel; no ejecutar acciones ni cambiar la configuración.",
+      texto: "Read only",
+      ayuda: "You can see the whole panel; you cannot run actions or change the configuration.",
     },
   };
 
