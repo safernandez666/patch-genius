@@ -10,8 +10,109 @@
  * FF5722 es "alta" porque en un panel de seguridad el naranja ya significa algo.
  * Por eso la marca es el teal — si los botones fueran naranjas, cada control se
  * leería como una alerta.
+ *
+ * Two themes. `:root` is light and `[data-theme="dark"]` is dark, which is the
+ * way round the pre-paint script in every page's <head> expects: it sets the
+ * attribute only for dark. These tokens used to be dark-only and defined on
+ * bare `:root`, while index.html reached for them straight from rules that were
+ * not scoped to a theme — so the light theme rendered dark grey panels on a
+ * white page, and every screen other than the dashboard was dark no matter what
+ * the user had chosen.
+ *
+ * Adding a token means adding it to BOTH blocks. One defined on only one side
+ * silently keeps the other theme's value, which is exactly the bug above.
  */
 :root {
+  /* Rampa de marca. Es la única familia que NO cambia con el tema: son valores
+     absolutos, y los tokens semánticos de abajo eligen qué escalón usar.
+     Los dos temas recorren la rampa en sentidos opuestos — sobre blanco el
+     acento tiene que ser oscuro y sobre #303841 tiene que ser claro. */
+  --pg-brand-50:      #eef6f6;
+  --pg-brand-100:     #d9ebec;
+  --pg-brand-200:     #bcdcde;
+  --pg-brand-300:     #a9d2d4;
+  --pg-brand-400:     #8fbfc2;
+  --pg-brand-500:     #76abae;
+  --pg-brand-600:     #5d9295;
+  --pg-brand-700:     #48757a;
+  --pg-brand-800:     #375b60;
+  --pg-brand-900:     #26383a;
+  --pg-brand-950:     #1f2c2d;
+
+  /* Severidad. Iguales en los dos temas a propósito: son significado, no
+     decoración, y el naranja FF5722 tiene que seguir siendo "alta" en ambos.
+     Grises para "sin triar": la ausencia de puntaje es desconocido, no
+     inofensivo, y pintarlo de verde lo diría al revés. */
+  --pg-sev-critical:  #f04438;
+  --pg-sev-high:      #ff5722;
+  --pg-sev-medium:    #eab308;
+  --pg-sev-low:       #22c55e;
+  --pg-sev-untriaged: #94a3b8;
+
+  /* Plataformas. Deliberadamente fuera de la escala de severidad: si Windows
+     fuera naranja se leería como "alto" en vez de como un sistema operativo. */
+  --pg-plat-windows:  #76abae;
+  --pg-plat-debian:   #c2708a;
+  --pg-plat-ubuntu:   #e8834a;
+  --pg-plat-linux:    #8fbf7a;
+  --pg-plat-macos:    #9b8fc4;
+
+  /* ---- Tema claro ---- */
+
+  /* Superficies */
+  --pg-bg:            #f5f5f5;  /* fondo de página — el F5F5F5 de la paleta */
+  --pg-surface:       #ffffff;  /* tarjetas y paneles */
+  --pg-surface-alt:   #eceef1;  /* inputs, fondos hundidos */
+  --pg-surface-deep:  #ffffff;  /* sidebar */
+  --pg-border:        #e4e7ec;
+  --pg-border-strong: #d0d5dd;
+
+  /* Texto */
+  --pg-text:          #1d2939;
+  --pg-text-muted:    #667085;
+  --pg-text-soft:     #344054;
+
+  /* Marca. Sobre blanco el teal 500 queda en 2,3:1 — ilegible como texto y como
+     enlace. En claro el acento baja al escalón 700 y encima va blanco; en oscuro
+     sube al 500 y encima va el gris casi negro.
+     `hover` se mueve para el lado que corresponde en cada tema: más oscuro sobre
+     claro, más claro sobre oscuro. `strong` es el acento leído sobre `brand-bg`,
+     no sobre la página. */
+  --pg-brand:         var(--pg-brand-700);
+  --pg-brand-hover:   var(--pg-brand-800);
+  --pg-brand-strong:  var(--pg-brand-800);
+  --pg-brand-soft:    var(--pg-brand-600);
+  --pg-brand-pale:    var(--pg-brand-500);
+  --pg-brand-border:  var(--pg-brand-200);
+  --pg-brand-bg:      var(--pg-brand-50);
+  --pg-brand-bg-2:    var(--pg-brand-100);
+  --pg-on-brand:      #ffffff;
+  --pg-ghost:         #eceef1;
+
+  /* Estados */
+  --pg-ok-bg:         #ecfdf3;
+  --pg-ok-fg:         #027a48;
+  --pg-ok-border:     #a6f4c5;
+  --pg-bad-bg:        #fef3f2;
+  --pg-bad-fg:        #b42318;
+  --pg-bad-border:    #fecdca;
+  --pg-warn-bg:       #fffaeb;
+  --pg-warn-fg:       #b54708;
+  --pg-warn-border:   #fedf89;
+
+  /* Tintes. CSS no puede pegarle el alfa a un var(): `var(--pg-brand)26` no es
+     un color, el navegador descarta la declaración entera y el elemento queda
+     sin fondo. Cada relleno translúcido necesita su propio token. */
+  --pg-tint-brand:    #76abae24;
+  --pg-tint-critical: #f0443814;
+  --pg-tint-critical-strong: #f0443833;
+  --pg-tint-high:     #ff572214;
+  --pg-tint-border:   #10182814;
+  --pg-focus-ring:    #76abae59;
+  --pg-shadow-sm:     #1018281f;
+}
+
+[data-theme="dark"] {
   /* Superficies */
   --pg-bg:            #303841;  /* fondo de página */
   --pg-surface:       #39424c;  /* tarjetas y paneles */
@@ -26,40 +127,17 @@
   --pg-text-soft:     #dbe2e8;
 
   /* Marca */
-  --pg-brand:         #76abae;
-  --pg-brand-soft:    #8fbfc2;
-  --pg-brand-pale:    #a9d2d4;
+  --pg-brand:         var(--pg-brand-500);
+  --pg-brand-hover:   var(--pg-brand-400);
+  --pg-brand-strong:  var(--pg-brand-200);
+  --pg-brand-soft:    var(--pg-brand-400);
+  --pg-brand-pale:    var(--pg-brand-300);
+  --pg-brand-border:  var(--pg-brand-800);
+  --pg-brand-bg:      var(--pg-brand-950);
+  --pg-brand-bg-2:    var(--pg-brand-900);
   --pg-on-brand:      #1d2529;  /* texto sobre fondo de marca: el teal es claro,
                                    así que encima va oscuro, no blanco */
   --pg-ghost:         #454f5a;
-
-  /* Full brand ramp. tailwind.css is a frozen build of a different brand — blue
-     in light, lime in dark — and only three of its brand steps were being
-     overridden, so the primary buttons came out lime and the accent colour
-     changed with the theme. These steps are the ones tailwind.css names. */
-  --pg-brand-50:      #eef6f6;
-  --pg-brand-100:     #d9ebec;
-  --pg-brand-200:     #bcdcde;
-  --pg-brand-600:     #5d9295;
-  --pg-brand-700:     #48757a;
-
-  /* Tints. CSS cannot append an alpha to a var(): `var(--pg-brand)26` is not a
-     colour, the browser drops the whole declaration and the element renders
-     with no background at all. Every translucent fill needs its own token. */
-  --pg-tint-brand:    #76abae26;
-  --pg-tint-critical: #f0443826;
-  --pg-tint-critical-strong: #f0443840;
-  --pg-tint-high:     #ff572226;
-  --pg-tint-border:   #4a556140;
-  --pg-focus-ring:    #76abae40;
-
-  /* Severidad. Grises para "sin triar": la ausencia de puntaje es desconocido,
-     no inofensivo, y pintarlo de verde lo diría al revés. */
-  --pg-sev-critical:  #f04438;
-  --pg-sev-high:      #ff5722;
-  --pg-sev-medium:    #eab308;
-  --pg-sev-low:       #22c55e;
-  --pg-sev-untriaged: #94a3b8;
 
   /* Estados */
   --pg-ok-bg:         #0e2e1d;
@@ -72,11 +150,12 @@
   --pg-warn-fg:       #fcd34d;
   --pg-warn-border:   #6b4e14;
 
-  /* Plataformas. Deliberadamente fuera de la escala de severidad: si Windows
-     fuera naranja se leería como "alto" en vez de como un sistema operativo. */
-  --pg-plat-windows:  #76abae;
-  --pg-plat-debian:   #c2708a;
-  --pg-plat-ubuntu:   #e8834a;
-  --pg-plat-linux:    #8fbf7a;
-  --pg-plat-macos:    #9b8fc4;
+  /* Tintes */
+  --pg-tint-brand:    #76abae26;
+  --pg-tint-critical: #f0443826;
+  --pg-tint-critical-strong: #f0443840;
+  --pg-tint-high:     #ff572226;
+  --pg-tint-border:   #4a556140;
+  --pg-focus-ring:    #76abae40;
+  --pg-shadow-sm:     #00000040;
 }

@@ -12,20 +12,7 @@
 <link rel="stylesheet" href="/static/tailwind.css">
 <link rel="stylesheet" href="/static/sidebar.css">
 <script>try{if(localStorage.getItem('soc.navCollapsed')==='1')document.documentElement.classList.add('nav-collapsed')}catch(e){}</script>
-<script>
-  // Fija el tema antes del primer paint para no parpadear.
-  (function () {
-    try {
-      var t = localStorage.getItem('soc.theme');
-      if (t !== 'soc' && t !== 'light') t = 'soc';
-      document.documentElement.setAttribute('data-theme', t === 'soc' ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-brand', t);
-    } catch (e) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.documentElement.setAttribute('data-brand', 'soc');
-    }
-  })();
-</script>
+<script src="/static/theme-preload.js"></script>
 <script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <!-- ApexCharts vendorizado localmente (funciona sin internet / airgap). -->
@@ -73,7 +60,6 @@
 
 .mono{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-brand-700);
   background:var(--color-brand-50);padding:2px 8px;border-radius:6px;white-space:nowrap}
-[data-theme="dark"] .mono{background:var(--pg-tint-brand);color:var(--pg-brand-pale)}
 .pbadge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700}
 .p-critical{background:#fde7e9;color:#b42318}
 .p-high{background:#ffedd5;color:#c2410c}
@@ -133,7 +119,7 @@
    oscuro (--pg-on-brand), no blanco. */
 .btn-accent{border:1px solid var(--pg-brand);background:var(--pg-brand);color:var(--pg-on-brand);
   font-weight:600;cursor:pointer;font-family:inherit}
-.btn-accent:hover{background:var(--pg-brand-600);border-color:var(--pg-brand-600)}
+.btn-accent:hover{background:var(--pg-brand-hover);border-color:var(--pg-brand-hover)}
 .btn-accent:disabled{opacity:.45;cursor:not-allowed}
 .btn-accent:disabled:hover{background:var(--pg-brand);border-color:var(--pg-brand)}
 
@@ -194,21 +180,27 @@
    seguridad el naranja ya significa algo, y usarlo tambien de color de marca
    volveria ambiguo cada boton. La marca es el teal.
 
-   The brand ramp is redefined on :root, not per theme. tailwind.css ships two
+   The brand ramp is redefined once, on :root, and each step points at a
+   semantic token that theme.css resolves per theme. tailwind.css ships two
    different brands — blue on :root, lime under [data-theme=dark] — and only
    three steps of it were being overridden here, so `--color-brand-600` stayed
    lime and every primary button in the app came out green. :root and
    [data-theme=dark] carry the same specificity, so this block wins in both
-   themes by source order and one accent colour covers the whole panel. */
+   themes by source order.
+
+   The mapping is semantic rather than a fixed ramp on purpose: tailwind treats
+   brand-500 as "the accent that reads on the current background", and the two
+   themes walk the teal in opposite directions. Pinning the literal steps here
+   would put 600 *lighter* than 500 in the light theme. */
 :root{
-  --color-brand-50:var(--pg-brand-50);
-  --color-brand-100:var(--pg-brand-100);
-  --color-brand-200:var(--pg-brand-200);
+  --color-brand-50:var(--pg-brand-bg);
+  --color-brand-100:var(--pg-brand-bg-2);
+  --color-brand-200:var(--pg-brand-border);
   --color-brand-300:var(--pg-brand-pale);
   --color-brand-400:var(--pg-brand-soft);
   --color-brand-500:var(--pg-brand);
-  --color-brand-600:var(--pg-brand-600);
-  --color-brand-700:var(--pg-brand-700);
+  --color-brand-600:var(--pg-brand-hover);
+  --color-brand-700:var(--pg-brand-strong);
 }
 [data-theme="dark"]{
   --color-gray-dark:var(--pg-surface);   /* superficie de tarjetas */
@@ -237,14 +229,14 @@
   mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain}
 .brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
 .qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
-    border:1px solid var(--color-gray-800);background:transparent;color:var(--color-gray-400)}
+    border:1px solid var(--pg-border-strong);background:transparent;color:var(--pg-text-muted)}
 .qf:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
 .qf.on{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px 4px 10px;
-      border-radius:999px;background:var(--color-gray-dark);border:1px solid var(--color-gray-800);
-      color:var(--color-gray-300)}
-.chip b{font-weight:600;color:var(--color-white)}
-.chip button{border:0;background:transparent;color:var(--color-gray-400);cursor:pointer;
+      border-radius:999px;background:var(--pg-surface);border:1px solid var(--pg-border);
+      color:var(--pg-text-soft)}
+.chip b{font-weight:600;color:var(--pg-text)}
+.chip button{border:0;background:transparent;color:var(--pg-text-muted);cursor:pointer;
              font-size:14px;line-height:1;padding:0 2px}
 .chip button:hover{color:var(--pg-sev-high)}
 .chip-clear{font-size:12px;color:var(--pg-brand);background:none;border:0;cursor:pointer;text-decoration:underline}
@@ -300,7 +292,7 @@
   padding:8px 13px;border-radius:8px;transition:background .15s,color .15s;font-family:inherit}
 .sevtab:hover{color:var(--pg-text)}
 .sevtab.on{background:var(--pg-surface);color:var(--pg-text);font-weight:600;
-  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  box-shadow:0 1px 2px var(--pg-shadow-sm)}
 .sevtab .dot{width:8px;height:8px;border-radius:3px;flex:none}
 .sevtab .n{font-size:.76rem;color:var(--pg-text-muted);font-variant-numeric:tabular-nums}
 .sevtab.on .n{color:var(--pg-text)}

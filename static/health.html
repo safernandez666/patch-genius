@@ -7,6 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<script src="/static/theme-preload.js"></script>
+<script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);
        font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.65}
@@ -49,7 +51,7 @@
     border-radius:9px;padding:11px 13px;font-size:.8rem}
 
   table{width:100%;border-collapse:collapse;font-size:.82rem}
-  /* tailwind.css pinta un fondo claro en th; esta pantalla es oscura siempre. */
+  /* tailwind.css le pinta un fondo propio al th que no sigue al tema. */
   thead th{text-align:left;padding:9px 11px;font-size:.68rem;font-weight:600;text-transform:uppercase;
     letter-spacing:.04em;color:var(--pg-text-muted);border-bottom:1px solid var(--pg-border);
     white-space:nowrap;background:transparent}
