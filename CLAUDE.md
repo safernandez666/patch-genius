@@ -85,9 +85,15 @@ A PostToolUse hook runs `ruff format` on each Python file you edit.
   utility class that isn't already in it.** New styling goes in `index.html`'s inline
   `<style>` or `sidebar.css`.
 - ApexCharts and the Outfit fonts are vendored on purpose. No CDN references, ever.
-- Theme is applied pre-paint by an inline `<head>` script in `index.html` *and* re-applied
-  in `theme.js` — both must stay in sync. localStorage keys: `soc.theme` (`light`|`soc`),
-  `soc.navCollapsed`.
+- `theme.css` carries both themes: `:root` is light, `[data-theme="dark"]` is dark. A new
+  `--pg-*` token needs a value in **both** blocks — one defined on a single side silently
+  inherits the other theme's value, which is how the light theme ended up rendering dark
+  panels. Page CSS reaches for `--pg-*`, never tailwind's dark greys (`--color-gray-dark`,
+  `--color-gray-800`): those are remapped only under `[data-theme="dark"]` and fall back to
+  near-black in light.
+- Theme is applied pre-paint by `theme-preload.js` — a blocking `<head>` script — and
+  re-applied in `theme.js`. **Every page must load both**, or it ignores the chosen theme.
+  localStorage keys: `soc.theme` (`light`|`soc`), `soc.navCollapsed`.
 
 ## Conventions
 

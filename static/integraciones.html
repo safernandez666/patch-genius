@@ -7,6 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<script src="/static/theme-preload.js"></script>
+<script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);
        font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.6}
@@ -19,14 +21,15 @@
         padding:20px 22px;margin-bottom:16px}
   .head{display:flex;align-items:center;gap:13px}
   .logo{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
-        justify-content:center;background:var(--pg-surface-alt);flex:none;overflow:hidden}
+        justify-content:center;background:var(--pg-surface-alt);color:var(--pg-brand);
+        flex:none;overflow:hidden}
   .logo img{width:24px;height:24px;object-fit:contain}
   .logo svg{width:22px;height:22px}
   .head h2{font-size:.98rem;margin:0}
   .head p{margin:2px 0 0;font-size:.79rem;color:var(--pg-text-muted)}
   .head .grow{flex:1}
   .state{font-size:.74rem;padding:3px 9px;border-radius:999px;font-weight:600;white-space:nowrap}
-  .state.on{background:#17593a44;color:var(--pg-ok-fg)}
+  .state.on{background:var(--pg-ok-bg);color:var(--pg-ok-fg)}
   .state.off{background:var(--pg-surface-alt);color:var(--pg-text-muted)}
   .toggle{position:relative;width:42px;height:23px;flex:none;cursor:pointer}
   .toggle input{opacity:0;width:0;height:0}
@@ -140,7 +143,7 @@
 <script src="/static/i18n.js"></script>
 <script>
 const LOGO = {
-  ai: '<svg viewBox="0 0 24 24" fill="none" stroke="#76abae" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>',
+  ai: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>',
   wazuh: '<img src="/static/assets/wazuh.webp" alt="">',
   jira:  '<img src="/static/assets/jira.svg" alt="">',
   slack: '<img src="/static/assets/slack.svg" alt="">',
