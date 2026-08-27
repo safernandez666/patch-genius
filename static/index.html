@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/static/assets/soar-shield.svg">
-<meta name="theme-color" content="#465fff">
+<meta name="theme-color" content="#303841">
 <title>Patch Genius — Vulnerabilities</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="preload" href="/static/tailwind.css" as="style">
@@ -40,12 +40,6 @@
 [data-theme="dark"] .page-title{color:var(--color-white)}
 [data-theme="dark"] .page-desc{color:var(--color-gray-400)}
 
-.demo-banner{display:flex;align-items:center;gap:10px;background:var(--color-brand-50);
-  border:1px solid var(--color-brand-200);color:var(--color-brand-700);border-radius:var(--radius-lg);
-  padding:10px 14px;font-size:12.5px;margin-bottom:18px}
-[data-theme="dark"] .demo-banner{background:#465fff1f;border-color:#465fff40;color:var(--color-brand-300)}
-.demo-banner a{color:inherit;text-decoration:underline}
-
 .stat-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-bottom:14px}
 @media (max-width:1450px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
 @media (max-width:800px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
@@ -79,7 +73,7 @@
 
 .mono{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-brand-700);
   background:var(--color-brand-50);padding:2px 8px;border-radius:6px;white-space:nowrap}
-[data-theme="dark"] .mono{background:#84cc1626;color:var(--color-brand-300)}
+[data-theme="dark"] .mono{background:var(--pg-tint-brand);color:var(--pg-brand-pale)}
 .pbadge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700}
 .p-critical{background:#fde7e9;color:#b42318}
 .p-high{background:#ffedd5;color:#c2410c}
@@ -93,7 +87,7 @@
 .kev-badge svg{width:10px;height:10px;flex:none}
 .sla-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;
   background:#fde7e9;color:#b42318}
-[data-theme="dark"] .sla-badge{background:var(--pg-sev-critical)26;color:#fda29b}
+[data-theme="dark"] .sla-badge{background:var(--pg-tint-critical);color:#fda29b}
 .ransom-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;
   font-size:10.5px;font-weight:700;background:#3b0764;color:#fff}
 [data-theme="dark"] .ransom-badge{background:#a855f740;color:#e9d5ff}
@@ -122,7 +116,7 @@
   border:1px solid var(--color-gray-200);border-radius:var(--radius-lg);padding:9px 34px 9px 12px;font-size:13px;
   color:var(--color-gray-700);cursor:pointer;font-family:inherit}
 .input{background-image:none;padding-right:12px;cursor:text}
-.select:focus,.input:focus{outline:none;border-color:var(--color-brand-400);box-shadow:0 0 0 3px #465fff26}
+.select:focus,.input:focus{outline:none;border-color:var(--color-brand-400);box-shadow:0 0 0 3px var(--pg-focus-ring)}
 [data-theme="dark"] .select,[data-theme="dark"] .input{background-color:var(--color-gray-dark);border-color:var(--color-gray-800);color:var(--color-gray-200)}
 .events-count{font-size:12.5px;color:var(--color-gray-500);margin-left:auto;font-variant-numeric:tabular-nums}
 .check{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--color-gray-600);cursor:pointer}
@@ -135,6 +129,13 @@
 .btn-ghost:disabled:hover{background:transparent}
 [data-theme="dark"] .btn-ghost{border-color:var(--color-gray-700);color:var(--color-gray-200)}
 [data-theme="dark"] .btn-ghost:hover{background:#ffffff0a}
+/* Accion primaria de un modal. El teal es claro, asi que el texto encima va
+   oscuro (--pg-on-brand), no blanco. */
+.btn-accent{border:1px solid var(--pg-brand);background:var(--pg-brand);color:var(--pg-on-brand);
+  font-weight:600;cursor:pointer;font-family:inherit}
+.btn-accent:hover{background:var(--pg-brand-600);border-color:var(--pg-brand-600)}
+.btn-accent:disabled{opacity:.45;cursor:not-allowed}
+.btn-accent:disabled:hover{background:var(--pg-brand);border-color:var(--pg-brand)}
 
 .loading{color:var(--color-gray-400);font-size:13px;text-align:center;padding:28px 0}
 .empty h3{margin:0 0 6px;font-size:15px;color:var(--color-gray-700)}
@@ -142,7 +143,7 @@
 [data-theme="dark"] .empty h3{color:var(--color-gray-200)}
 .alert{border-radius:var(--radius-lg);padding:12px 14px;font-size:13px}
 .alert-err{background:var(--color-error-50);color:var(--color-error-700);border:1px solid var(--color-error-200)}
-[data-theme="dark"] .alert-err{background:var(--pg-sev-critical)26;color:#fda29b;border-color:var(--pg-sev-critical)40}
+[data-theme="dark"] .alert-err{background:var(--pg-tint-critical);color:#fda29b;border-color:var(--pg-tint-critical-strong)}
 
 /* Modal de asignación */
 .modal-backdrop{position:fixed;inset:0;background:#00000066;display:flex;align-items:center;justify-content:center;z-index:100}
@@ -187,11 +188,28 @@
 .footer .sep{margin:0 8px;opacity:.5}
 
 /* Paleta "Genius" — colorhunt F5F5F5 / 76ABAE / 303841 / FF5722.
-   Se redefine sobre los tokens del tema oscuro en vez de tocar tailwind.css,
+   Se redefine sobre los tokens de tailwind.css en vez de tocar el archivo,
    que es un build congelado sin fuente en este repo.
    El naranja de la paleta se reserva para severidad Alta: en un panel de
    seguridad el naranja ya significa algo, y usarlo tambien de color de marca
-   volveria ambiguo cada boton. La marca es el teal. */
+   volveria ambiguo cada boton. La marca es el teal.
+
+   The brand ramp is redefined on :root, not per theme. tailwind.css ships two
+   different brands — blue on :root, lime under [data-theme=dark] — and only
+   three steps of it were being overridden here, so `--color-brand-600` stayed
+   lime and every primary button in the app came out green. :root and
+   [data-theme=dark] carry the same specificity, so this block wins in both
+   themes by source order and one accent colour covers the whole panel. */
+:root{
+  --color-brand-50:var(--pg-brand-50);
+  --color-brand-100:var(--pg-brand-100);
+  --color-brand-200:var(--pg-brand-200);
+  --color-brand-300:var(--pg-brand-pale);
+  --color-brand-400:var(--pg-brand-soft);
+  --color-brand-500:var(--pg-brand);
+  --color-brand-600:var(--pg-brand-600);
+  --color-brand-700:var(--pg-brand-700);
+}
 [data-theme="dark"]{
   --color-gray-dark:var(--pg-surface);   /* superficie de tarjetas */
   --color-gray-900:var(--pg-bg);    /* fondo de pagina */
@@ -201,9 +219,6 @@
   --color-gray-400:var(--pg-text-muted);
   --color-gray-300:#c9d1d9;
   --color-white:var(--pg-text);
-  --color-brand-500:var(--pg-brand);
-  --color-brand-400:var(--pg-brand-soft);
-  --color-brand-300:var(--pg-brand-pale);
 }
 [data-theme="dark"] body{background:var(--pg-bg);color:var(--pg-text)}
 [data-theme="dark"] .sidebar{background:var(--pg-surface-deep);border-right:1px solid var(--pg-border)}
@@ -242,10 +257,9 @@
 .stat-hero .value{font-size:34px;letter-spacing:-.5px}
 .stat-hero .label{font-size:13px}
 .stat-ico{display:flex;align-items:center;justify-content:center;width:44px;height:44px;
-          border-radius:12px;margin-bottom:14px;background:var(--pg-border)33;color:var(--pg-brand)}
+          border-radius:12px;margin-bottom:14px;background:var(--pg-tint-border);color:var(--pg-brand)}
 .stat-ico svg{width:22px;height:22px}
-.stat-hero.is-bad .stat-ico{background:var(--pg-sev-high)26;color:var(--pg-sev-high)}
-[data-theme="dark"] .stat-ico{background:var(--pg-border)40}
+.stat-hero.is-bad .stat-ico{background:var(--pg-tint-high);color:var(--pg-sev-high)}
 .stat-grid-sub .stat-card{padding:14px 16px}
 .stat-grid-sub .value{font-size:20px}
 /* Metricas de contexto agrupadas en una sola tarjeta con divisores internos
@@ -271,10 +285,6 @@
 .pager-size .select{width:auto;padding-right:30px}
 .pager-range{font-size:12.5px;color:var(--pg-text-muted)}
 .pager-nav{display:flex;align-items:center;gap:6px}
-.pg-num{min-width:32px;height:32px;padding:0 8px;border-radius:8px;font-size:12.5px;cursor:pointer;
-  border:1px solid var(--pg-border);background:transparent;color:var(--pg-text-muted)}
-.pg-num:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
-.pg-num.on{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand);font-weight:600}
 .pg-gap{color:var(--pg-text-muted);padding:0 2px;font-size:12.5px}
 .pager button[disabled]{opacity:.4;cursor:default}
 @media (max-width:640px){.pager{justify-content:center}}
@@ -546,7 +556,7 @@
       <button type="button" class="btn-ghost btn-sm" id="m-delete" onclick="deleteAssignment()">Remove tracking</button>
       <span style="flex:1"></span>
       <button type="button" class="btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
-      <button type="button" class="btn-ghost btn-sm" style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)" onclick="saveAssignment()">Save</button>
+      <button type="button" class="btn-accent btn-sm" onclick="saveAssignment()">Save</button>
     </div>
   </div>
 </div>
@@ -565,8 +575,7 @@
       </label>
       <span style="flex:1"></span>
       <button type="button" class="btn-ghost btn-sm" onclick="closeRescan()">Cancel</button>
-      <button type="button" class="btn-ghost btn-sm" id="rescan-go"
-        style="background:var(--color-brand-600);color:#fff;border-color:var(--color-brand-600)"
+      <button type="button" class="btn-accent btn-sm" id="rescan-go"
         onclick="runRescan()">Restart &amp; rescan</button>
     </div>
     <p class="refresh-msg is-bad" id="rescan-msg" hidden style="margin:14px 0 0"></p>

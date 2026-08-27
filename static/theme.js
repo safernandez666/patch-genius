@@ -12,14 +12,14 @@
       mode: "light",
       favicon: "/static/assets/genie.svg",
       faviconType: "image/svg+xml",
-      metaColor: "#465fff",
+      metaColor: "#f5f5f5",
       label: "Claro",
     },
     soc: {
       mode: "dark",
       favicon: "/static/assets/genie.svg",
       faviconType: "image/svg+xml",
-      metaColor: "#0b1020",
+      metaColor: "#303841",
       label: "Oscuro",
     },
   };

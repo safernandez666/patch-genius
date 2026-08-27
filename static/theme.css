@@ -33,6 +33,26 @@
                                    así que encima va oscuro, no blanco */
   --pg-ghost:         #454f5a;
 
+  /* Full brand ramp. tailwind.css is a frozen build of a different brand — blue
+     in light, lime in dark — and only three of its brand steps were being
+     overridden, so the primary buttons came out lime and the accent colour
+     changed with the theme. These steps are the ones tailwind.css names. */
+  --pg-brand-50:      #eef6f6;
+  --pg-brand-100:     #d9ebec;
+  --pg-brand-200:     #bcdcde;
+  --pg-brand-600:     #5d9295;
+  --pg-brand-700:     #48757a;
+
+  /* Tints. CSS cannot append an alpha to a var(): `var(--pg-brand)26` is not a
+     colour, the browser drops the whole declaration and the element renders
+     with no background at all. Every translucent fill needs its own token. */
+  --pg-tint-brand:    #76abae26;
+  --pg-tint-critical: #f0443826;
+  --pg-tint-critical-strong: #f0443840;
+  --pg-tint-high:     #ff572226;
+  --pg-tint-border:   #4a556140;
+  --pg-focus-ring:    #76abae40;
+
   /* Severidad. Grises para "sin triar": la ausencia de puntaje es desconocido,
      no inofensivo, y pintarlo de verde lo diría al revés. */
   --pg-sev-critical:  #f04438;
