@@ -824,6 +824,42 @@ def _sort_by_priority(rows: List[dict]) -> List[dict]:
     )
 
 
+# Columnas por las que la tabla se puede ordenar. La clave es la que viaja en la
+# query; el valor saca el dato de la fila. Devolver None significa "esta fila no
+# tiene ese dato", y esas filas van al final en los dos sentidos.
+_SORTABLE = {
+    "priority": lambda r: r.get("priority_score"),
+    "cvss": lambda r: r.get("cvss"),
+    "epss": lambda r: r.get("epss"),
+    "severity": lambda r: sev_rank(r.get("severidad") or "") or None,
+    "aging": lambda r: r.get("dias_detectado"),
+    "cve": lambda r: r.get("cve") or None,
+    "owner": lambda r: (r.get("owner") or "").lower() or None,
+    "status": lambda r: r.get("estado") or None,
+}
+
+
+def _sort_rows(rows: List[dict], sort: Optional[str] = None, direction: str = "desc") -> List[dict]:
+    """Order the table by one column, keeping priority as the tiebreak.
+
+    The base order is always ``_sort_by_priority``: Python's sort is stable, so
+    sorting that list by another column leaves rows that tie on the column in
+    priority order rather than in whatever order the cache happened to hold.
+    An unknown column name falls back to the priority order instead of erroring
+    — a bad query string should not blank the screen.
+    """
+    ordered = _sort_by_priority(rows)
+    getter = _SORTABLE.get((sort or "").lower())
+    if getter is None:
+        return ordered
+    present = [r for r in ordered if getter(r) is not None]
+    missing = [r for r in ordered if getter(r) is None]
+    present.sort(key=getter, reverse=(direction or "desc").lower() != "asc")
+    # Un dato ausente es desconocido, no cero: nunca encabeza la tabla, se
+    # ordene como se ordene.
+    return present + missing
+
+
 def _apply_vuln_filters(
     rows: List[dict],
     severity: Optional[str] = None,
@@ -984,6 +1020,8 @@ async def vuln_cves(
     agent: Optional[str] = None,
     q: Optional[str] = None,
     ransomware: Optional[int] = None,
+    sort: Optional[str] = None,
+    dir: str = "desc",
     limit: int = 10,
     offset: int = 0,
 ):
@@ -1011,12 +1049,14 @@ async def vuln_cves(
     # cada cambio de filtro.
     limit = max(1, min(int(limit), MAX_PAGE_SIZE))
     offset = max(0, int(offset))
-    ordered = _sort_by_priority(rows)
+    ordered = _sort_rows(rows, sort=sort, direction=dir)
     return {
         "cves": ordered[offset : offset + limit],
         "total": len(ordered),
         "limit": limit,
         "offset": offset,
+        "sort": sort if (sort or "").lower() in _SORTABLE else None,
+        "dir": "asc" if (dir or "").lower() == "asc" else "desc",
     }
 
 
