@@ -5,16 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Health check — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
-<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/sidebar.css">
 <script src="/static/theme-preload.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);
        font-family:Outfit,system-ui,-apple-system,sans-serif;line-height:1.65}
   .wrap{max-width:1180px;margin:0 auto;padding:34px 24px 70px}
-  a.back{color:var(--pg-text-muted);font-size:.84rem;text-decoration:none}
-  a.back:hover{color:var(--pg-brand)}
   h1{font-size:1.35rem;margin:14px 0 6px;display:flex;align-items:center;gap:11px}
   h1 .ico{width:32px;height:32px;flex:none;border-radius:10px;display:flex;align-items:center;
     justify-content:center;background:var(--pg-ok-bg);color:var(--pg-ok-fg);border:1px solid var(--pg-ok-border)}
@@ -73,8 +72,10 @@
 </style>
 </head>
 <body>
+<div class="app-shell">
+<!--sidebar-->
+<div class="app-main">
 <div class="wrap">
-  <a class="back" href="/">&larr; <span data-i18n="nav.back">Back to dashboard</span></a>
   <h1>
     <span class="ico" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
@@ -369,5 +370,8 @@ document.getElementById('range').addEventListener('click', e => {
 
 load();
 </script>
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

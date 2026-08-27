@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Help — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
-<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/sidebar.css">
 <script src="/static/theme-preload.js"></script>
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);font-family:Outfit,system-ui,-apple-system,sans-serif;
@@ -32,7 +34,6 @@
   th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--pg-border);vertical-align:top}
   th{color:var(--pg-text-muted);font-weight:600}
   a{color:var(--pg-brand)}
-  a.back{font-size:.85rem;text-decoration:none;color:var(--pg-text-muted)}
   .sevgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px}
   .sevcard{border:1px solid var(--pg-border);border-radius:10px;padding:13px 15px;
     background:var(--pg-surface-alt);border-left-width:4px}
@@ -43,8 +44,10 @@
 </style>
 </head>
 <body>
+<div class="app-shell">
+<!--sidebar-->
+<div class="app-main">
 <div class="wrap">
-  <a class="back" href="/">&larr; Volver al panel</a>
   <h1><img src="/static/assets/genie.svg" alt="">How Patch Genius works</h1>
   <p class="sub">What it reads, how it ranks, and why some numbers take a while to mean anything.</p>
 
@@ -159,5 +162,8 @@
   </div>
   </div>
 </div>
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

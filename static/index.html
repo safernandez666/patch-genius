@@ -8,10 +8,9 @@
 <title>Patch Genius — Vulnerabilities</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
 <link rel="preload" href="/static/tailwind.css" as="style">
-<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/sidebar.css">
-<script>try{if(localStorage.getItem('soc.navCollapsed')==='1')document.documentElement.classList.add('nav-collapsed')}catch(e){}</script>
 <script src="/static/theme-preload.js"></script>
 <script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
@@ -113,6 +112,8 @@
 .btn-ghost:hover{background:var(--color-gray-50)}
 .btn-ghost:disabled{opacity:.45;cursor:not-allowed}
 .btn-ghost:disabled:hover{background:transparent}
+[data-theme="dark"] .footer{color:var(--pg-text-muted)}
+[data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid var(--pg-brand)}
 [data-theme="dark"] .btn-ghost{border-color:var(--color-gray-700);color:var(--color-gray-200)}
 [data-theme="dark"] .btn-ghost:hover{background:#ffffff0a}
 /* Accion primaria de un modal. El teal es claro, asi que el texto encima va
@@ -173,61 +174,6 @@
 .footer a{color:inherit}
 .footer .sep{margin:0 8px;opacity:.5}
 
-/* Paleta "Genius" — colorhunt F5F5F5 / 76ABAE / 303841 / FF5722.
-   Se redefine sobre los tokens de tailwind.css en vez de tocar el archivo,
-   que es un build congelado sin fuente en este repo.
-   El naranja de la paleta se reserva para severidad Alta: en un panel de
-   seguridad el naranja ya significa algo, y usarlo tambien de color de marca
-   volveria ambiguo cada boton. La marca es el teal.
-
-   The brand ramp is redefined once, on :root, and each step points at a
-   semantic token that theme.css resolves per theme. tailwind.css ships two
-   different brands — blue on :root, lime under [data-theme=dark] — and only
-   three steps of it were being overridden here, so `--color-brand-600` stayed
-   lime and every primary button in the app came out green. :root and
-   [data-theme=dark] carry the same specificity, so this block wins in both
-   themes by source order.
-
-   The mapping is semantic rather than a fixed ramp on purpose: tailwind treats
-   brand-500 as "the accent that reads on the current background", and the two
-   themes walk the teal in opposite directions. Pinning the literal steps here
-   would put 600 *lighter* than 500 in the light theme. */
-:root{
-  --color-brand-50:var(--pg-brand-bg);
-  --color-brand-100:var(--pg-brand-bg-2);
-  --color-brand-200:var(--pg-brand-border);
-  --color-brand-300:var(--pg-brand-pale);
-  --color-brand-400:var(--pg-brand-soft);
-  --color-brand-500:var(--pg-brand);
-  --color-brand-600:var(--pg-brand-hover);
-  --color-brand-700:var(--pg-brand-strong);
-}
-[data-theme="dark"]{
-  --color-gray-dark:var(--pg-surface);   /* superficie de tarjetas */
-  --color-gray-900:var(--pg-bg);    /* fondo de pagina */
-  --color-gray-950:var(--pg-surface-deep);
-  --color-gray-800:var(--pg-border);    /* bordes */
-  --color-gray-700:#5a6672;
-  --color-gray-400:var(--pg-text-muted);
-  --color-gray-300:#c9d1d9;
-  --color-white:var(--pg-text);
-}
-[data-theme="dark"] body{background:var(--pg-bg);color:var(--pg-text)}
-[data-theme="dark"] .sidebar{background:var(--pg-surface-deep);border-right:1px solid var(--pg-border)}
-[data-theme="dark"] .brand-platform{color:var(--pg-text)}
-[data-theme="dark"] .side-nav a{color:var(--pg-text-muted)}
-[data-theme="dark"] .side-nav a:hover{background:var(--pg-surface);color:var(--pg-text)}
-[data-theme="dark"] .side-nav a.active{background:#3d4d50;color:var(--pg-brand)}
-[data-theme="dark"] .footer{color:var(--pg-text-muted)}
-[data-theme="dark"] .btn-primary,[data-theme="dark"] .btn{background:var(--pg-brand);border-color:var(--pg-brand);color:var(--pg-on-brand)}
-[data-theme="dark"] a{color:var(--pg-brand)}
-[data-theme="dark"] .select:focus,[data-theme="dark"] .input:focus{outline:2px solid var(--pg-brand)}
-/* Silueta usada como mascara: asi hereda el color del enlace y su estado
-   activo, cosa que un <img> externo no puede hacer. */
-.ai-ico{width:20px;height:20px;flex:none;background-color:currentColor;
-  -webkit-mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain;
-  mask:url(/static/assets/genie-lamp.svg) no-repeat center/contain}
-.brand-platform .shield{width:26px;height:26px;object-fit:contain;flex:none}
 .qf{font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer;
     border:1px solid var(--pg-border-strong);background:transparent;color:var(--pg-text-muted)}
 .qf:hover{border-color:var(--pg-brand);color:var(--pg-brand)}
@@ -311,54 +257,7 @@
 </head>
 <body>
 <div class="app-shell">
-<aside class="sidebar">
-  <span class="brand-platform"><img class="shield" src="/static/assets/genie.svg" alt=""><span>Patch <b>Genius</b></span></span>
-  <nav class="side-nav" aria-label="Main navigation">
-    <a href="/" class="active" aria-current="page">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span data-i18n="nav.vulns">Vulnerabilities</span>
-    </a>
-    <a href="/brief">
-      <span class="ai-ico" aria-hidden="true"></span>
-      <span data-i18n="nav.brief">AI</span>
-    </a>
-    <a href="/health">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>
-      <span data-i18n="nav.health">Health</span>
-    </a>
-    <a href="/config">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span data-i18n="nav.config">Configuration</span>
-    </a>
-    <a href="/integraciones">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>
-      <span data-i18n="nav.integrations">Integrations</span>
-    </a>
-    <a href="/ayuda">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span data-i18n="nav.help">Help</span>
-    </a>
-  </nav>
-  <div class="sidebar-spacer"></div>
-  <div class="side-status">
-    <span class="side-status-h">Source</span>
-    <span class="build-version" id="sideSource">Wazuh</span>
-  </div>
-  <div class="sidebar-foot">
-    <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme" title="Toggle theme">
-      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l-1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-    </button>
-    <button type="button" class="theme-toggle" id="logoutBtn" onclick="doLogout()"
-            aria-label="Sign out" title="Sign out">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    </button>
-    <a class="nav-exit" href="https://github.com/" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center;flex:1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      Code
-    </a>
-  </div>
-</aside>
+<!--sidebar-->
 <div class="app-main">
 <main class="container">
   <div class="page-header">
@@ -1252,11 +1151,6 @@ function changePageSize() {
 }
 
 let SLA_DIAS = 15;
-async function doLogout() {
-  try { await fetch('/api/logout', { method: 'POST' }); } catch (e) { /* igual salimos */ }
-  window.location = '/login';
-}
-
 function reloadCves(keepPage) {
   // Cambiar un filtro cambia el conjunto: seguir en la pagina 7 del anterior no
   // significa nada. Solo la navegacion explicita conserva la pagina.

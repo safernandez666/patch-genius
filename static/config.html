@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Configuration — Patch Genius</title>
 <link rel="icon" type="image/svg+xml" href="/static/assets/genie.svg">
-<link rel="stylesheet" href="/static/theme.css">
 <link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/sidebar.css">
 <script src="/static/theme-preload.js"></script>
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   body{margin:0;background:var(--pg-bg);color:var(--pg-text);font-family:Outfit,system-ui,-apple-system,sans-serif}
@@ -32,14 +34,13 @@
   .bad{background:var(--pg-bad-bg);color:var(--pg-bad-fg);border:1px solid var(--pg-bad-border);display:block}
   .warn{background:var(--pg-warn-bg);color:var(--pg-warn-fg);border:1px solid var(--pg-warn-border);font-size:.8rem;
         padding:11px 13px;border-radius:8px;margin-bottom:18px;line-height:1.5}
-  a.back{color:var(--pg-text-muted);font-size:.82rem;text-decoration:none}
 </style>
 </head>
 <body>
+<div class="app-shell">
+<!--sidebar-->
+<div class="app-main">
 <div class="wrap">
-  <a class="back" href="/">&larr; Back to dashboard</a>
-  <a class="back" href="/brief" style="margin-left:16px">What to prioritise &rarr;</a>
-  <a class="back" href="/integraciones" style="margin-left:16px">Integrations &rarr;</a>
   <h1 style="margin-top:14px">Configuration</h1>
   <p class="sub">Settings for this installation. The Wazuh connection lives in <a href="/integraciones" style="color:var(--pg-brand)">Integrations</a>.</p>
 
@@ -145,5 +146,8 @@ load();
 });
 load();
 </script>
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>
