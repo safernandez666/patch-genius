@@ -103,7 +103,30 @@
 .input{background-image:none;padding-right:12px;cursor:text}
 .select:focus,.input:focus{outline:none;border-color:var(--color-brand-400);box-shadow:0 0 0 3px var(--pg-focus-ring)}
 [data-theme="dark"] .select,[data-theme="dark"] .input{background-color:var(--color-gray-dark);border-color:var(--color-gray-800);color:var(--color-gray-200)}
-.events-count{font-size:12.5px;color:var(--color-gray-500);margin-left:auto;font-variant-numeric:tabular-nums}
+.events-count{font-size:12.5px;color:var(--color-gray-500);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* La busqueda se lleva el espacio sobrante; los desplegables miden lo suyo. */
+.toolbar-search{flex:1 1 240px;min-width:170px}
+/* Empuja el estado del cache y las acciones al otro extremo de la misma fila.
+   Antes eran una segunda barra, que ocupaba un renglon para decir "hace 4 min". */
+.toolbar-gap{flex:1 1 0;min-width:0}
+.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.section-head .card-sub{margin-bottom:10px}
+
+/* Encabezados ordenables. El boton ocupa toda la celda para que el area de
+   clic sea la columna entera y no las siete letras del titulo. */
+.dash-table thead th.is-sortable{padding:0}
+.th-sort{display:flex;align-items:center;gap:5px;width:100%;padding:10px 12px;
+  background:none;border:0;cursor:pointer;font:inherit;color:inherit;white-space:nowrap}
+.th-sort.is-num{justify-content:flex-end}
+.th-sort:hover{color:var(--pg-brand)}
+.th-sort:focus-visible{outline:2px solid var(--pg-brand);outline-offset:-2px}
+/* La flecha existe siempre: si apareciera sola al pasar por encima, el ancho de
+   la columna saltaria en cada hover. */
+.th-sort .arrow{font-size:9px;line-height:1;opacity:0;transition:opacity .12s ease}
+.th-sort:hover .arrow{opacity:.45}
+.dash-table thead th[aria-sort] .th-sort{color:var(--pg-brand)}
+.dash-table thead th[aria-sort] .th-sort .arrow{opacity:1}
+.dash-table td.is-num,.dash-table th.is-num{text-align:right;font-variant-numeric:tabular-nums}
 .check{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--color-gray-600);cursor:pointer}
 [data-theme="dark"] .check{color:var(--color-gray-300)}
 
@@ -284,6 +307,8 @@
   </div>
   <div id="activeChips" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"></div>
   <div class="toolbar">
+    <label class="visually-hidden" for="filter-q">Search CVE, description or package</label>
+    <input class="input toolbar-search" id="filter-q" type="search" placeholder="Search CVE / package…" oninput="debouncedReload()">
     <label class="visually-hidden" for="filter-plat">Filter by platform</label>
     <select class="select" id="filter-plat" aria-label="Filter by platform" onchange="reloadCves()">
       <option value="">All platforms</option>
@@ -301,17 +326,12 @@
       <option value="resuelto">Resolved</option>
       <option value="aceptado_riesgo">Risk accepted</option>
     </select>
-    <label class="visually-hidden" for="filter-agent">Filtrar por servidor</label>
-    <select class="select" id="filter-agent" aria-label="Filtrar por servidor" onchange="reloadCves()">
+    <label class="visually-hidden" for="filter-agent">Filter by server</label>
+    <select class="select" id="filter-agent" aria-label="Filter by server" onchange="reloadCves()">
       <option value="">All servers</option>
     </select>
-    <label class="visually-hidden" for="filter-q">Search CVE, description or package</label>
-    <input class="input" id="filter-q" type="search" placeholder="Search CVE / package…" oninput="debouncedReload()">
-    <span id="events-count" class="events-count" aria-live="polite"></span>
-  </div>
-  <div class="refresh-bar">
+    <span class="toolbar-gap"></span>
     <p class="cache-age" id="cache-age"></p>
-    <span style="flex:1"></span>
     <button type="button" class="btn-ghost btn-sm" id="btn-refresh" onclick="refreshNow()"
       title="Re-read the Wazuh indexer now instead of waiting for the next scheduled refresh">Refresh now</button>
     <button type="button" class="btn-ghost btn-sm" id="btn-rescan" onclick="openRescan()"
@@ -387,8 +407,13 @@
   </section>
 
   <section class="section" aria-label="Fleet CVEs">
-    <h3 class="card-h">Fleet CVEs</h3>
-    <p class="card-sub">Ordered by priority score</p>
+    <div class="section-head">
+      <div>
+        <h3 class="card-h">Fleet CVEs</h3>
+        <p class="card-sub" id="cves-sub">Ordered by priority score</p>
+      </div>
+      <span id="events-count" class="events-count" aria-live="polite"></span>
+    </div>
     <div id="cves-body">
       <div class="loading">Loading CVEs…</div>
     </div>
@@ -422,7 +447,7 @@
 
 <!-- Modal de asignación -->
 <div class="modal-backdrop" id="modal" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
     <h3 id="modal-title">Track</h3>
     <p class="modal-sub" id="modal-cve"></p>
     <label for="m-owner">Owner</label>
@@ -454,7 +479,7 @@
 
 <!-- Modal de rescan: reinicia agentes para que Wazuh vuelva a inventariarlos -->
 <div class="modal-backdrop" id="rescanModal" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rescan-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rescan-title" tabindex="-1">
     <h3 id="rescan-title">Force a Wazuh rescan</h3>
     <p class="modal-sub">Wazuh has no on-demand vulnerability scan. Restarting an agent makes it
       re-run its inventory, which is what re-evaluates the patches you just applied. The dashboard
@@ -493,6 +518,11 @@ const SEV_KEY = { critical: 'Critical', high: 'High', medium: 'Medium',
                   low: 'Low', untriaged: 'Untriaged' };
 let pageSize = 10;
 let page = 1;
+// Ordenamiento de la tabla. Vacio = el orden por prioridad, que es el default y
+// el motivo de la pantalla. El servidor es el que ordena porque tambien es el
+// que pagina: ordenar en el navegador ordenaria los diez de esta pagina nada mas.
+let sortCol = '';
+let sortDir = 'desc';
 let totalCves = 0;
 let allCves = [];
 let ownersKnown = [];
@@ -517,6 +547,22 @@ const SEV_HEX = {
   Low:       cssVar('--pg-sev-low',       '#22c55e'),
   Untriaged: cssVar('--pg-sev-untriaged', '#94a3b8'),
 };
+// Columnas de la tabla. `sort` es la clave que entiende el servidor; sin ella la
+// columna no se puede ordenar. `dir` es el sentido del primer clic: en un puntaje
+// lo util es el maximo, en un nombre es la A.
+const COLS = [
+  { label: 'CVE',                  sort: 'cve',      dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
+  { label: 'Severidad',            sort: 'severity', dir: 'desc', order: 'most severe first', rorder: 'least severe first' },
+  { label: 'CVSS',                 sort: 'cvss',     dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
+  { label: 'EPSS',                 sort: 'epss',     dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
+  { label: 'Prioridad',            sort: 'priority', dir: 'desc', num: true, order: 'highest first', rorder: 'lowest first' },
+  { label: 'Paquetes / Servidores' },
+  { label: 'Detectado hace',       sort: 'aging',    dir: 'desc', num: true, order: 'oldest first', rorder: 'newest first' },
+  { label: 'Responsable',          sort: 'owner',    dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
+  { label: 'Estado',               sort: 'status',   dir: 'asc',  order: 'A to Z',       rorder: 'Z to A' },
+  { label: '' },
+];
+
 const ESTADO_LABEL = {
   pendiente: 'Pendiente', en_curso: 'En curso', parcial: 'Parcial',
   resuelto: 'Resuelto', aceptado_riesgo: 'Riesgo aceptado',
@@ -592,8 +638,11 @@ async function loadSummary() {
   }
 
   showSetupHint(d);
-  renderChips();
+  // Va antes de renderChips: los desplegables tienen que tener sus opciones
+  // para que lo que pidio la URL se pueda aplicar y salir como chip.
   populatePlatformFilter(d.plataformas || []);
+  applyPending();
+  renderChips();
   renderSevTabs(d.por_severidad || []);
   renderSevDonut(d.por_severidad || []);
   renderPlatDonut(d.por_plataforma || []);
@@ -897,15 +946,15 @@ async function loadHistory() {
 function filters() {
   const qs = new URLSearchParams();
   const sev = sevFilter;
-  const owner = document.getElementById('filter-owner').value;
-  const estado = document.getElementById('filter-estado').value;
-  const agent = document.getElementById('filter-agent').value;
+  const owner = selVal('filter-owner');
+  const estado = selVal('filter-estado');
+  const agent = selVal('filter-agent');
   const q = document.getElementById('filter-q').value.trim();
   if (sev) qs.set('severity', sev);
   if (owner) qs.set('owner', owner);
   if (estado) qs.set('status', estado);
   if (agent) qs.set('agent', agent);
-  const plat = document.getElementById('filter-plat').value;
+  const plat = selVal('filter-plat');
   if (plat) qs.set('plataforma', plat);
   if (q) qs.set('q', q);
   // Las vistas rapidas son filtros como cualquier otro; viven aparte para poder
@@ -950,9 +999,6 @@ function setSev(v) {
 function renderChips() {
   const box = document.getElementById('activeChips');
   const chips = [];
-  Object.keys(QUICK).forEach(function (k) {
-    if (quickOn[k]) chips.push({ key: 'qf:' + k, label: QUICK[k].label });
-  });
   [['filter-plat', 'Platform'], ['filter-owner', 'Owner'],
    ['filter-estado', 'Status'], ['filter-agent', 'Server']].forEach(function (pair) {
     const el = document.getElementById(pair[0]);
@@ -963,17 +1009,17 @@ function renderChips() {
   const q = document.getElementById('filter-q').value.trim();
   if (q) chips.push({ key: 'filter-q', label: 'Search', value: q });
 
-  if (!chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const anyQuick = Object.keys(QUICK).some(function (k) { return quickOn[k]; });
+  if (!chips.length && !anyQuick) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'flex';
   box.innerHTML = chips.map(function (c) {
     const txt = c.value ? `${escapeHtml(c.label)}: <b>${escapeHtml(c.value)}</b>` : `<b>${escapeHtml(c.label)}</b>`;
-    return `<span class="chip">${txt}<button type="button" data-clear="${c.key}" aria-label="Remove filter">&times;</button></span>`;
+    return `<span class="chip">${txt}<button type="button" data-clear="${c.key}" aria-label="Remove filter ${escapeHtml(c.label)}">&times;</button></span>`;
   }).join('') + '<button type="button" class="chip-clear" id="clearAll">Clear all</button>';
 }
 
 function clearFilter(key) {
   if (key === 'sev') { sevFilter = ''; }
-  else if (key.startsWith('qf:')) { quickOn[key.slice(3)] = false; syncQuickButtons(); }
   else {
     const el = document.getElementById(key);
     if (el.type === 'checkbox') el.checked = false; else el.value = '';
@@ -999,12 +1045,103 @@ function syncQuickButtons() {
 }
 
 document.addEventListener('click', function (ev) {
+  const th = ev.target.closest('.th-sort');
+  if (th) { setSort(th.dataset.sort); return; }
   const qf = ev.target.closest('.qf');
   if (qf) { quickOn[qf.dataset.qf] = !quickOn[qf.dataset.qf]; syncQuickButtons(); reloadCves(); return; }
   if (ev.target.id === 'clearAll') { clearAllFilters(); return; }
   const rm = ev.target.closest('[data-clear]');
   if (rm) clearFilter(rm.dataset.clear);
 });
+
+/* La pantalla en la URL.
+ *
+ * Sin esto no habia forma de mandarle a alguien "mira estas catorce criticas
+ * vencidas de Ubuntu": el link llevaba al panel sin filtrar y habia que
+ * dictarle los cinco controles que tocar.
+ *
+ * replaceState y no pushState: escribir en la busqueda dispara un cambio por
+ * tecla, y con push cada letra seria una entrada del historial. Se gana
+ * compartir y marcar; el boton de atras sigue saliendo de la pantalla. */
+const URL_STATE = {
+  q:      function () { return document.getElementById('filter-q').value.trim(); },
+  sev:    function () { return sevFilter; },
+  plat:   function () { return selVal('filter-plat'); },
+  owner:  function () { return selVal('filter-owner'); },
+  status: function () { return selVal('filter-estado'); },
+  agent:  function () { return selVal('filter-agent'); },
+  qf:     function () { return Object.keys(QUICK).filter(function (k) { return quickOn[k]; }).join(','); },
+  sort:   function () { return sortCol; },
+  dir:    function () { return sortCol ? sortDir : ''; },
+  size:   function () { return pageSize !== 10 ? String(pageSize) : ''; },
+  page:   function () { return page > 1 ? String(page) : ''; },
+};
+
+function syncUrl() {
+  const qs = new URLSearchParams();
+  Object.keys(URL_STATE).forEach(function (k) {
+    const v = URL_STATE[k]();
+    if (v) qs.set(k, v);
+  });
+  const next = qs.toString();
+  history.replaceState(null, '', next ? location.pathname + '?' + next : location.pathname);
+}
+
+// Valores que vinieron de la URL para desplegables que el servidor todavia no
+// llenó. Se vacía en cuanto llega el primer resumen.
+let urlPending = {};
+
+function selVal(id) {
+  const el = document.getElementById(id);
+  if (el && el.value) return el.value;
+  return urlPending[id] || '';
+}
+
+function readUrl() {
+  const qs = new URLSearchParams(location.search);
+  sevFilter = qs.get('sev') || '';
+  // ?cve= es el parametro que ya existia para llegar a un CVE puntual; se
+  // sigue aceptando aunque el estado propio de la pantalla viaje en ?q=.
+  document.getElementById('filter-q').value = qs.get('q') || qs.get('cve') || '';
+  document.getElementById('filter-estado').value = qs.get('status') || '';
+  ['plat', 'owner', 'agent'].forEach(function (k) {
+    const v = qs.get(k);
+    if (v) urlPending['filter-' + k] = v;
+  });
+  (qs.get('qf') || '').split(',').forEach(function (k) {
+    if (QUICK[k]) quickOn[k] = true;
+  });
+  syncQuickButtons();
+  const sort = qs.get('sort');
+  if (sort && COLS.some(function (c) { return c.sort === sort; })) {
+    sortCol = sort;
+    sortDir = qs.get('dir') === 'asc' ? 'asc' : 'desc';
+  }
+  const size = parseInt(qs.get('size'), 10);
+  if ([10, 25, 50, 100, 200].indexOf(size) !== -1) {
+    pageSize = size;
+    document.getElementById('page-size').value = String(size);
+  }
+  page = Math.max(1, parseInt(qs.get('page'), 10) || 1);
+}
+
+/* Los desplegables dinamicos ya tienen sus opciones: se aplica lo que quedo
+   pendiente. Lo que no exista se descarta — un owner que ya no esta en el
+   parque dejaria la tabla filtrada a cero sin ningun chip que sacar. */
+let urlDropped = false;
+
+function applyPending() {
+  let dropped = false;
+  Object.keys(urlPending).forEach(function (id) {
+    const el = document.getElementById(id);
+    const v = urlPending[id];
+    const ok = el && Array.prototype.some.call(el.options, function (o) { return o.value === v; });
+    if (ok) el.value = v; else dropped = true;
+  });
+  urlPending = {};
+  if (dropped) urlDropped = true;
+  return dropped;
+}
 
 function fmtAgo(iso) {
   if (!iso) return '';
@@ -1018,6 +1155,7 @@ async function loadCves() {
   const body = document.getElementById('cves-body');
   try {
     const qs = filters();
+    if (sortCol) { qs.set('sort', sortCol); qs.set('dir', sortDir); }
     qs.set('limit', pageSize);
     qs.set('offset', (page - 1) * pageSize);
     const res = await fetch(`/vulnerabilities/cves?${qs}`);
@@ -1087,11 +1225,11 @@ function renderTable() {
     return `<tr>
       <td><a class="mono" href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(c.cve)}" target="_blank" rel="noopener">${escapeHtml(c.cve)}</a>${flags}</td>
       <td><span class="pbadge ${sevCls}">${escapeHtml(sevLab)}</span></td>
-      <td>${c.cvss != null ? c.cvss.toFixed(1) : '—'}</td>
-      <td>${epss}</td>
-      <td><strong>${c.priority_score != null ? c.priority_score : '—'}</strong></td>
+      <td class="is-num">${c.cvss != null ? c.cvss.toFixed(1) : '—'}</td>
+      <td class="is-num">${epss}</td>
+      <td class="is-num"><strong>${c.priority_score != null ? c.priority_score : '—'}</strong></td>
       <td title="${escapeHtml(c.descripcion || '')}">${paquetes || '—'}<br><span style="font-size:11px;color:var(--color-gray-400)">${agentesShown}${agentesMore}</span></td>
-      <td>${dias}</td>
+      <td class="is-num">${dias}</td>
       <td>${owner}</td>
       <td>${estado}${c.due_date ? `<br><span style="font-size:11px;color:var(--color-gray-400)">objetivo: ${escapeHtml(c.due_date)}</span>` : ''}</td>
       <td><button type="button" class="btn-ghost btn-sm" onclick="openModal('${escapeHtml(c.cve)}')">Track</button></td>
@@ -1099,10 +1237,50 @@ function renderTable() {
   }).join('');
 
   body.innerHTML = `<div class="dash-table-wrap"><table class="dash-table">
-    <thead><tr><th>CVE</th><th>Severidad</th><th>CVSS</th><th>EPSS</th><th>Prioridad</th><th>Paquetes / Servidores</th><th>Detectado hace</th><th>Responsable</th><th>Estado</th><th></th></tr></thead>
+    <thead><tr>${renderHead()}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
   renderPager();
+  describeSort();
+}
+
+function renderHead() {
+  return COLS.map(function (c) {
+    const num = c.num ? ' is-num' : '';
+    if (!c.sort) return `<th${num ? ' class="is-num"' : ''}>${escapeHtml(c.label)}</th>`;
+    const on = sortCol === c.sort;
+    // aria-sort solo va en la columna activa: ponerlo en todas le diria al
+    // lector de pantalla que la tabla esta ordenada por nueve columnas.
+    const aria = on ? ` aria-sort="${sortDir === 'asc' ? 'ascending' : 'descending'}"` : '';
+    const arrow = on ? (sortDir === 'asc' ? '↑' : '↓') : (c.dir === 'asc' ? '↑' : '↓');
+    const next = on && sortDir === c.dir ? c.rorder : c.order;
+    return `<th class="is-sortable${num}"${aria}>
+      <button type="button" class="th-sort${num}" data-sort="${c.sort}"
+              title="Sort by ${escapeHtml(c.label)} — ${escapeHtml(next)}">
+        ${escapeHtml(c.label)}<span class="arrow" aria-hidden="true">${arrow}</span>
+      </button></th>`;
+  }).join('');
+}
+
+function setSort(col) {
+  const spec = COLS.find(c => c.sort === col);
+  if (!spec) return;
+  // Volver a la columna que ya esta activa invierte el sentido; cambiar de
+  // columna arranca por el sentido que sirve para ese dato.
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = spec.dir; }
+  reloadCves();
+}
+
+// El orden vigente en palabras. Las flechas del encabezado lo dicen, pero hay
+// que ir a buscarlas; aca esta al lado del titulo de la tabla.
+function describeSort() {
+  const el = document.getElementById('cves-sub');
+  if (!el) return;
+  const spec = COLS.find(c => c.sort === sortCol);
+  if (!spec) { el.textContent = 'Ordered by priority score'; return; }
+  const how = sortDir === spec.dir ? spec.order : spec.rorder;
+  el.textContent = `Ordered by ${spec.label} — ${how}`;
 }
 
 function renderPager() {
@@ -1155,6 +1333,7 @@ function reloadCves(keepPage) {
   // Cambiar un filtro cambia el conjunto: seguir en la pagina 7 del anterior no
   // significa nada. Solo la navegacion explicita conserva la pagina.
   if (!keepPage) page = 1;
+  syncUrl();
   loadCves();
   loadSummary();
 }
@@ -1165,6 +1344,64 @@ function debouncedReload() {
 
 // --- Modal de asignación ---
 let modalCve = null;
+/* Accesibilidad de los dos dialogos.
+ *
+ * Se abrian poniendo hidden=false y nada mas. El foco se quedaba atras en la
+ * tabla, Escape no hacia nada, y tabulando se salia del dialogo hacia el
+ * contenido que el dialogo esta justamente tapando — con lector de pantalla o
+ * sin mouse no habia forma clara de operarlos ni de cerrarlos.
+ *
+ * El de rescan ya se cerraba clickeando el fondo y sigue igual: no hay nada
+ * escrito que perder. El de seguimiento no, a proposito — tiene un campo de
+ * notas, y perder lo tipeado por un clic al costado es peor que tener que
+ * apuntar al boton. */
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
+                  'select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+let dialogReturnFocus = null;
+
+function dialogItems(box) {
+  return Array.prototype.filter.call(box.querySelectorAll(FOCUSABLE), function (el) {
+    return el.offsetParent !== null;
+  });
+}
+
+function openDialog(id, firstId) {
+  const box = document.getElementById(id);
+  dialogReturnFocus = document.activeElement;
+  box.hidden = false;
+  const target = (firstId && document.getElementById(firstId)) || box.querySelector('.modal');
+  if (target) target.focus();
+}
+
+function closeDialog(id) {
+  document.getElementById(id).hidden = true;
+  // Volver al control que lo abrio. Sin esto el foco cae al principio del
+  // documento y hay que tabular de nuevo hasta la fila donde estabas.
+  if (dialogReturnFocus && document.contains(dialogReturnFocus)) dialogReturnFocus.focus();
+  dialogReturnFocus = null;
+}
+
+document.addEventListener('keydown', function (ev) {
+  const box = document.querySelector('.modal-backdrop:not([hidden])');
+  if (!box) return;
+  if (ev.key === 'Escape') {
+    ev.preventDefault();
+    if (box.id === 'rescanModal') closeRescan(); else closeModal();
+    return;
+  }
+  if (ev.key !== 'Tab') return;
+  const items = dialogItems(box);
+  if (!items.length) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  // El tabulador da la vuelta dentro del dialogo en vez de escaparse.
+  if (ev.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))) {
+    ev.preventDefault(); last.focus();
+  } else if (!ev.shiftKey && document.activeElement === last) {
+    ev.preventDefault(); first.focus();
+  }
+});
+
 function openModal(cve) {
   modalCve = cve;
   const cur = allCves.find(c => c.cve === cve) || {};
@@ -1175,11 +1412,11 @@ function openModal(cve) {
   document.getElementById('m-due').value = cur.due_date || '';
   document.getElementById('m-notes').value = cur.notes || '';
   document.getElementById('m-delete').hidden = !cur.estado;
-  document.getElementById('modal').hidden = false;
+  openDialog('modal', 'm-owner');
 }
 function closeModal() {
   modalCve = null;
-  document.getElementById('modal').hidden = true;
+  closeDialog('modal');
 }
 async function saveAssignment() {
   if (!modalCve) return;
@@ -1271,7 +1508,7 @@ async function refreshNow() {
 }
 
 async function openRescan() {
-  document.getElementById('rescanModal').hidden = false;
+  openDialog('rescanModal');
   document.getElementById('rescan-all').checked = false;
   document.getElementById('rescan-go').disabled = true;
   document.getElementById('rescan-all').disabled = true;
@@ -1317,7 +1554,7 @@ async function openRescan() {
 }
 
 function closeRescan() {
-  document.getElementById('rescanModal').hidden = true;
+  closeDialog('rescanModal');
 }
 
 function toggleAllAgents(on) {
@@ -1436,15 +1673,24 @@ window.__onThemeChange = function () {
 };
 
 async function init() {
+  readUrl();
   try { await loadSummary(); } catch (e) {
     document.getElementById('cves-body').innerHTML =
       `<div class="alert alert-err">No se pudo cargar el estado de vulnerabilidades: ${escapeHtml(e.message)}</div>`;
     return;
   }
+  // Un filtro que venia en la URL y ya no existe en el parque se descarto al
+  // llegar el resumen. Hay que rehacerlo: si no, los KPIs siguen contados con
+  // ese filtro y la tabla de abajo no, y los dos numeros no cierran.
+  if (urlDropped) {
+    urlDropped = false;
+    page = 1;
+    syncUrl();
+    try { await loadSummary(); } catch (e) { /* ya se mostro el estado anterior */ }
+  }
   loadHistory();
   initRefreshBar();
-  const cveParam = new URLSearchParams(location.search).get('cve');
-  if (cveParam) document.getElementById('filter-q').value = cveParam;
+  syncUrl();
   await loadCves();
 }
 init();

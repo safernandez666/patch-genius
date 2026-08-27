@@ -64,6 +64,12 @@ A PostToolUse hook runs `ruff format` on each Python file you edit.
 - `/vulnerabilities/summary` and `/vulnerabilities/cves` must keep sharing the
   `_vuln_rows` / `_apply_vuln_filters` helpers in `app/main.py` so KPIs and the table
   never desync. New filtering logic goes in those helpers, not in one route.
+- `/vulnerabilities/cves` also **sorts** server-side (`_sort_rows`), because it paginates
+  server-side: sorting in the browser would only reorder the ten rows already on screen.
+  A new sortable column needs an entry in `_SORTABLE` and one in `COLS` in `index.html`.
+- The dashboard mirrors its filters, sort and page into the query string (`syncUrl` /
+  `readUrl` in `index.html`) so a filtered view can be shared. It uses `replaceState`: the
+  search box fires on every keystroke, and `pushState` would make each letter a history entry.
 - Filtering and aggregation happen in Python over the cached JSONB state in
   `vuln_state_cache` (a single row, `CHECK (id = 1)`) — not in SQL. Only the
   lifecycle/SLA metrics (`patching_metrics`) are real queries.

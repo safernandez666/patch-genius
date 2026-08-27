@@ -59,3 +59,86 @@ def test_order_is_stable_across_calls():
 
 def test_empty_input():
     assert _sort_by_priority([]) == []
+
+
+# --- Ordenamiento por columna --------------------------------------------
+# La paginación es del servidor, así que ordenar en el navegador sólo ordenaría
+# la página que ya está a la vista. La tabla ordena acá.
+
+from app.main import _sort_rows  # noqa: E402
+
+
+def col(cve, **kw):
+    base = {
+        "cve": cve,
+        "priority_score": 50.0,
+        "severidad": "High",
+        "kev": False,
+        "dias_detectado": 0,
+        "cvss": None,
+        "epss": None,
+        "owner": None,
+        "estado": None,
+    }
+    base.update(kw)
+    return base
+
+
+def test_no_column_keeps_the_priority_order():
+    rows = [col("CVE-1", priority_score=10.0), col("CVE-2", priority_score=90.0)]
+    assert [r["cve"] for r in _sort_rows(rows)] == ["CVE-2", "CVE-1"]
+
+
+def test_an_unknown_column_falls_back_to_priority():
+    # Una query mal escrita no puede vaciar la pantalla.
+    rows = [col("CVE-1", priority_score=10.0), col("CVE-2", priority_score=90.0)]
+    assert [r["cve"] for r in _sort_rows(rows, sort="nope")] == ["CVE-2", "CVE-1"]
+
+
+def test_sorts_by_cvss_in_both_directions():
+    rows = [col("CVE-a", cvss=4.0), col("CVE-b", cvss=9.8), col("CVE-c", cvss=7.5)]
+    assert [r["cve"] for r in _sort_rows(rows, "cvss", "desc")] == ["CVE-b", "CVE-c", "CVE-a"]
+    assert [r["cve"] for r in _sort_rows(rows, "cvss", "asc")] == ["CVE-a", "CVE-c", "CVE-b"]
+
+
+def test_missing_values_sink_in_both_directions():
+    # Ascendente, un None que ordenara como cero encabezaría la tabla con filas
+    # en blanco: no es lo que pidió nadie.
+    rows = [col("CVE-none"), col("CVE-low", cvss=2.0), col("CVE-high", cvss=9.0)]
+    assert [r["cve"] for r in _sort_rows(rows, "cvss", "asc")][-1] == "CVE-none"
+    assert [r["cve"] for r in _sort_rows(rows, "cvss", "desc")][-1] == "CVE-none"
+
+
+def test_severity_sorts_by_rank_not_alphabetically():
+    # "Critical" < "Low" < "Medium" alfabéticamente, que es exactamente el orden
+    # equivocado.
+    rows = [
+        col("CVE-low", severidad="Low"),
+        col("CVE-crit", severidad="Critical"),
+        col("CVE-med", severidad="Medium"),
+    ]
+    assert [r["cve"] for r in _sort_rows(rows, "severity", "desc")] == [
+        "CVE-crit",
+        "CVE-med",
+        "CVE-low",
+    ]
+
+
+def test_priority_breaks_a_tie_on_the_sorted_column():
+    rows = [
+        col("CVE-a", cvss=7.0, priority_score=20.0),
+        col("CVE-b", cvss=7.0, priority_score=80.0),
+    ]
+    assert [r["cve"] for r in _sort_rows(rows, "cvss", "desc")] == ["CVE-b", "CVE-a"]
+
+
+def test_owner_sorting_ignores_case():
+    rows = [col("CVE-1", owner="zoe"), col("CVE-2", owner="Ana")]
+    assert [r["cve"] for r in _sort_rows(rows, "owner", "asc")] == ["CVE-2", "CVE-1"]
+
+
+def test_sorting_does_not_drop_or_duplicate_rows():
+    rows = [col(f"CVE-{i}", cvss=(None if i % 3 == 0 else float(i))) for i in range(12)]
+    for direction in ("asc", "desc"):
+        out = _sort_rows(rows, "cvss", direction)
+        assert sorted(r["cve"] for r in out) == sorted(r["cve"] for r in rows)
