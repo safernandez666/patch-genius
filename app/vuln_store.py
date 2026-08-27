@@ -575,7 +575,7 @@ class VulnStore:
             )
         owner_email = owner_email.strip()
         if owner_email and not _EMAIL_RE.match(owner_email):
-            raise ValueError(f"correo inválido: {owner_email!r}")
+            raise ValueError(f"invalid e-mail address: {owner_email!r}")
         owner = await self._canonical_owner(owner)
         due = date.fromisoformat(due_date) if due_date else None
 

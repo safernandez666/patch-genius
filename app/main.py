@@ -320,7 +320,7 @@ async def api_login(request: Request, response: Response):
     )
     if not user:
         # Same message for unknown user and wrong password.
-        raise HTTPException(status_code=401, detail="credenciales invalidas")
+        raise HTTPException(status_code=401, detail="invalid credentials")
     token = request.app.state.auth.issue_session(user)
     response.set_cookie(
         SESSION_COOKIE,
@@ -383,7 +383,7 @@ async def api_config_test(request: Request, user: str = Depends(require_admin)):
     password = body.get("indexer_password") or stored["indexer_password"]
     url = (body.get("indexer_url") or stored["indexer_url"] or "").strip().rstrip("/")
     if not url:
-        raise HTTPException(status_code=400, detail="falta la URL del indexer")
+        raise HTTPException(status_code=400, detail="the indexer URL is missing")
     client = WazuhIndexerClient(
         base_url=url,
         username=body.get("indexer_user") or stored["indexer_user"],
@@ -674,7 +674,7 @@ async def api_password(request: Request, user: str = Depends(require_admin)):
     current = str(body.get("current_password", ""))
     new_password = str(body.get("new_password", ""))
     if not await request.app.state.auth.authenticate(user, current):
-        raise HTTPException(status_code=401, detail="la contraseña actual no es correcta")
+        raise HTTPException(status_code=401, detail="the current password is not correct")
     try:
         await request.app.state.auth.set_password(user, new_password)
     except AuthError as exc:
@@ -1099,7 +1099,7 @@ async def vuln_assign(request: Request, user: str = Depends(require_user)):
     body = await request.json()
     cve = (body.get("cve") or "").strip().upper()
     if not cve:
-        raise HTTPException(status_code=400, detail="Falta el campo: cve")
+        raise HTTPException(status_code=400, detail="missing field: cve")
     store = _store(request)
     try:
         saved = await store.upsert_assignment(
@@ -1121,5 +1121,5 @@ async def vuln_unassign(cve: str, request: Request, user: str = Depends(require_
     """Borra el seguimiento de un CVE."""
     deleted = await _store(request).delete_assignment(cve.strip().upper(), deleted_by=user)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Ese CVE no tiene seguimiento cargado")
+        raise HTTPException(status_code=404, detail="that CVE is not being tracked")
     return {"status": "deleted", "cve": cve.strip().upper()}

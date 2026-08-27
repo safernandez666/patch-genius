@@ -47,28 +47,29 @@
   <form id="f">
     <div class="card">
       <h2>General</h2>
-      <p class="hint">How often the indexer is re-read, and which language the dashboard uses.</p>
+      <p class="hint">How often the indexer is re-read, and which language Patch Genius writes in.</p>
       <div class="row">
         <div>
           <label for="refresh_minutes">Refresh interval (minutes)</label>
           <input type="number" id="refresh_minutes" name="refresh_minutes" min="5" max="1440">
         </div>
         <div>
-          <label for="lang">Interface language</label>
+          <label for="lang">Language</label>
           <select id="lang" name="lang">
             <option value="en">English</option>
             <option value="es">Español</option>
           </select>
         </div>
       </div>
-      <p class="hint" style="margin-top:10px">The language is set for the whole installation, not per user: in a SOC the same screen
-        is read by the entire team.</p>
+      <p class="hint" style="margin-top:10px">The screens ship in English; this is the language the AI brief is
+        written in. It is set for the whole installation, not per user: in a SOC the same screen is read by the
+        entire team.</p>
     </div>
 
     <div class="card">
       <h2>Enrichment</h2>
-      <p class="hint">Se consultan solo por identificador de CVE: no sale ningún dato de tu
-        infraestructura. Desactivalos en una red aislada — el score degrada a CVSS solo.</p>
+      <p class="hint">Queried by CVE identifier only — nothing about your infrastructure leaves
+        the deployment. Turn them off on an isolated network; the score degrades to CVSS alone.</p>
       <label class="check"><input type="checkbox" id="enrich_epss" name="enrich_epss">
         EPSS (FIRST.org)</label>
       <label class="check"><input type="checkbox" id="enrich_kev" name="enrich_kev">

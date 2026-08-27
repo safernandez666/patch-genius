@@ -112,8 +112,15 @@ A PostToolUse hook runs `ruff format` on each Python file you edit.
 ## Conventions
 
 - Existing code, comments and docstrings are Spanish; **write new comments, docstrings,
-  docs and commit messages in English.** Do not mass-translate existing Spanish.
-- Spanish stays in API field names, DB status values (`pendiente`, `en_curso`, `parcial`,
-  `resuelto`, `aceptado_riesgo`) and UI strings — these are data contracts, not prose.
+  docs and commit messages in English.** Do not mass-translate existing Spanish comments.
+- **Everything the user reads is English**: labels, table headers, badges, placeholders,
+  tooltips, `confirm`/`alert` text and the `detail` of any HTTPException that reaches a
+  screen.
+- Spanish stays where it is a **data contract**, never prose: API field names (`severidad`,
+  `dias_detectado`, `criticas_altas`) and DB status values (`pendiente`, `en_curso`,
+  `parcial`, `resuelto`, `aceptado_riesgo`). Those keys are rendered through
+  `ESTADO_LABEL` in `index.html` — translate the label, never the key.
+- The panel ships English-only. `i18n.js` keeps the machinery and an empty `DICT.es`; the
+  `lang` setting still picks the language the AI brief is written in.
 - Every module starts with `from __future__ import annotations`. Type hints throughout.
 - Never commit to `master`. Branch, then open a PR with `gh`.

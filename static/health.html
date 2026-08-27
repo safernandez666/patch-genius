@@ -348,7 +348,7 @@ function renderClosures(d) {
     ? `<p class="card-sub" style="margin:12px 0 0">Showing the ${rows.length} most recent of
        ${fmtNum.format(d.cierres)} closures.</p>` : '';
   el.innerHTML = `<table>
-    <thead><tr><th>CVE</th><th>Severidad</th><th>Servidor</th><th>Estuvo abierto</th><th>Cerrado</th></tr></thead>
+    <thead><tr><th>CVE</th><th>Severity</th><th>Server</th><th>Open for</th><th>Closed</th></tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td><a class="mono" href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(r.cve)}"
              target="_blank" rel="noopener">${esc(r.cve)}</a></td>

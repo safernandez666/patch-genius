@@ -13,14 +13,14 @@
       favicon: "/static/assets/genie.svg",
       faviconType: "image/svg+xml",
       metaColor: "#f5f5f5",
-      label: "Claro",
+      label: "Light",
     },
     soc: {
       mode: "dark",
       favicon: "/static/assets/genie.svg",
       faviconType: "image/svg+xml",
       metaColor: "#303841",
-      label: "Oscuro",
+      label: "Dark",
     },
   };
   var ORDER = ["light", "soc"];
@@ -73,8 +73,8 @@
     if (btn) {
       var idx = ORDER.indexOf(THEMES[name] ? name : "soc");
       var other = THEMES[ORDER[(idx + 1) % ORDER.length]].label;
-      btn.setAttribute("title", "Cambiar a tema " + other);
-      btn.setAttribute("aria-label", "Cambiar a tema " + other);
+      btn.setAttribute("title", "Switch to the " + other.toLowerCase() + " theme");
+      btn.setAttribute("aria-label", "Switch to the " + other.toLowerCase() + " theme");
     }
   }
 

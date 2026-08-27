@@ -9,108 +9,13 @@
  * translation shows English — never a raw key and never a gap.
  */
 (function (global) {
+  // El panel se entrega en ingles. `es` esta vacio a proposito: las claves que
+  // habia eran todas el texto ingles, asi que elegir "Espanol" devolvia ingles
+  // igual — una traduccion que parecia existir y no existia. Aca es donde va una
+  // traduccion de verdad el dia que se escriba; mientras tanto cada nodo se
+  // queda con el texto del HTML, que ya es el idioma correcto.
   var DICT = {
-    es: {
-      "brand.tagline": "Vulnerability and patch tracking on top of your own Wazuh. Prioritised with CISA KEV and EPSS.",
-
-      "login.title": "Sign in",
-      "login.sub": "Sign in to your account to see the vulnerability inventory.",
-      "login.user": "Username",
-      "login.pass": "Password",
-      "login.submit": "Sign in",
-      "login.bad": "Wrong username or password.",
-      "login.down": "Could not reach the server.",
-
-      "signup.title": "Create your account",
-      "signup.sub": "This installation has no account yet. The first one you create is the administrator.",
-      "signup.user": "Username *",
-      "signup.pass": "Password *",
-      "signup.pass2": "Repeat password *",
-      "signup.submit": "Create account and sign in",
-      "signup.note": "This page closes itself as soon as an account exists. It is not open registration — nobody else will be able to sign up here.",
-      "signup.mismatch": "The passwords do not match.",
-      "signup.short": "The password needs at least 12 characters.",
-      "signup.taken": "An account already exists. Go to Sign in.",
-      "signup.fail": "Could not create the account.",
-
-      "nav.vulns": "Vulnerabilidades",
-      "nav.brief": "IA",
-      "nav.health": "Sanidad",
-      "nav.config": "Configuration",
-      "nav.integrations": "Integrations",
-      "nav.help": "Help",
-      "nav.logout": "Sign out",
-      "nav.source": "Source",
-
-      "page.title": "Vulnerabilities — patch tracking",
-      "page.desc.pre": "Fleet state read from your Wazuh, prioritised by",
-      "page.desc.link": "How prioritisation, aging and the SLA work",
-
-      "stat.kev": "In CISA KEV",
-      "stat.kev.hint": "confirmed active exploitation",
-      "stat.prio": "Critical priority",
-      "stat.sla": "Criticals past SLA",
-      "stat.ca": "Critical + high",
-      "stat.ca.hint": "of the fleet's unique CVEs",
-      "stat.total": "Active vulnerabilities",
-      "stat.cves": "Unique CVEs",
-      "stat.srv": "Servers",
-      "stat.ransom": "Known ransomware",
-      "stat.epss": "High EPSS",
-      "stat.new": "New (7 days)",
-      "stat.resolved": "Resolved (7 days)",
-      "stat.reopened": "Reopened (7 days)",
-      "stat.aging": "Average aging",
-      "stat.aging.hint": "days since detection (active)",
-      "stat.slapct": "Criticals resolved in SLA",
-      "stat.slapct.hint": "% remediated within the window",
-
-      "chart.evolution": "Trend",
-      "chart.severity": "By severity",
-      "chart.platform": "By platform",
-      "chart.platform.sub": "A CVE present on Linux and Windows counts in both, so the total can exceed the unique CVE count.",
-      "chart.packages": "Top vulnerable packages",
-      "chart.os": "Operating-system level vulnerabilities",
-      "chart.servers": "By server",
-
-      "filter.severities": "All severities",
-      "filter.platforms": "All platforms",
-      "filter.owners": "All owners",
-      "filter.statuses": "All statuses",
-      "filter.servers": "All servers",
-      "filter.kev": "CISA KEV only (active exploitation)",
-      "filter.ransom": "With known ransomware",
-      "filter.search": "Search CVE / package…",
-      "filter.quick": "Quick views:",
-      "filter.clear": "Clear all",
-
-      "qf.kev": "Active exploitation (KEV)",
-      "qf.score": "Priority ≥ 80",
-      "qf.sla": "Criticals past SLA",
-      "qf.os": "Operating-system patches",
-      "qf.untriaged": "Untriaged",
-
-      "sev.Critical": "Critical", "sev.High": "High", "sev.Medium": "Medium",
-      "sev.Low": "Low", "sev.Untriaged": "Untriaged",
-
-      "table.title": "Fleet CVEs",
-      "table.cve": "CVE", "table.sev": "Severity", "table.prio": "Priority",
-      "table.pkgs": "Packages / Servers", "table.detected": "Detected",
-      "table.owner": "Owner", "table.status": "Status",
-      "table.empty.h": "No CVEs match those filters",
-      "table.empty.p": "Try widening the search or removing filters.",
-      "table.track": "Track",
-
-      "pager.size": "Rows per page",
-      "pager.prev": "Previous",
-      "pager.next": "Next",
-      "pager.showing": "Showing",
-      "pager.of": "of",
-
-      "setup.title": "No data yet.",
-      "setup.body": "Connect your Wazuh in Configuration and run the first refresh.",
-      "updated": "Updated",
-    },
+    es: {},
   };
 
   var lang = "en";
@@ -124,27 +29,33 @@
   function apply(root) {
     (root || document).querySelectorAll("[data-i18n]").forEach(function (el) {
       var key = el.getAttribute("data-i18n");
-      // El texto del HTML es el fallback: una clave que falta deja el español.
+      // El texto del HTML es el fallback, y el HTML esta en ingles: una clave
+      // que falta deja ingles, nunca un hueco ni la clave cruda.
       if (!el.dataset.i18nEn) el.dataset.i18nEn = el.innerHTML;
       var v = lang === "en" ? el.dataset.i18nEn : (DICT[lang] || {})[key];
       if (v) el.innerHTML = v;
     });
-    document.documentElement.lang = lang;
+    // El atributo lang le dice al lector de pantalla como pronunciar. Mientras
+    // no exista la traduccion, el contenido sigue siendo ingles aunque la
+    // instalacion este en "es": marcarlo como "es" lo haria leer ingles con
+    // fonetica castellana.
+    var translated = lang === "en" || Object.keys(DICT[lang] || {}).length > 0;
+    document.documentElement.lang = translated ? lang : "en";
   }
 
   function set(next) {
-    lang = DICT[next] || next === "en" ? next : "en";
+    lang = (DICT[next] || next === "en") ? next : "en";
     apply();
     global.dispatchEvent(new CustomEvent("i18n:changed", { detail: { lang: lang } }));
   }
 
   // El idioma sale de la config del servidor. Se pide una sola vez y no bloquea
-  // el render: la página ya está en español, así que un fallo deja español.
+  // el render: la pagina ya esta en ingles, asi que un fallo la deja en ingles.
   async function init() {
     try {
       var r = await fetch("/api/lang");
       if (r.ok) { var d = await r.json(); set(d.lang || "en"); return; }
-    } catch (e) { /* offline: stays English */ }
+    } catch (e) { /* sin respuesta del servidor: se queda en ingles */ }
     apply();
   }
 
