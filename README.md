@@ -111,6 +111,30 @@ and prints the credentials. Skip it and the sign-up screen creates the first acc
 instead — it answers only while no account exists and closes itself the moment one does, so
 it never becomes an open registration form.
 
+### Open it from other machines on the LAN
+
+Out of the box Docker publishes port 8000 on loopback only, so the panel answers at
+`http://localhost:8000` on the host and nowhere else. To let the rest of the network in,
+set the interface to publish on in `.env` and recreate the container:
+
+```bash
+echo 'APP_BIND=0.0.0.0' >> .env      # or a specific address, e.g. 192.168.1.10
+docker compose up -d
+```
+
+The panel is then at `http://<host-lan-ip>:8000` for anyone on the network. Nothing else
+has to change: the frontend is served from the same origin, so `CORS_ORIGINS` stays empty,
+and the session cookie works over plain HTTP.
+
+Two things to keep in mind:
+
+- **Docker writes its own iptables rules on Linux**, so a published port bypasses `ufw`
+  allow/deny rules. Restrict it at the source instead — `APP_BIND=192.168.1.10` publishes
+  on that interface only — or add the rule to the `DOCKER-USER` chain.
+- **Traffic is unencrypted**, including the login. That is usually fine inside a trusted
+  LAN; for anything wider, leave `APP_BIND` on loopback and put the nginx + TLS setup in
+  [`deploy/`](deploy/DEPLOY.md) in front instead.
+
 ### Reset the database
 
 The first time you start the stack the database is already blank — you do **not** need to

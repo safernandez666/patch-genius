@@ -28,7 +28,10 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8000:8000"
+      # Loopback by default: the VPS deploy puts nginx in front and nothing else
+      # should reach uvicorn directly. Set APP_BIND=0.0.0.0 in .env to publish on
+      # every interface so other hosts on the LAN can open the panel.
+      - "${APP_BIND:-127.0.0.1}:8000:8000"
     restart: unless-stopped
 
 volumes:
